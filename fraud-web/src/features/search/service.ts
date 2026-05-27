@@ -1,0 +1,32 @@
+import { apiClient } from '@/lib/api/client'
+import { ENDPOINTS } from '@/lib/api/endpoints'
+import type { PaginatedResponse } from '@/lib/api/types'
+import type { FraudResponse, CategoryResponse, SearchParams } from './types'
+
+export const searchService = {
+  async search(params: SearchParams): Promise<PaginatedResponse<FraudResponse>> {
+    const queryParams: Record<string, string> = { q: params.q }
+    if (params.type && params.type !== 'all') queryParams.type = params.type
+    if (params.category) queryParams.category = params.category
+    if (params.page) queryParams.page = String(params.page)
+    if (params.limit) queryParams.limit = String(params.limit)
+
+    let endpoint: string = ENDPOINTS.SEARCH
+    if (params.type === 'phone') endpoint = ENDPOINTS.SEARCH_PHONE
+    else if (params.type === 'bank') endpoint = ENDPOINTS.SEARCH_BANK
+    else if (params.type === 'name') endpoint = ENDPOINTS.SEARCH_NAME
+    else if (params.type === 'idcard') endpoint = ENDPOINTS.SEARCH_IDCARD
+
+    const res = await apiClient.get<PaginatedResponse<FraudResponse>>(endpoint, {
+      params: queryParams,
+    })
+    return res.data
+  },
+
+  async getCategories(): Promise<CategoryResponse[]> {
+    const res = await apiClient.get<{ success: boolean; data: CategoryResponse[] }>(
+      ENDPOINTS.CATEGORIES,
+    )
+    return res.data.data
+  },
+}

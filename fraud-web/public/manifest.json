@@ -1,0 +1,12 @@
+{
+  "name": "เช็กคนโกง — AI ตรวจสอบคนโกง",
+  "short_name": "เช็กคนโกง",
+  "description": "ระบบ AI ตรวจสอบข้อมูลคนโกงทุกประเภท ค้นหาด้วยชื่อ เบอร์โทร เลขบัญชี",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
