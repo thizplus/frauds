@@ -14,6 +14,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string; ico
   active: { label: 'ปกติ', color: 'var(--accent)', bg: 'rgba(34,197,94,0.1)', icon: CheckCircle },
   flagged: { label: 'ถูกแจ้ง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)', icon: ShieldAlert },
   cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)', bg: 'var(--bg-elevated)', icon: Clock },
+  archived: { label: 'ถังขยะ', color: 'var(--text-dim)', bg: 'var(--bg-elevated)', icon: Clock },
 }
 
 function formatDate(dateStr: string): string {
@@ -76,7 +77,7 @@ export default function DebtorsPage() {
 
       {/* Status filter */}
       <div className="flex gap-2 mb-4">
-        {[{ value: '', label: 'ทั้งหมด' }, { value: 'unchecked', label: 'รอตรวจสอบ' }, { value: 'active', label: 'ปกติ' }, { value: 'flagged', label: 'ถูกแจ้ง' }, { value: 'cleared', label: 'ปลดแล้ว' }].map((f) => (
+        {[{ value: '', label: 'ทั้งหมด' }, { value: 'unchecked', label: 'รอตรวจสอบ' }, { value: 'active', label: 'ปกติ' }, { value: 'flagged', label: 'ถูกแจ้ง' }, { value: 'cleared', label: 'ปลดแล้ว' }, { value: 'archived', label: '🗑 ถังขยะ' }].map((f) => (
           <button key={f.value} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
             style={{
               background: statusFilter === f.value ? 'var(--accent-dim)' : 'var(--bg-input)',

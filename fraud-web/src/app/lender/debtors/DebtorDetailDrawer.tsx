@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check } from 'lucide-react'
+import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive } from 'lucide-react'
 import { Drawer } from '@/components/ui/Drawer'
-import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor } from '@/features/lender'
+import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor, useDeleteDebtor } from '@/features/lender'
 import type { DebtorDetail, CheckResultItem } from '@/features/lender'
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   active: { label: 'ปกติ', color: 'var(--accent)', bg: 'rgba(34,197,94,0.1)' },
   flagged: { label: 'ถูกแจ้ง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)' },
   cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)', bg: 'var(--bg-elevated)' },
+  archived: { label: 'ถังขยะ', color: 'var(--text-dim)', bg: 'var(--bg-elevated)' },
 }
 
 interface DebtorDetailDrawerProps {
@@ -23,6 +24,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
   const checkMutation = useCheckDebtor()
   const flagMutation = useFlagDebtor()
   const clearMutation = useClearDebtor()
+  const archiveMutation = useDeleteDebtor()
 
   const [flagDialog, setFlagDialog] = useState(false)
   const [clearDialog, setClearDialog] = useState(false)
@@ -91,30 +93,47 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
           <div className="space-y-5">
 
             {/* Action buttons */}
-            <div className="flex gap-2">
-              <button
-                className="btn btn-secondary flex-1 text-sm"
-                onClick={handleCheck}
-                disabled={checkMutation.isPending || scanning}
-              >
-                {(checkMutation.isPending || scanning) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                ตรวจสอบประวัติ
-              </button>
-              {debtor.checkedAt && debtor.status === 'active' && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
                 <button
-                  className="btn flex-1 text-sm"
-                  style={{ background: 'var(--danger)', color: '#fff' }}
-                  onClick={() => setFlagDialog(true)}
+                  className="btn btn-secondary btn-lg flex-1"
+                  onClick={handleCheck}
+                  disabled={checkMutation.isPending || scanning}
                 >
-                  <ShieldAlert className="w-4 h-4" /> แจ้งเตือน
+                  {(checkMutation.isPending || scanning) ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                  ตรวจสอบประวัติ
                 </button>
-              )}
-              {debtor.status === 'flagged' && (
+                {debtor.checkedAt && debtor.status === 'active' && (
+                  <button
+                    className="btn btn-lg flex-1"
+                    style={{ background: 'var(--danger)', color: '#fff' }}
+                    onClick={() => setFlagDialog(true)}
+                  >
+                    <ShieldAlert className="w-5 h-5" /> แจ้งเตือน
+                  </button>
+                )}
+                {debtor.status === 'flagged' && (
+                  <button
+                    className="btn btn-secondary btn-lg flex-1"
+                    onClick={() => setClearDialog(true)}
+                  >
+                    <CheckCircle className="w-5 h-5" /> ปลดแจ้งเตือน
+                  </button>
+                )}
+              </div>
+              {/* ซ่อน (archive) */}
+              {debtor.status !== 'archived' && (
                 <button
-                  className="btn btn-secondary flex-1 text-sm"
-                  onClick={() => setClearDialog(true)}
+                  className="btn btn-secondary w-full text-sm"
+                  style={{ color: 'var(--text-dim)' }}
+                  onClick={() => {
+                    if (confirm('ซ่อนสมาชิกคนนี้? (สามารถกู้คืนได้จากถังขยะ)')) {
+                      archiveMutation.mutate(debtorId!, { onSuccess: onClose })
+                    }
+                  }}
+                  disabled={archiveMutation.isPending}
                 >
-                  <CheckCircle className="w-4 h-4" /> ปลดแจ้งเตือน
+                  <Archive className="w-4 h-4" /> ซ่อนเข้าถังขยะ
                 </button>
               )}
             </div>

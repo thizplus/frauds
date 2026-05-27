@@ -76,9 +76,14 @@ func (r *lenderRepository) ListDebtors(ctx context.Context, lenderID uuid.UUID, 
 	q := r.db.WithContext(ctx).Model(&models.Debtor{}).Where("lender_id = ?", lenderID)
 
 	if status == "unchecked" {
-		q = q.Where("checked_at IS NULL")
+		q = q.Where("checked_at IS NULL AND status != ?", models.DebtorArchived)
+	} else if status == "archived" {
+		q = q.Where("status = ?", models.DebtorArchived)
 	} else if status != "" {
 		q = q.Where("status = ?", status)
+	} else {
+		// default: ซ่อน archived
+		q = q.Where("status != ?", models.DebtorArchived)
 	}
 	if search != "" {
 		like := "%" + search + "%"

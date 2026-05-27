@@ -10,9 +10,10 @@ import (
 type DebtorStatus string
 
 const (
-	DebtorActive  DebtorStatus = "active"
-	DebtorFlagged DebtorStatus = "flagged"
-	DebtorCleared DebtorStatus = "cleared"
+	DebtorActive   DebtorStatus = "active"
+	DebtorFlagged  DebtorStatus = "flagged"
+	DebtorCleared  DebtorStatus = "cleared"
+	DebtorArchived DebtorStatus = "archived"
 )
 
 type Debtor struct {

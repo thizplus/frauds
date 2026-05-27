@@ -240,11 +240,13 @@ func (s *lenderServiceImpl) UpdateDebtor(ctx context.Context, userID, debtorID u
 }
 
 func (s *lenderServiceImpl) DeleteDebtor(ctx context.Context, userID, debtorID uuid.UUID) error {
-	_, _, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
 	if err != nil {
 		return err
 	}
-	return s.lenderRepo.DeleteDebtor(ctx, debtorID)
+	// Soft delete: เปลี่ยน status เป็น archived แทนลบจริง
+	debtor.Status = models.DebtorArchived
+	return s.lenderRepo.UpdateDebtor(ctx, debtor)
 }
 
 // === Actions ===
