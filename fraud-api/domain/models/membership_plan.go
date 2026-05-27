@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ type MembershipPlan struct {
 	Name         string         `gorm:"size:100;not null" json:"name"`
 	Description  string         `gorm:"type:text" json:"description"`
 	Type         PlanType       `gorm:"size:20;not null;default:'subscription'" json:"type"`
-	Price        float64        `gorm:"not null" json:"price"`
+	Price        utils.Satang   `gorm:"type:bigint;not null" json:"price"`
 	DurationDays int            `gorm:"default:0" json:"durationDays"`
 	Features     datatypes.JSON `gorm:"type:jsonb" json:"features"`
 	IsActive     bool           `gorm:"default:true" json:"isActive"`

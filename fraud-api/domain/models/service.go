@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,7 +12,7 @@ type Service struct {
 	ID              uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Name            string         `gorm:"size:100;not null"`
 	Description     string         `gorm:"type:text"`
-	Price           float64        `gorm:"not null"`
+	Price           utils.Satang   `gorm:"type:bigint;not null"`
 	Duration        string         `gorm:"size:100"`
 	Features        datatypes.JSON `gorm:"type:jsonb"`
 	ExpectedResults string         `gorm:"type:text"`

@@ -1,5 +1,7 @@
 package dto
 
+import "fraud-api/pkg/utils"
+
 type MemberDashboardResponse struct {
 	TotalReports         int64 `json:"totalReports"`
 	TotalSearches        int64 `json:"totalSearches"`
@@ -24,7 +26,7 @@ type MemberReportSPItem struct {
 	ID          string  `json:"id"`
 	RefCode     string  `json:"refCode"`
 	ServiceName string  `json:"serviceName"`
-	Amount      float64 `json:"amount"`
+	Amount      utils.Satang `json:"amount"`
 	Status      string  `json:"status"`
 }
 

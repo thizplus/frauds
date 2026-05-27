@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +24,7 @@ type Subscription struct {
 	StartDate   time.Time          `gorm:"not null" json:"startDate"`
 	EndDate     time.Time          `json:"endDate"`
 	Addons      datatypes.JSON     `gorm:"type:jsonb" json:"addons"`
-	TotalAmount float64            `gorm:"default:0" json:"totalAmount"`
+	TotalAmount utils.Satang        `gorm:"type:bigint;default:0" json:"totalAmount"`
 	CreatedAt   time.Time          `json:"createdAt"`
 	UpdatedAt   time.Time          `json:"updatedAt"`
 

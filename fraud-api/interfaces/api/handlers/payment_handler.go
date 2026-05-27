@@ -122,7 +122,7 @@ func (h *PaymentHandler) RejectPayment(c *fiber.Ctx) error {
 }
 
 // verifySlip ตรวจสลิปผ่าน SlipOK
-func (h *PaymentHandler) verifySlip(ctx context.Context, slipURL string, expectedAmount float64) *dto.SlipVerificationInfo {
+func (h *PaymentHandler) verifySlip(ctx context.Context, slipURL string, expectedAmount utils.Satang) *dto.SlipVerificationInfo {
 	result := &dto.SlipVerificationInfo{Provider: "slipok"}
 
 	branchID := h.getSettingString(ctx, "payment.slipok_branch_id")
@@ -140,17 +140,28 @@ func (h *PaymentHandler) verifySlip(ctx context.Context, slipURL string, expecte
 		return result
 	}
 
-	result.SlipInfo = slipInfo
+	result.SlipInfo = &dto.SlipInfo{
+		TransRef:     slipInfo.TransRef,
+		Amount:       slipInfo.Amount,
+		SenderName:   slipInfo.SenderName,
+		SenderBank:   slipInfo.SenderBank,
+		ReceiverName: slipInfo.ReceiverName,
+		ReceiverBank: slipInfo.ReceiverBank,
+		TransDate:    slipInfo.TransDate,
+		TransTime:    slipInfo.TransTime,
+		IsValid:      slipInfo.IsValid,
+		ErrorMessage: slipInfo.ErrorMessage,
+	}
 	result.IsValid = slipInfo.IsValid
 	if !slipInfo.IsValid {
 		result.ErrorMessage = slipInfo.ErrorMessage
 		return result
 	}
 
-	if math.Abs(slipInfo.Amount-expectedAmount) < 0.01 {
+	if math.Abs(slipInfo.Amount-expectedAmount.ToBaht()) < 0.01 {
 		result.AutoApproved = true
 	} else {
-		result.ErrorMessage = fmt.Sprintf("จำนวนเงินไม่ตรง: slip=%.2f, expected=%.2f", slipInfo.Amount, expectedAmount)
+		result.ErrorMessage = fmt.Sprintf("จำนวนเงินไม่ตรง: slip=%.2f, expected=%.2f", slipInfo.Amount, expectedAmount.ToBaht())
 	}
 	return result
 }

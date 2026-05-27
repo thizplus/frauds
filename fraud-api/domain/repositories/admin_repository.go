@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,10 +16,10 @@ type AdminRepository interface {
 }
 
 type AdminExtendedStats struct {
-	PlanRevenueToday       float64
-	PlanRevenueMonth       float64
-	ServiceRevenueToday    float64
-	ServiceRevenueMonth    float64
+	PlanRevenueToday       utils.Satang
+	PlanRevenueMonth       utils.Satang
+	ServiceRevenueToday    utils.Satang
+	ServiceRevenueMonth    utils.Satang
 	ActiveSubscribers      int64
 	PendingPayments        int64
 	PendingServicePayments int64

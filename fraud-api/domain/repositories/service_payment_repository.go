@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,7 +26,7 @@ type ServicePaymentRow struct {
 	UserEmail   string
 	ServiceName string
 	FraudName   string
-	Amount      float64
+	Amount      utils.Satang
 	Status      string
 	SlipURL     string
 	TransRef    string

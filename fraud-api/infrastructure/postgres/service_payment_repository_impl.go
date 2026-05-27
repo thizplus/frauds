@@ -8,6 +8,7 @@ import (
 
 	"fraud-api/domain/models"
 	"fraud-api/domain/repositories"
+	"fraud-api/pkg/utils"
 )
 
 type servicePaymentRepositoryImpl struct {
@@ -62,7 +63,7 @@ func (r *servicePaymentRepositoryImpl) AdminList(ctx context.Context, status str
 		UserEmail   string  `gorm:"column:user_email"`
 		ServiceName string  `gorm:"column:service_name"`
 		FraudName   string  `gorm:"column:fraud_name"`
-		Amount      float64 `gorm:"column:amount"`
+		Amount      utils.Satang `gorm:"column:amount"`
 		Status      string  `gorm:"column:status"`
 		SlipURL     string  `gorm:"column:slip_url"`
 		TransRef    string  `gorm:"column:trans_ref"`

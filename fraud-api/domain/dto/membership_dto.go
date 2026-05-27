@@ -1,6 +1,9 @@
 package dto
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fraud-api/pkg/utils"
+)
 
 // === Plan ===
 
@@ -8,7 +11,7 @@ type CreatePlanRequest struct {
 	Name         string          `json:"name" validate:"required,max=100"`
 	Description  string          `json:"description"`
 	Type         string          `json:"type" validate:"required,oneof=subscription one_time"`
-	Price        float64         `json:"price" validate:"required,min=0"`
+	Price        utils.Satang    `json:"price" validate:"required,min=0"`
 	DurationDays int             `json:"durationDays"`
 	Features     json.RawMessage `json:"features"`
 }
@@ -17,7 +20,7 @@ type UpdatePlanRequest struct {
 	Name         *string          `json:"name" validate:"omitempty,max=100"`
 	Description  *string          `json:"description"`
 	Type         *string          `json:"type" validate:"omitempty,oneof=subscription one_time"`
-	Price        *float64         `json:"price" validate:"omitempty,min=0"`
+	Price        *utils.Satang    `json:"price" validate:"omitempty,min=0"`
 	DurationDays *int             `json:"durationDays"`
 	Features     *json.RawMessage `json:"features"`
 	IsActive     *bool            `json:"isActive"`
@@ -29,7 +32,7 @@ type PlanResponse struct {
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Type            string          `json:"type"`
-	Price           float64         `json:"price"`
+	Price           utils.Satang    `json:"price"`
 	DurationDays    int             `json:"durationDays"`
 	Features        json.RawMessage `json:"features"`
 	IsActive        bool            `json:"isActive"`
@@ -50,5 +53,5 @@ type SubscriptionResponse struct {
 	Status      string  `json:"status"`
 	StartDate   string  `json:"startDate"`
 	EndDate     string  `json:"endDate"`
-	TotalAmount float64 `json:"totalAmount"`
+	TotalAmount utils.Satang `json:"totalAmount"`
 }

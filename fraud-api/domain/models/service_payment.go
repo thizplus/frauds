@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,7 +23,7 @@ type ServicePayment struct {
 	UserID         uuid.UUID            `gorm:"type:uuid;not null;index"`
 	ServiceID      uuid.UUID            `gorm:"type:uuid;not null"`
 	FraudID        *uuid.UUID           `gorm:"type:uuid"`
-	Amount         float64              `gorm:"not null"`
+	Amount         utils.Satang         `gorm:"type:bigint;not null"`
 	Status         ServicePaymentStatus `gorm:"size:20;default:'pending'"`
 	SlipURL        string               `gorm:"type:text"`
 	TransRef       string               `gorm:"size:100"`

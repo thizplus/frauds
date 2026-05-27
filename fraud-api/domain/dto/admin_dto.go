@@ -1,12 +1,14 @@
 package dto
 
+import "fraud-api/pkg/utils"
+
 type AdminExtendedStatsResponse struct {
-	RevenueToday           float64 `json:"revenueToday"`
-	RevenueMonth           float64 `json:"revenueMonth"`
-	PlanRevenueToday       float64 `json:"planRevenueToday"`
-	PlanRevenueMonth       float64 `json:"planRevenueMonth"`
-	ServiceRevenueToday    float64 `json:"serviceRevenueToday"`
-	ServiceRevenueMonth    float64 `json:"serviceRevenueMonth"`
+	RevenueToday           utils.Satang `json:"revenueToday"`
+	RevenueMonth           utils.Satang `json:"revenueMonth"`
+	PlanRevenueToday       utils.Satang `json:"planRevenueToday"`
+	PlanRevenueMonth       utils.Satang `json:"planRevenueMonth"`
+	ServiceRevenueToday    utils.Satang `json:"serviceRevenueToday"`
+	ServiceRevenueMonth    utils.Satang `json:"serviceRevenueMonth"`
 	ActiveSubscribers      int64   `json:"activeSubscribers"`
 	PendingPayments        int64   `json:"pendingPayments"`
 	PendingServicePayments int64   `json:"pendingServicePayments"`

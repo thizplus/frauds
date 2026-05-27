@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ type Fraud struct {
 	IDCard         string         `gorm:"size:13;index" json:"idCard"`
 	SocialAccounts datatypes.JSON `gorm:"type:jsonb" json:"socialAccounts"`
 	Description string         `gorm:"type:text" json:"description"`
-	Amount      float64        `gorm:"type:decimal(12,2)" json:"amount"`
+	Amount      utils.Satang   `gorm:"type:bigint" json:"amount"`
 	ExtraData   datatypes.JSON `gorm:"type:jsonb" json:"extraData"`
 	SourceURL   string         `gorm:"type:text;not null" json:"sourceUrl"`
 	SourceType  string         `gorm:"size:50;not null" json:"sourceType"`

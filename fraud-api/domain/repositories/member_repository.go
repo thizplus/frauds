@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,6 @@ type MemberReportRow struct {
 	ServicePaymentID      *string
 	ServicePaymentRefCode *string
 	ServiceName           *string
-	ServiceAmount         *float64
+	ServiceAmount         *utils.Satang
 	ServiceStatus         *string
 }

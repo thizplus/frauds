@@ -8,6 +8,7 @@ import (
 
 	"fraud-api/domain/models"
 	"fraud-api/domain/repositories"
+	"fraud-api/pkg/utils"
 )
 
 type memberRepositoryImpl struct {
@@ -83,7 +84,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		FraudID     string   `gorm:"column:fraud_id"`
 		RefCode     string   `gorm:"column:ref_code"`
 		ServiceName string   `gorm:"column:service_name"`
-		Amount      float64  `gorm:"column:amount"`
+		Amount      utils.Satang `gorm:"column:amount"`
 		Status      string   `gorm:"column:status"`
 	}
 

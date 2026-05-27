@@ -1,5 +1,7 @@
 package dto
 
+import "fraud-api/pkg/utils"
+
 // === Request DTOs ===
 
 type CreateFraudRequest struct {
@@ -14,7 +16,7 @@ type CreateFraudRequest struct {
 	IDCard         string         `json:"idCard" validate:"omitempty,max=13"`
 	SocialAccounts []string       `json:"socialAccounts"`
 	Description    string         `json:"description"`
-	Amount         float64        `json:"amount"`
+	Amount         utils.Satang   `json:"amount"`
 	ExtraData      map[string]any `json:"extraData"`
 	SourceURL      string         `json:"sourceUrl" validate:"required"`
 	SourceType     string         `json:"sourceType" validate:"required,max=50"`
@@ -35,7 +37,7 @@ type UpdateFraudRequest struct {
 	IDCard         *string        `json:"idCard" validate:"omitempty,max=13"`
 	SocialAccounts *[]string      `json:"socialAccounts"`
 	Description    *string        `json:"description"`
-	Amount         *float64       `json:"amount"`
+	Amount         *utils.Satang  `json:"amount"`
 	ExtraData      map[string]any `json:"extraData"`
 }
 
@@ -89,7 +91,7 @@ type FraudResponse struct {
 	IDCard         string         `json:"idCard,omitempty"`
 	SocialAccounts []string       `json:"socialAccounts,omitempty"`
 	Description    string         `json:"description,omitempty"`
-	Amount         float64        `json:"amount,omitempty"`
+	Amount         utils.Satang   `json:"amount,omitempty"`
 	ExtraData      map[string]any `json:"extraData,omitempty"`
 	ReportCount    int            `json:"reportCount"`
 	Verified       bool           `json:"verified"`

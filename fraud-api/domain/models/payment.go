@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fraud-api/pkg/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ type Payment struct {
 	ID            uuid.UUID     `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	UserID        uuid.UUID     `gorm:"type:uuid;not null;index" json:"userId"`
 	PlanID        uuid.UUID     `gorm:"type:uuid;not null" json:"planId"`
-	Amount        float64       `gorm:"not null" json:"amount"`
+	Amount        utils.Satang  `gorm:"type:bigint;not null" json:"amount"`
 	Status        PaymentStatus `gorm:"size:20;default:'pending'" json:"status"`
 	PaymentMethod string        `gorm:"size:50;default:'promptpay'" json:"paymentMethod"`
 	SlipURL       string        `gorm:"type:text" json:"slipUrl"`

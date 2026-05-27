@@ -1,8 +1,10 @@
 package dto
 
+import "fraud-api/pkg/utils"
+
 type CreatePaymentRequest struct {
 	PlanID        string  `json:"planId" validate:"required"`
-	Amount        float64 `json:"amount" validate:"required,gt=0"`
+	Amount        utils.Satang`json:"amount" validate:"required,gt=0"`
 	PaymentMethod string  `json:"paymentMethod" validate:"required"`
 	SlipURL       string  `json:"slipUrl" validate:"omitempty,url"`
 }
@@ -14,7 +16,7 @@ type PaymentResponse struct {
 	UserEmail     string  `json:"userEmail"`
 	PlanID        string  `json:"planId"`
 	PlanName      string  `json:"planName"`
-	Amount        float64 `json:"amount"`
+	Amount        utils.Satang`json:"amount"`
 	Status        string  `json:"status"`
 	PaymentMethod string  `json:"paymentMethod"`
 	SlipURL       string               `json:"slipUrl"`
