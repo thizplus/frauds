@@ -87,12 +87,16 @@ export function ReportsPage() {
         <ArrowLeft className="w-4 h-4" />แดชบอร์ด
       </Link>
 
-      <h1 className="text-xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>
-        รายงานที่ลงไว้
-      </h1>
-      <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-        {meta ? `ทั้งหมด ${meta.total} รายการ` : ''}
-      </p>
+      <div className="flex items-baseline justify-between mb-6">
+        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+          รายงานที่ลงไว้
+        </h1>
+        {meta && (
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {meta.total} รายการ
+          </span>
+        )}
+      </div>
 
       {/* Search */}
       <div className="relative mb-3">
@@ -134,7 +138,7 @@ export function ReportsPage() {
             className="text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
             style={{
               background: statusFilter === f.value ? 'var(--accent)' : 'var(--bg-elevated)',
-              color: statusFilter === f.value ? '#fff' : 'var(--text-muted)',
+              color: statusFilter === f.value ? '#000' : 'var(--text-muted)',
               border: `1px solid ${statusFilter === f.value ? 'var(--accent)' : 'var(--border)'}`,
             }}
           >
