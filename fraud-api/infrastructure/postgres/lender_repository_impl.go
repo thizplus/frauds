@@ -75,7 +75,9 @@ func (r *lenderRepository) ListDebtors(ctx context.Context, lenderID uuid.UUID, 
 
 	q := r.db.WithContext(ctx).Model(&models.Debtor{}).Where("lender_id = ?", lenderID)
 
-	if status != "" {
+	if status == "unchecked" {
+		q = q.Where("checked_at IS NULL")
+	} else if status != "" {
 		q = q.Where("status = ?", status)
 	}
 	if search != "" {

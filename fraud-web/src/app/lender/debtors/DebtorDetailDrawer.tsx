@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check } from 'lucide-react'
 import { Drawer } from '@/components/ui/Drawer'
 import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor } from '@/features/lender'
 import type { DebtorDetail, CheckResultItem } from '@/features/lender'
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   active: { label: 'ปกติ', color: 'var(--accent)', bg: 'rgba(34,197,94,0.1)' },
-  flagged: { label: 'โกง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)' },
+  flagged: { label: 'ถูกแจ้ง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)' },
   cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)', bg: 'var(--bg-elevated)' },
 }
 
@@ -26,6 +26,43 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
 
   const [flagDialog, setFlagDialog] = useState(false)
   const [clearDialog, setClearDialog] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [scanStep, setScanStep] = useState(0)
+  const [scanProgress, setScanProgress] = useState(0)
+  const [scanElapsed, setScanElapsed] = useState(0)
+
+  const scanSteps = [
+    { label: 'ค้นหาในระบบ' },
+    { label: 'เช็คฐานข้อมูล' },
+    { label: 'สรุปผล' },
+  ]
+
+  useEffect(() => {
+    if (!scanning) { setScanElapsed(0); return }
+    const start = performance.now()
+    const id = setInterval(() => {
+      setScanElapsed(+((performance.now() - start) / 1000).toFixed(1))
+    }, 100)
+    return () => clearInterval(id)
+  }, [scanning])
+
+  const handleCheck = async () => {
+    setScanning(true)
+    setScanStep(0)
+    setScanProgress(0)
+
+    for (let i = 0; i < 3; i++) {
+      setScanStep(i)
+      setScanProgress(((i + 1) / 3) * 100)
+      await new Promise(r => setTimeout(r, 800))
+    }
+
+    checkMutation.mutate(debtorId!, {
+      onSettled: () => {
+        setScanning(false)
+      }
+    })
+  }
 
   const st = debtor ? (STATUS_MAP[debtor.status] || STATUS_MAP.active) : STATUS_MAP.active
   const checkResults: CheckResultItem[] = debtor?.checkResult || []
@@ -57,19 +94,19 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
             <div className="flex gap-2">
               <button
                 className="btn btn-secondary flex-1 text-sm"
-                onClick={() => checkMutation.mutate(debtorId!)}
-                disabled={checkMutation.isPending}
+                onClick={handleCheck}
+                disabled={checkMutation.isPending || scanning}
               >
-                {checkMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                เช็คประวัติ
+                {(checkMutation.isPending || scanning) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                ตรวจสอบประวัติ
               </button>
-              {debtor.status === 'active' && (
+              {debtor.checkedAt && debtor.status === 'active' && (
                 <button
                   className="btn flex-1 text-sm"
                   style={{ background: 'var(--danger)', color: '#fff' }}
                   onClick={() => setFlagDialog(true)}
                 >
-                  <ShieldAlert className="w-4 h-4" /> แจ้งโกง
+                  <ShieldAlert className="w-4 h-4" /> แจ้งเตือน
                 </button>
               )}
               {debtor.status === 'flagged' && (
@@ -77,10 +114,42 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                   className="btn btn-secondary flex-1 text-sm"
                   onClick={() => setClearDialog(true)}
                 >
-                  <CheckCircle className="w-4 h-4" /> ปลดโกง
+                  <CheckCircle className="w-4 h-4" /> ปลดแจ้งเตือน
                 </button>
               )}
             </div>
+
+            {/* Scan Animation */}
+            {scanning && (
+              <div className="card p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="w-5 h-5 animate-pulse" style={{ color: 'var(--accent)' }} />
+                  <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>กำลังตรวจสอบ</span>
+                  <span className="text-xs font-mono ml-auto" style={{ color: 'var(--text-dim)' }}>{scanElapsed}s</span>
+                </div>
+                {/* Progress bar */}
+                <div style={{ height: 3, background: 'var(--bg-input)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${scanProgress}%`, background: 'var(--accent)', borderRadius: 2, transition: 'width 0.5s' }} />
+                </div>
+                {/* Steps */}
+                <div className="space-y-2">
+                  {scanSteps.map((step, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      {i < scanStep ? (
+                        <Check className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                      ) : i === scanStep ? (
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent)' }} />
+                      ) : (
+                        <span className="w-4 h-4 flex items-center justify-center">
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-dim)' }} />
+                        </span>
+                      )}
+                      <span style={{ color: i <= scanStep ? 'var(--text)' : 'var(--text-dim)' }}>{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ข้อมูลบุคคล */}
             <div>
@@ -123,7 +192,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
             {debtor.checkedAt && (
               <div>
                 <SectionTitle>
-                  ผลเช็คประวัติ
+                  ผลตรวจสอบประวัติ
                   <span className="text-[10px] font-normal normal-case" style={{ color: 'var(--text-dim)' }}>
                     {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
                   </span>
@@ -156,7 +225,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
             {/* Flag info */}
             {debtor.status === 'flagged' && (
               <div>
-                <SectionTitle>ข้อมูลการแจ้งโกง</SectionTitle>
+                <SectionTitle>ข้อมูลการแจ้งเตือน</SectionTitle>
                 <div className="card p-3 space-y-1" style={{ borderColor: 'var(--danger)' }}>
                   {debtor.flaggedReason && <p className="text-sm" style={{ color: 'var(--text)' }}>เหตุผล: {debtor.flaggedReason}</p>}
                   {debtor.flaggedAmount ? <p className="text-sm" style={{ color: 'var(--text)' }}>จำนวน: {(debtor.flaggedAmount / 100).toLocaleString()} บาท</p> : null}
@@ -244,7 +313,7 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
 
   return (
     <Drawer open={true} onClose={onClose} title={
-      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>แจ้งว่า "{name}" เป็นคนโกง</h3>
+      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>แจ้งเตือน "{name}"</h3>
     }>
       <div className="space-y-4">
         <div>
@@ -275,7 +344,7 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
           disabled={!reason || loading}
           onClick={() => onSubmit({ reason, amount: amount ? Math.round(parseFloat(amount) * 100) : undefined, detail })}>
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldAlert className="w-5 h-5" />}
-          ยืนยันแจ้งโกง
+          ยืนยันแจ้งเตือน
         </button>
       </div>
     </Drawer>
@@ -289,7 +358,7 @@ function ClearDialog({ name, onClose, onSubmit, loading }: {
 
   return (
     <Drawer open={true} onClose={onClose} title={
-      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ปลดโกง "{name}"</h3>
+      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ปลดแจ้งเตือน "{name}"</h3>
     }>
       <div className="space-y-4">
         <div>
@@ -298,7 +367,7 @@ function ClearDialog({ name, onClose, onSubmit, loading }: {
         </div>
         <button className="btn btn-primary btn-lg w-full" disabled={loading} onClick={() => onSubmit(note)}>
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-          ยืนยันปลดโกง
+          ยืนยันปลดแจ้งเตือน
         </button>
       </div>
     </Drawer>
