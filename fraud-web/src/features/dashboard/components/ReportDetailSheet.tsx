@@ -51,8 +51,22 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
         onClick={onClose}
       />
 
-      {/* Sheet — desktop: slide จากขวา, mobile: slide จากล่าง */}
-      <div className="report-detail-sheet">
+      {/* Sheet — mobile: drawer จากล่าง */}
+      <div style={{
+        position: 'fixed',
+        zIndex: 51,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        maxHeight: '92vh',
+        background: 'var(--bg)',
+        borderRadius: '20px 20px 0 0',
+        borderTop: '1px solid var(--border-accent, var(--accent))',
+        boxShadow: '0 -8px 40px rgba(0,0,0,.4)',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        animation: 'slideUp .25s ease-out',
+      }}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
           <div>
