@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { X, BadgeCheck, Clock, User, Phone, CreditCard, Building2, IdCard, MessageSquare, FileText, Calendar, Hash, Image, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BadgeCheck, Clock, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Drawer } from '@/components/ui/Drawer'
 import type { MyReport } from '../types'
 
 interface ReportDetailSheetProps {
   report: MyReport | null
   open: boolean
   onClose: () => void
-  /** Robot button — render ข้างใน sheet */
   robotButton?: React.ReactNode
 }
 
@@ -36,7 +36,7 @@ function parseEvidenceUrls(raw?: string): string[] {
 export function ReportDetailSheet({ report, open, onClose, robotButton }: ReportDetailSheetProps) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
-  if (!open || !report) return null
+  if (!report) return null
 
   const r = report
   const isVerified = r.status === 'verified'
@@ -45,41 +45,17 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Sheet — mobile: drawer จากล่าง */}
-      <div style={{
-        position: 'fixed',
-        zIndex: 51,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        maxHeight: '92vh',
-        background: 'var(--bg)',
-        borderRadius: '20px 20px 0 0',
-        borderTop: '1px solid var(--border-accent, var(--accent))',
-        boxShadow: '0 -8px 40px rgba(0,0,0,.4)',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        animation: 'slideUp .25s ease-out',
-      }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        title={
           <div>
             <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>รายละเอียดรายงาน</h2>
             <span className="text-xs font-mono" style={{ color: 'var(--accent)' }}>{r.refCode}</span>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg" style={{ color: 'var(--text-muted)' }}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        }
+      >
+        <div className="space-y-5">
 
           {/* Status + Category badges */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -104,7 +80,7 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
           </div>
 
           {/* ข้อมูลบุคคล */}
-          <div className="space-y-0.5">
+          <div>
             <SectionTitle>ข้อมูลบุคคล</SectionTitle>
             <div className="card p-3 space-y-3">
               <DetailRow icon={User} label="ชื่อ-นามสกุล" value={fullName} />
@@ -120,7 +96,7 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
 
           {/* หมายเหตุ */}
           {r.reporterNote && (
-            <div className="space-y-0.5">
+            <div>
               <SectionTitle>หมายเหตุจากผู้แจ้ง</SectionTitle>
               <div className="card p-3">
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{r.reporterNote}</p>
@@ -130,25 +106,17 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
 
           {/* ภาพหลักฐาน */}
           {evidenceUrls.length > 0 && (
-            <div className="space-y-0.5">
-              <SectionTitle>
-                <Image className="w-4 h-4" />
-                ภาพหลักฐาน ({evidenceUrls.length})
-              </SectionTitle>
+            <div>
+              <SectionTitle>ภาพหลักฐาน ({evidenceUrls.length})</SectionTitle>
               <div className="grid grid-cols-3 gap-2">
                 {evidenceUrls.map((url, i) => (
                   <button
                     key={i}
-                    className="aspect-square rounded-lg overflow-hidden border"
-                    style={{ borderColor: 'var(--border, rgba(255,255,255,0.08))' }}
+                    className="aspect-square rounded-lg overflow-hidden"
+                    style={{ border: '1px solid var(--border, rgba(255,255,255,0.08))' }}
                     onClick={() => setLightboxIdx(i)}
                   >
-                    <img
-                      src={url}
-                      alt={`หลักฐาน ${i + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <img src={url} alt={`หลักฐาน ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 ))}
               </div>
@@ -156,7 +124,7 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
           )}
 
           {/* ข้อมูลอ้างอิง */}
-          <div className="space-y-0.5">
+          <div>
             <SectionTitle>ข้อมูลอ้างอิง</SectionTitle>
             <div className="card p-3 space-y-3">
               <DetailRow icon={Hash} label="รหัสอ้างอิง" value={r.refCode} mono accent />
@@ -166,7 +134,7 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
 
           {/* บริการ AI — Robot button */}
           {robotButton && (
-            <div className="space-y-0.5">
+            <div>
               <SectionTitle>บริการ AI</SectionTitle>
               <div className="card p-4 flex items-center justify-center">
                 {robotButton}
@@ -174,29 +142,45 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
             </div>
           )}
         </div>
-      </div>
+      </Drawer>
 
       {/* Lightbox */}
       {lightboxIdx !== null && evidenceUrls[lightboxIdx] && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center" onClick={() => setLightboxIdx(null)}>
+        <div
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: 200, background: 'rgba(0,0,0,.9)' }}
+          onClick={() => setLightboxIdx(null)}
+        >
           <img
             src={evidenceUrls[lightboxIdx]}
             alt="หลักฐาน"
-            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+            style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px' }}
             onClick={(e) => e.stopPropagation()}
           />
-          <button className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white" onClick={() => setLightboxIdx(null)}>
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full"
+            style={{ background: 'rgba(0,0,0,.5)', color: '#fff' }}
+            onClick={() => setLightboxIdx(null)}
+          >
             <X className="w-6 h-6" />
           </button>
           {evidenceUrls.length > 1 && (
             <>
               {lightboxIdx > 0 && (
-                <button className="absolute left-4 p-2 rounded-full bg-black/50 text-white" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1) }}>
+                <button
+                  className="absolute left-4 p-2 rounded-full"
+                  style={{ background: 'rgba(0,0,0,.5)', color: '#fff' }}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1) }}
+                >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
               {lightboxIdx < evidenceUrls.length - 1 && (
-                <button className="absolute right-4 p-2 rounded-full bg-black/50 text-white" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1) }}>
+                <button
+                  className="absolute right-4 p-2 rounded-full"
+                  style={{ background: 'rgba(0,0,0,.5)', color: '#fff' }}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1) }}
+                >
                   <ChevronRight className="w-6 h-6" />
                 </button>
               )}
@@ -232,7 +216,7 @@ function DetailRow({ icon: Icon, label, value, mono, accent }: {
       </div>
       <span
         className={`text-sm text-right ${mono ? 'font-mono' : ''}`}
-        style={{ color: accent ? 'var(--accent)' : 'var(--text)' }}
+        style={{ color: accent ? 'var(--accent)' : 'var(--text)', wordBreak: 'break-all' }}
       >
         {value}
       </span>
