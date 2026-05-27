@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Check, Loader2, Upload, Copy, ImagePlus, AlertCircle, FileImage, Eye, Crown, LayoutDashboard, Search } from 'lucide-react'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
 import { apiClient } from '@/lib/api/client'
@@ -35,6 +36,7 @@ export function CheckoutModal({ plan, open, onClose }: CheckoutModalProps) {
   const [qrPayload, setQrPayload] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const { isLoggedIn } = useAuthStore()
+  const queryClient = useQueryClient()
 
   // Fetch payment settings + generate QR
   useEffect(() => {
@@ -126,6 +128,10 @@ export function CheckoutModal({ plan, open, onClose }: CheckoutModalProps) {
         setResultMsg(result?.verification?.errorMessage || 'ส่งสำเร็จ รอผู้ดูแลระบบตรวจสอบ')
       }
       setStep('done')
+
+      // Invalidate cache เพื่อให้ dashboard + subscription refresh
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['subscription'] })
     } catch (err: any) {
       const msg = err?.response?.data?.error?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
       setResultMsg(msg)

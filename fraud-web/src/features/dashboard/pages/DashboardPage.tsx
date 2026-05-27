@@ -79,7 +79,10 @@ export function DashboardPage() {
       {kpi && (
         <div className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
           <Search className="w-4 h-4 inline-block mr-1" style={{ color: 'var(--accent)' }} />
-          ค้นหาวันนี้ <span className="font-bold" style={{ color: 'var(--text)' }}>{kpi.searchQuotaUsed}/{kpi.searchQuotaTotal}</span> ครั้ง
+          {kpi.searchQuotaTotal === 0
+            ? <>ค้นหาวันนี้ <span className="font-bold" style={{ color: 'var(--accent)' }}>{kpi.searchQuotaUsed}</span> ครั้ง (ไม่จำกัด)</>
+            : <>ค้นหาวันนี้ <span className="font-bold" style={{ color: 'var(--text)' }}>{kpi.searchQuotaUsed}/{kpi.searchQuotaTotal}</span> ครั้ง</>
+          }
         </div>
       )}
 
