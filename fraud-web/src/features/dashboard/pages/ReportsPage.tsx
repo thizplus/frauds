@@ -135,11 +135,11 @@ export function ReportsPage() {
           <button
             key={f.value}
             onClick={() => { setStatusFilter(f.value); setReportPage(1) }}
-            className="text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all"
             style={{
-              background: statusFilter === f.value ? 'var(--accent)' : 'var(--bg-elevated)',
-              color: statusFilter === f.value ? '#000' : 'var(--text-muted)',
-              border: `1px solid ${statusFilter === f.value ? 'var(--accent)' : 'var(--border)'}`,
+              background: statusFilter === f.value ? 'var(--accent-dim)' : 'var(--bg-input)',
+              color: statusFilter === f.value ? 'var(--accent)' : 'var(--text-muted)',
+              border: statusFilter === f.value ? '1px solid var(--accent)' : '1px solid transparent',
             }}
           >
             {f.label}
