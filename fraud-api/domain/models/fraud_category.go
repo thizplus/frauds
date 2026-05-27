@@ -3,13 +3,13 @@ package models
 import "time"
 
 type FraudCategory struct {
-	ID          string    `gorm:"primaryKey;size:50" json:"id"`
-	Name        string    `gorm:"size:100;not null" json:"name"`
-	Description string    `gorm:"type:text" json:"description"`
-	Icon        string    `gorm:"size:50" json:"icon"`
-	SortOrder   int       `gorm:"default:0" json:"sortOrder"`
-	IsActive    bool      `gorm:"default:true" json:"isActive"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID          string    `gorm:"primaryKey;size:50"`
+	Name        string    `gorm:"size:100;not null"`
+	Description string    `gorm:"type:text"`
+	Icon        string    `gorm:"size:50"`
+	SortOrder   int       `gorm:"default:0"`
+	IsActive    bool      `gorm:"default:true"`
+	CreatedAt   time.Time
 }
 
 func (FraudCategory) TableName() string {

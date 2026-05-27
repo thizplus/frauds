@@ -7,13 +7,13 @@ import (
 )
 
 type FraudSource struct {
-	ID          uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	FraudID     uuid.UUID `gorm:"type:uuid;not null;index" json:"fraudId"`
-	SourceType  string    `gorm:"size:50;not null" json:"sourceType"`
-	SourceURL   string    `gorm:"type:text" json:"sourceUrl"`
-	RawText     string    `gorm:"type:text" json:"-"`
-	FoundFields string    `gorm:"size:255" json:"foundFields"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID          uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	FraudID     uuid.UUID `gorm:"type:uuid;not null;index"`
+	SourceType  string    `gorm:"size:50;not null"`
+	SourceURL   string    `gorm:"type:text"`
+	RawText     string    `gorm:"type:text"`
+	FoundFields string    `gorm:"size:255"`
+	CreatedAt   time.Time
 }
 
 func (FraudSource) TableName() string {

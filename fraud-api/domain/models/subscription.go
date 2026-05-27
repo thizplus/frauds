@@ -17,16 +17,16 @@ const (
 )
 
 type Subscription struct {
-	ID        uuid.UUID          `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	UserID    uuid.UUID          `gorm:"type:uuid;not null;index" json:"userId"`
-	PlanID    uuid.UUID          `gorm:"type:uuid;not null" json:"planId"`
-	Status    SubscriptionStatus `gorm:"size:20;default:'active'" json:"status"`
-	StartDate   time.Time          `gorm:"not null" json:"startDate"`
-	EndDate     time.Time          `json:"endDate"`
-	Addons      datatypes.JSON     `gorm:"type:jsonb" json:"addons"`
-	TotalAmount utils.Satang        `gorm:"type:bigint;default:0" json:"totalAmount"`
-	CreatedAt   time.Time          `json:"createdAt"`
-	UpdatedAt   time.Time          `json:"updatedAt"`
+	ID          uuid.UUID          `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID      uuid.UUID          `gorm:"type:uuid;not null;index"`
+	PlanID      uuid.UUID          `gorm:"type:uuid;not null"`
+	Status      SubscriptionStatus `gorm:"size:20;default:'active'"`
+	StartDate   time.Time          `gorm:"not null"`
+	EndDate     time.Time
+	Addons      datatypes.JSON     `gorm:"type:jsonb"`
+	TotalAmount utils.Satang       `gorm:"type:bigint;default:0"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 
 	User User           `gorm:"foreignKey:UserID" json:"-"`
 	Plan MembershipPlan `gorm:"foreignKey:PlanID" json:"-"`

@@ -16,16 +16,16 @@ const (
 )
 
 type MembershipPlan struct {
-	ID           uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Name         string         `gorm:"size:100;not null" json:"name"`
-	Description  string         `gorm:"type:text" json:"description"`
-	Type         PlanType       `gorm:"size:20;not null;default:'subscription'" json:"type"`
-	Price        utils.Satang   `gorm:"type:bigint;not null" json:"price"`
-	DurationDays int            `gorm:"default:0" json:"durationDays"`
-	Features     datatypes.JSON `gorm:"type:jsonb" json:"features"`
-	IsActive     bool           `gorm:"default:true" json:"isActive"`
-	IsDeleted    bool           `gorm:"default:false" json:"-"`
-	SortOrder    int            `gorm:"default:0" json:"sortOrder"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
+	ID           uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name         string         `gorm:"size:100;not null"`
+	Description  string         `gorm:"type:text"`
+	Type         PlanType       `gorm:"size:20;not null;default:'subscription'"`
+	Price        utils.Satang   `gorm:"type:bigint;not null"`
+	DurationDays int            `gorm:"default:0"`
+	Features     datatypes.JSON `gorm:"type:jsonb"`
+	IsActive     bool           `gorm:"default:true"`
+	IsDeleted    bool           `gorm:"default:false"`
+	SortOrder    int            `gorm:"default:0"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

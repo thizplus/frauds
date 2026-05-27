@@ -16,16 +16,16 @@ const (
 )
 
 type Payment struct {
-	ID            uuid.UUID     `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	UserID        uuid.UUID     `gorm:"type:uuid;not null;index" json:"userId"`
-	PlanID        uuid.UUID     `gorm:"type:uuid;not null" json:"planId"`
-	Amount        utils.Satang  `gorm:"type:bigint;not null" json:"amount"`
-	Status        PaymentStatus `gorm:"size:20;default:'pending'" json:"status"`
-	PaymentMethod string        `gorm:"size:50;default:'promptpay'" json:"paymentMethod"`
-	SlipURL       string        `gorm:"type:text" json:"slipUrl"`
-	Note          string        `gorm:"type:text" json:"note"`
-	CreatedAt     time.Time     `json:"createdAt"`
-	UpdatedAt     time.Time     `json:"updatedAt"`
+	ID            uuid.UUID     `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID        uuid.UUID     `gorm:"type:uuid;not null;index"`
+	PlanID        uuid.UUID     `gorm:"type:uuid;not null"`
+	Amount        utils.Satang  `gorm:"type:bigint;not null"`
+	Status        PaymentStatus `gorm:"size:20;default:'pending'"`
+	PaymentMethod string        `gorm:"size:50;default:'promptpay'"`
+	SlipURL       string        `gorm:"type:text"`
+	Note          string        `gorm:"type:text"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 
 	User User           `gorm:"foreignKey:UserID" json:"-"`
 	Plan MembershipPlan `gorm:"foreignKey:PlanID" json:"-"`

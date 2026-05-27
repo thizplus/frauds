@@ -9,29 +9,29 @@ import (
 )
 
 type Fraud struct {
-	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	CategoryID     string         `gorm:"size:50;not null;index" json:"categoryId"`
-	FraudType      string         `gorm:"size:50" json:"fraudType"`
-	Name           string         `gorm:"size:255" json:"name"`
-	FirstName      string         `gorm:"size:100" json:"firstName"`
-	LastName       string         `gorm:"size:100" json:"lastName"`
-	Phone          string         `gorm:"size:20;index" json:"phone"`
-	BankAccount    string         `gorm:"size:50;index" json:"bankAccount"`
-	BankName       string         `gorm:"size:100" json:"bankName"`
-	IDCard         string         `gorm:"size:13;index" json:"idCard"`
-	SocialAccounts datatypes.JSON `gorm:"type:jsonb" json:"socialAccounts"`
-	Description string         `gorm:"type:text" json:"description"`
-	Amount      utils.Satang   `gorm:"type:bigint" json:"amount"`
-	ExtraData   datatypes.JSON `gorm:"type:jsonb" json:"extraData"`
-	SourceURL   string         `gorm:"type:text;not null" json:"sourceUrl"`
-	SourceType  string         `gorm:"size:50;not null" json:"sourceType"`
-	RawText     string         `gorm:"type:text" json:"-"`
-	ReportCount int            `gorm:"default:1" json:"reportCount"`
-	Verified    bool           `gorm:"default:false" json:"verified"`
-	IsComplete  bool           `gorm:"default:false" json:"isComplete"`
-	EnrichedAt  *time.Time     `json:"enrichedAt,omitempty"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
+	ID             uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	CategoryID     string         `gorm:"size:50;not null;index"`
+	FraudType      string         `gorm:"size:50"`
+	Name           string         `gorm:"size:255"`
+	FirstName      string         `gorm:"size:100"`
+	LastName       string         `gorm:"size:100"`
+	Phone          string         `gorm:"size:20;index"`
+	BankAccount    string         `gorm:"size:50;index"`
+	BankName       string         `gorm:"size:100"`
+	IDCard         string         `gorm:"size:13;index"`
+	SocialAccounts datatypes.JSON `gorm:"type:jsonb"`
+	Description    string         `gorm:"type:text"`
+	Amount         utils.Satang   `gorm:"type:bigint"`
+	ExtraData      datatypes.JSON `gorm:"type:jsonb"`
+	SourceURL      string         `gorm:"type:text;not null"`
+	SourceType     string         `gorm:"size:50;not null"`
+	RawText        string         `gorm:"type:text"`
+	ReportCount    int            `gorm:"default:1"`
+	Verified       bool           `gorm:"default:false"`
+	IsComplete     bool           `gorm:"default:false"`
+	EnrichedAt     *time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 
 	Category FraudCategory `gorm:"foreignKey:CategoryID" json:"-"`
 }
