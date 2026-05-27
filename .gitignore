@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build
+tmp/
+dist/
+build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+pgdata/
+
+# Logs
+logs/
+*.log
+
+# Env
+.env
+.env.local
+.env.production
+
+# Uploads
+uploads/
+
+# Fraud Collector
+fraud-collector/.venv/
+fraud-collector/venv/
+fraud-collector/__pycache__/
+fraud-collector/**/__pycache__/
+fraud-collector/data/
+fraud-collector/*.pyc
+fraud-collector/pw_chrome_data/
+fraud-collector/golden/
+fraud-collector/extracted/
+fraud-collector/raw/
+fraud-collector/archive/
+
+# Next.js
+.next/
+out/
+
+# Fraud Admin
+fraud-admin/node_modules/
+fraud-admin/dist/
+
+# Fraud Web
+fraud-web/node_modules/
+fraud-web/.next/
+
+# Claude
+.claude/settings.local.json
+
+# Misc
+*.png
+*.jpg
+*.jpeg
+*.txt
+mockup/

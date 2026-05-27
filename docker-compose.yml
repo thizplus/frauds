@@ -1,0 +1,123 @@
+services:
+  # ========================
+  # Go Fiber API
+  # ========================
+  api:
+    build:
+      context: ./fraud-api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_NAME=fraud-api
+      - APP_PORT=3000
+      - APP_ENV=development
+      - DB_HOST=pgbouncer
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=fraud_checker
+      - DB_SSL_MODE=disable
+      - JWT_SECRET=fraud-api-dev-secret-key-min-32-chars
+      - BOT_API_KEY=dev-bot-api-key-12345
+      - ADMIN_EMAIL=admin@fraudchecker.com
+      - ADMIN_PASSWORD=admin123
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - LOG_OUTPUT=stdout
+      - LINE_CHANNEL_ID=2010174410
+      - LINE_CHANNEL_SECRET=680484ea448135330b685f5a2b4ddfa6
+      - LINE_CALLBACK_URL=https://xn--12cainl6g3mua5b.com/auth/line/callback
+      - FACE_SERVICE_URL=http://face-service:3002
+      # Social Search — fuzzy name similarity threshold (0.0-1.0, ยิ่งสูงยิ่ง strict)
+      # - SEARCH_NAME_SIMILARITY=0.65
+    volumes:
+      - ./fraud-api:/app
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ========================
+  # PostgreSQL
+  # ========================
+  postgres:
+    image: pgvector/pgvector:pg16  # pgvector สำหรับ face search
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fraud_checker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ========================
+  # PgBouncer (Connection Pooler)
+  # ========================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    ports:
+      - "6432:5432"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/fraud_checker
+      - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - DEFAULT_POOL_SIZE=20
+      - MAX_CLIENT_CONN=100
+      - MAX_DB_CONNECTIONS=30
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ========================
+  # Next.js Frontend — รันนอก Docker (npm run dev -p 3001)
+  # ========================
+
+  # ========================
+  # Face Service (Internal Microservice — ไม่ expose port)
+  # ========================
+  face-service:
+    build: ./face-service
+    # ไม่ expose port — เรียกได้แค่ใน Docker network
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@pgbouncer:5432/fraud_checker
+      - FACE_CONFIDENCE_THRESHOLD=0.8
+      - FACE_MIN_SIZE=80
+      - USE_GPU=false
+      # SEARCH_THRESHOLD ยังไม่ lock — benchmark ก่อน
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ========================
+  # (Phase 2) Bot Collector
+  # ========================
+  # collector:
+  #   build: ./fraud-collector
+  #   depends_on:
+  #     - api
+
+  # ========================
+  # (Phase 5) Bot Enricher
+  # ========================
+  # enricher:
+  #   build: ./fraud-enricher
+  #   depends_on:
+  #     - api
+
+volumes:
+  pgdata:
