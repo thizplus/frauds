@@ -59,8 +59,10 @@ export default function DebtorsPage() {
         <ArrowLeft className="w-4 h-4" />ระบบเก็บข้อมูล
       </Link>
 
-      <h1 className="text-xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>รายชื่อสมาชิก</h1>
-      <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{meta ? `ทั้งหมด ${meta.total} คน` : ''}</p>
+      <div className="flex items-baseline justify-between mb-4">
+        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>รายชื่อสมาชิก</h1>
+        {meta && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{meta.total} คน</span>}
+      </div>
 
       {/* Search + Filter */}
       <div className="flex gap-2 mb-4">
