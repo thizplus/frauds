@@ -17,7 +17,7 @@ type MemberRepository interface {
 	CountServicePaymentsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 
 	// My Reports (fraud_reports + service_payments)
-	ListReportsByUser(ctx context.Context, userID uuid.UUID, page, limit int) ([]MemberReportRow, int64, error)
+	ListReportsByUser(ctx context.Context, userID uuid.UUID, search, status string, page, limit int) ([]MemberReportRow, int64, error)
 
 	// Service payment actions
 	UpdateServicePaymentStatus(ctx context.Context, paymentID, userID uuid.UUID, fromStatus, toStatus models.ServicePaymentStatus) (int64, error)

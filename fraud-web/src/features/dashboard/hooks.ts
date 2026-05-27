@@ -4,7 +4,7 @@ import { dashboardService } from './service'
 export const dashboardKeys = {
   all: ['dashboard'] as const,
   kpi: [...['dashboard'], 'kpi'] as const,
-  reports: (page: number) => [...['dashboard'], 'reports', page] as const,
+  reports: (page: number, search?: string, status?: string) => [...['dashboard'], 'reports', page, search, status] as const,
   searches: (page: number) => [...['dashboard'], 'searches', page] as const,
 }
 
@@ -15,10 +15,10 @@ export function useDashboard() {
   })
 }
 
-export function useMyReports(page: number) {
+export function useMyReports(page: number, search?: string, status?: string) {
   return useQuery({
-    queryKey: dashboardKeys.reports(page),
-    queryFn: () => dashboardService.getMyReports(page),
+    queryKey: dashboardKeys.reports(page, search, status),
+    queryFn: () => dashboardService.getMyReports(page, search, status),
   })
 }
 

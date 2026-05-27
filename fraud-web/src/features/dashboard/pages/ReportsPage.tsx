@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Clock, BadgeCheck, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
+import { ArrowLeft, FileText, Clock, BadgeCheck, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2, Search, X } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { ServiceDetailDrawer, PaymentDrawer } from '@/features/services'
@@ -29,6 +29,9 @@ export function ReportsPage() {
   const [mounted, setMounted] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [reportPage, setReportPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [selectedReport, setSelectedReport] = useState<MyReport | null>(null)
   const [serviceDrawerFraudId, setServiceDrawerFraudId] = useState<string | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<{ service: ServiceItem; fraudId: string } | null>(null)
@@ -38,7 +41,15 @@ export function ReportsPage() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  const { data: reportsData, isLoading } = useMyReports(reportPage)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setReportPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const { data: reportsData, isLoading } = useMyReports(reportPage, debouncedSearch, statusFilter)
   const { mutate: doAction, isPending: actionPending } = useServicePaymentAction()
 
   if (!mounted) return null
@@ -83,6 +94,55 @@ export function ReportsPage() {
         {meta ? `ทั้งหมด ${meta.total} รายการ` : ''}
       </p>
 
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+          style={{ color: search ? 'var(--accent)' : 'var(--text-dim)' }} />
+        <input
+          type="text"
+          placeholder="ค้นหาชื่อ เบอร์ หรือเลขบัญชี..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl outline-none"
+          style={{
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+          }}
+        />
+        {search && (
+          <button
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded"
+            style={{ color: 'var(--text-dim)' }}
+            onClick={() => setSearch('')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Status filter */}
+      <div className="flex gap-2 mb-4">
+        {[
+          { value: '', label: 'ทั้งหมด' },
+          { value: 'verified', label: 'ยืนยันแล้ว' },
+          { value: 'unverified', label: 'รอตรวจสอบ' },
+        ].map((f) => (
+          <button
+            key={f.value}
+            onClick={() => { setStatusFilter(f.value); setReportPage(1) }}
+            className="text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+            style={{
+              background: statusFilter === f.value ? 'var(--accent)' : 'var(--bg-elevated)',
+              color: statusFilter === f.value ? '#fff' : 'var(--text-muted)',
+              border: `1px solid ${statusFilter === f.value ? 'var(--accent)' : 'var(--border)'}`,
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent)' }} />
@@ -90,8 +150,14 @@ export function ReportsPage() {
       ) : reports.length === 0 ? (
         <div className="card p-8 text-center">
           <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-dim)' }} />
-          <p className="text-sm mb-4" style={{ color: 'var(--text-dim)' }}>ยังไม่มีรายงาน</p>
-          <Link href="/report" className="btn btn-primary">แจ้งรายงานใหม่</Link>
+          {debouncedSearch || statusFilter ? (
+            <p className="text-sm" style={{ color: 'var(--text-dim)' }}>ไม่พบรายงานที่ตรงกัน</p>
+          ) : (
+            <>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-dim)' }}>ยังไม่มีรายงาน</p>
+              <Link href="/report" className="btn btn-primary">แจ้งรายงานใหม่</Link>
+            </>
+          )}
         </div>
       ) : (
         <>

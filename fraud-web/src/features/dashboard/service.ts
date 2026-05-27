@@ -8,9 +8,9 @@ export const dashboardService = {
     return res.data.data
   },
 
-  async getMyReports(page: number): Promise<PaginatedResponse<MyReport>> {
+  async getMyReports(page: number, search?: string, status?: string): Promise<PaginatedResponse<MyReport>> {
     const res = await apiClient.get<PaginatedResponse<MyReport>>('/me/reports', {
-      params: { page, limit: 5 },
+      params: { page, limit: 10, q: search || undefined, status: status || undefined },
     })
     return res.data
   },

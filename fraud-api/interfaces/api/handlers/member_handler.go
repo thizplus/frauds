@@ -45,10 +45,12 @@ func (h *MemberHandler) MyReports(c *fiber.Ctx) error {
 		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
 	}
 
+	search := c.Query("q")
+	status := c.Query("status") // "verified" | "unverified" | "" (all)
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
 
-	items, total, err := h.memberService.MyReports(ctx, user.ID, page, limit)
+	items, total, err := h.memberService.MyReports(ctx, user.ID, search, status, page, limit)
 	if err != nil {
 		return utils.InternalServerErrorResponse(c)
 	}

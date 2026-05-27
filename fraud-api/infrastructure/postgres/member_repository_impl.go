@@ -37,7 +37,7 @@ func (r *memberRepositoryImpl) CountServicePaymentsByUser(ctx context.Context, u
 	return count, err
 }
 
-func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uuid.UUID, page, limit int) ([]repositories.MemberReportRow, int64, error) {
+func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uuid.UUID, search, status string, page, limit int) ([]repositories.MemberReportRow, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -46,8 +46,24 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 	}
 	offset := (page - 1) * limit
 
+	// Count query พร้อม filter
+	countQ := r.db.WithContext(ctx).
+		Table("fraud_reports fr").
+		Joins("LEFT JOIN frauds f ON f.id = fr.fraud_id").
+		Where("fr.user_id = ?", userID)
+
+	if search != "" {
+		like := "%" + search + "%"
+		countQ = countQ.Where("(fr.first_name ILIKE ? OR fr.last_name ILIKE ? OR fr.phone ILIKE ? OR fr.bank_account ILIKE ?)", like, like, like, like)
+	}
+	if status == "verified" {
+		countQ = countQ.Where("f.verified = true")
+	} else if status == "unverified" {
+		countQ = countQ.Where("(f.verified = false OR f.verified IS NULL)")
+	}
+
 	var total int64
-	r.db.WithContext(ctx).Model(&models.FraudReport{}).Where("user_id = ?", userID).Count(&total)
+	countQ.Count(&total)
 
 	type row struct {
 		ID             string  `gorm:"column:id"`
@@ -67,8 +83,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		CreatedAt      string  `gorm:"column:created_at"`
 	}
 
-	var rows []row
-	r.db.WithContext(ctx).
+	dataQ := r.db.WithContext(ctx).
 		Table("fraud_reports fr").
 		Select(`fr.id, fr.ref_code, fr.fraud_id, fr.first_name, fr.last_name, fr.phone,
 			fr.bank_account, fr.bank_name, fr.id_card, fr.social_accounts, fr.reporter_note, fr.evidence_url,
@@ -76,8 +91,20 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 			COALESCE(f.verified, false) as verified, fr.created_at`).
 		Joins("LEFT JOIN frauds f ON f.id = fr.fraud_id").
 		Joins("LEFT JOIN fraud_categories fc ON fc.id = f.category_id").
-		Where("fr.user_id = ?", userID).
-		Order("fr.created_at DESC").
+		Where("fr.user_id = ?", userID)
+
+	if search != "" {
+		like := "%" + search + "%"
+		dataQ = dataQ.Where("(fr.first_name ILIKE ? OR fr.last_name ILIKE ? OR fr.phone ILIKE ? OR fr.bank_account ILIKE ?)", like, like, like, like)
+	}
+	if status == "verified" {
+		dataQ = dataQ.Where("f.verified = true")
+	} else if status == "unverified" {
+		dataQ = dataQ.Where("(f.verified = false OR f.verified IS NULL)")
+	}
+
+	var rows []row
+	dataQ.Order("fr.created_at DESC").
 		Offset(offset).Limit(limit).
 		Find(&rows)
 

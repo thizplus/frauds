@@ -67,8 +67,8 @@ func (s *memberServiceImpl) Dashboard(ctx context.Context, userID uuid.UUID) (*d
 	}, nil
 }
 
-func (s *memberServiceImpl) MyReports(ctx context.Context, userID uuid.UUID, page, limit int) ([]dto.MemberReportItem, int64, error) {
-	rows, total, err := s.memberRepo.ListReportsByUser(ctx, userID, page, limit)
+func (s *memberServiceImpl) MyReports(ctx context.Context, userID uuid.UUID, search, status string, page, limit int) ([]dto.MemberReportItem, int64, error) {
+	rows, total, err := s.memberRepo.ListReportsByUser(ctx, userID, search, status, page, limit)
 	if err != nil {
 		return nil, 0, err
 	}
