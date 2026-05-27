@@ -18,11 +18,17 @@ export interface MyReport {
   id: string
   refCode: string
   fraudId: string
+  categoryName?: string
   firstName?: string
   lastName?: string
   phone?: string
   bankAccount?: string
-  status: string // "pending" or "verified"
+  bankName?: string
+  idCard?: string
+  socialAccounts?: string[]
+  reporterNote?: string
+  evidenceUrl?: string
+  status: string // "unverified" or "verified"
   createdAt: string
   servicePayment?: ReportServicePayment | null
 }

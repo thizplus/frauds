@@ -81,14 +81,26 @@ func (s *memberServiceImpl) MyReports(ctx context.Context, userID uuid.UUID, pag
 		}
 
 		items[i] = dto.MemberReportItem{
-			ID:        r.ID,
-			RefCode:   r.RefCode,
-			FraudID:   r.FraudID,
-			FirstName: r.FirstName,
-			LastName:  r.LastName,
-			Phone:     r.Phone,
-			Status:    status,
-			CreatedAt: r.CreatedAt.Format(time.RFC3339),
+			ID:           r.ID,
+			RefCode:      r.RefCode,
+			FraudID:      r.FraudID,
+			CategoryName: r.CategoryName,
+			FirstName:    r.FirstName,
+			LastName:     r.LastName,
+			Phone:        r.Phone,
+			BankAccount:  r.BankAccount,
+			BankName:     r.BankName,
+			IDCard:       r.IDCard,
+			ReporterNote: r.ReporterNote,
+			EvidenceURL:  r.EvidenceURL,
+			Status:       status,
+			CreatedAt:    r.CreatedAt.Format(time.RFC3339),
+		}
+		if r.SocialAccounts != "" {
+			var socials []string
+			if json.Unmarshal([]byte(r.SocialAccounts), &socials) == nil {
+				items[i].SocialAccounts = socials
+			}
 		}
 
 		if r.ServicePaymentID != nil {

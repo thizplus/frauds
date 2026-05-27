@@ -429,3 +429,27 @@ body { background-color: var(--bg); color: var(--text); font-family: var(--font-
 
 /* Checkout modal (larger than login modal) */
 .checkout-modal { max-width: 520px; }
+
+/* Report Detail Sheet — mobile: drawer จากล่าง, desktop: sheet จากขวา */
+.report-detail-sheet {
+  position: fixed; z-index: 51;
+  background: var(--bg); display: flex; flex-direction: column;
+  /* Mobile: bottom drawer */
+  bottom: 0; left: 0; right: 0; top: auto;
+  max-height: 92vh; border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border-accent);
+  box-shadow: 0 -8px 40px rgba(0,0,0,.4);
+  animation: slideUp .25s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media (min-width: 768px) {
+  .report-detail-sheet {
+    top: 0; bottom: 0; right: 0; left: auto;
+    width: 440px; max-height: none;
+    border-radius: 0; border-top: none;
+    border-left: 1px solid var(--border-accent);
+    box-shadow: -8px 0 40px rgba(0,0,0,.3);
+    animation: slideLeft .25s ease-out;
+  }
+}

@@ -24,14 +24,21 @@ type MemberRepository interface {
 }
 
 type MemberReportRow struct {
-	ID        string
-	RefCode   string
-	FraudID   *string
-	FirstName string
-	LastName  string
-	Phone     string
-	Verified  bool
-	CreatedAt time.Time
+	ID             string
+	RefCode        string
+	FraudID        *string
+	CategoryName   string
+	FirstName      string
+	LastName       string
+	Phone          string
+	BankAccount    string
+	BankName       string
+	IDCard         string
+	SocialAccounts string
+	ReporterNote   string
+	EvidenceURL    string
+	Verified       bool
+	CreatedAt      time.Time
 	// Service payment ที่ผูกกับ fraud นี้
 	ServicePaymentID      *string
 	ServicePaymentRefCode *string

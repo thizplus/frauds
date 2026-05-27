@@ -14,9 +14,16 @@ type MemberReportItem struct {
 	ID             string                `json:"id"`
 	RefCode        string                `json:"refCode"`
 	FraudID        *string               `json:"fraudId,omitempty"`
+	CategoryName   string                `json:"categoryName,omitempty"`
 	FirstName      string                `json:"firstName,omitempty"`
 	LastName       string                `json:"lastName,omitempty"`
 	Phone          string                `json:"phone,omitempty"`
+	BankAccount    string                `json:"bankAccount,omitempty"`
+	BankName       string                `json:"bankName,omitempty"`
+	IDCard         string                `json:"idCard,omitempty"`
+	SocialAccounts []string              `json:"socialAccounts,omitempty"`
+	ReporterNote   string                `json:"reporterNote,omitempty"`
+	EvidenceURL    string                `json:"evidenceUrl,omitempty"`
 	Status         string                `json:"status"`
 	CreatedAt      string                `json:"createdAt"`
 	ServicePayment *MemberReportSPItem   `json:"servicePayment,omitempty"`

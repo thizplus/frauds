@@ -50,22 +50,32 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 	r.db.WithContext(ctx).Model(&models.FraudReport{}).Where("user_id = ?", userID).Count(&total)
 
 	type row struct {
-		ID        string  `gorm:"column:id"`
-		RefCode   string  `gorm:"column:ref_code"`
-		FraudID   *string `gorm:"column:fraud_id"`
-		FirstName string  `gorm:"column:first_name"`
-		LastName  string  `gorm:"column:last_name"`
-		Phone     string  `gorm:"column:phone"`
-		Verified  bool    `gorm:"column:verified"`
-		CreatedAt string  `gorm:"column:created_at"`
+		ID             string  `gorm:"column:id"`
+		RefCode        string  `gorm:"column:ref_code"`
+		FraudID        *string `gorm:"column:fraud_id"`
+		CategoryName   string  `gorm:"column:category_name"`
+		FirstName      string  `gorm:"column:first_name"`
+		LastName       string  `gorm:"column:last_name"`
+		Phone          string  `gorm:"column:phone"`
+		BankAccount    string  `gorm:"column:bank_account"`
+		BankName       string  `gorm:"column:bank_name"`
+		IDCard         string  `gorm:"column:id_card"`
+		SocialAccounts string  `gorm:"column:social_accounts"`
+		ReporterNote   string  `gorm:"column:reporter_note"`
+		EvidenceURL    string  `gorm:"column:evidence_url"`
+		Verified       bool    `gorm:"column:verified"`
+		CreatedAt      string  `gorm:"column:created_at"`
 	}
 
 	var rows []row
 	r.db.WithContext(ctx).
 		Table("fraud_reports fr").
 		Select(`fr.id, fr.ref_code, fr.fraud_id, fr.first_name, fr.last_name, fr.phone,
+			fr.bank_account, fr.bank_name, fr.id_card, fr.social_accounts, fr.reporter_note, fr.evidence_url,
+			COALESCE(fc.name, '') as category_name,
 			COALESCE(f.verified, false) as verified, fr.created_at`).
 		Joins("LEFT JOIN frauds f ON f.id = fr.fraud_id").
+		Joins("LEFT JOIN fraud_categories fc ON fc.id = f.category_id").
 		Where("fr.user_id = ?", userID).
 		Order("fr.created_at DESC").
 		Offset(offset).Limit(limit).
@@ -105,13 +115,20 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 	results := make([]repositories.MemberReportRow, len(rows))
 	for i, r := range rows {
 		results[i] = repositories.MemberReportRow{
-			ID:        r.ID,
-			RefCode:   r.RefCode,
-			FraudID:   r.FraudID,
-			FirstName: r.FirstName,
-			LastName:  r.LastName,
-			Phone:     r.Phone,
-			Verified:  r.Verified,
+			ID:             r.ID,
+			RefCode:        r.RefCode,
+			FraudID:        r.FraudID,
+			CategoryName:   r.CategoryName,
+			FirstName:      r.FirstName,
+			LastName:       r.LastName,
+			Phone:          r.Phone,
+			BankAccount:    r.BankAccount,
+			BankName:       r.BankName,
+			IDCard:         r.IDCard,
+			SocialAccounts: r.SocialAccounts,
+			ReporterNote:   r.ReporterNote,
+			EvidenceURL:    r.EvidenceURL,
+			Verified:       r.Verified,
 		}
 		if r.FraudID != nil {
 			if sp, ok := spMap[*r.FraudID]; ok {
