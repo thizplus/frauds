@@ -2,27 +2,42 @@ package serviceimpl
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
 
 	"fraud-api/domain/dto"
 	"fraud-api/domain/models"
+	"fraud-api/domain/ports"
 	"fraud-api/domain/repositories"
+	"fraud-api/infrastructure/slip"
 	"fraud-api/pkg/logger"
+	"fraud-api/pkg/utils"
 )
 
 type paymentServiceImpl struct {
 	repo           repositories.PaymentRepository
 	membershipRepo repositories.MembershipRepository
+	settingsRepo   repositories.SettingsRepository
 }
 
-func NewPaymentService(repo repositories.PaymentRepository, membershipRepo repositories.MembershipRepository) *paymentServiceImpl {
-	return &paymentServiceImpl{repo: repo, membershipRepo: membershipRepo}
+func NewPaymentService(
+	repo repositories.PaymentRepository,
+	membershipRepo repositories.MembershipRepository,
+	settingsRepo repositories.SettingsRepository,
+) *paymentServiceImpl {
+	return &paymentServiceImpl{
+		repo:           repo,
+		membershipRepo: membershipRepo,
+		settingsRepo:   settingsRepo,
+	}
 }
 
-func (s *paymentServiceImpl) Create(ctx context.Context, userID uuid.UUID, req *dto.CreatePaymentRequest) (*dto.PaymentResponse, error) {
+func (s *paymentServiceImpl) CreateAndVerify(ctx context.Context, userID uuid.UUID, req *dto.CreatePaymentRequest) (*dto.PaymentResponse, error) {
 	planID, _ := uuid.Parse(req.PlanID)
 	payment := &models.Payment{
 		UserID:        userID,
@@ -40,6 +55,21 @@ func (s *paymentServiceImpl) Create(ctx context.Context, userID uuid.UUID, req *
 
 	payment, _ = s.repo.GetByID(ctx, payment.ID)
 	resp := toPaymentResponse(payment)
+
+	// Auto verify slip ถ้าเปิด + มี slipUrl
+	autoVerify := s.getSettingBool(ctx, "payment.auto_verify_slip")
+	if autoVerify && req.SlipURL != "" {
+		logger.InfoContext(ctx, "Auto verify plan slip", "user_id", userID)
+		verification := s.verifySlip(ctx, req.SlipURL, req.Amount)
+		resp.Verification = verification
+
+		if verification != nil && verification.IsValid && verification.AutoApproved {
+			if err := s.Approve(ctx, payment.ID); err == nil {
+				resp.Status = "approved"
+			}
+		}
+	}
+
 	return &resp, nil
 }
 
@@ -83,10 +113,8 @@ func (s *paymentServiceImpl) Approve(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	// สร้าง/ต่อ Subscription อัตโนมัติ
 	if err := s.activateSubscription(ctx, payment); err != nil {
 		logger.ErrorContext(ctx, "Failed to activate subscription", "payment_id", id, "error", err)
-		// ไม่ return error — payment approved สำเร็จแล้ว แค่ subscription ยังไม่ได้สร้าง
 	}
 
 	logger.InfoContext(ctx, "Payment approved", "payment_id", id, "user_id", payment.UserID)
@@ -108,9 +136,62 @@ func (s *paymentServiceImpl) Reject(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// activateSubscription สร้างหรือต่ออายุ subscription จาก payment ที่ approved
+// === Private helpers ===
+
+func (s *paymentServiceImpl) verifySlip(ctx context.Context, slipURL string, expectedAmount utils.Satang) *dto.SlipVerificationInfo {
+	result := &dto.SlipVerificationInfo{Provider: "slipok"}
+
+	branchID := s.getSettingString(ctx, "payment.slipok_branch_id")
+	apiKey := s.getSettingString(ctx, "payment.slipok_api_key")
+	if branchID == "" || apiKey == "" {
+		result.ErrorMessage = "ระบบตรวจสอบ slip ยังไม่ได้ตั้งค่า"
+		return result
+	}
+
+	verifier := slip.NewSlipOKAdapter(branchID, apiKey)
+	slipInfo, err := verifier.VerifySlip(ctx, slipURL)
+	if err != nil {
+		logger.ErrorContext(ctx, "Slip verification failed", "error", err)
+		result.ErrorMessage = "เกิดข้อผิดพลาดในการตรวจสอบ slip"
+		return result
+	}
+
+	result.SlipInfo = portSlipToDTO(slipInfo)
+	result.IsValid = slipInfo.IsValid
+
+	if !slipInfo.IsValid {
+		result.ErrorMessage = slipInfo.ErrorMessage
+		return result
+	}
+
+	if math.Abs(slipInfo.Amount-expectedAmount.ToBaht()) < 0.01 {
+		result.AutoApproved = true
+	} else {
+		result.ErrorMessage = fmt.Sprintf("จำนวนเงินไม่ตรง: slip=%.2f, expected=%.2f", slipInfo.Amount, expectedAmount.ToBaht())
+	}
+
+	return result
+}
+
+func portSlipToDTO(s *ports.SlipInfo) *dto.SlipInfo {
+	if s == nil {
+		return nil
+	}
+	return &dto.SlipInfo{
+		TransRef:     s.TransRef,
+		Amount:       s.Amount,
+		SenderName:   s.SenderName,
+		SenderBank:   s.SenderBank,
+		ReceiverName: s.ReceiverName,
+		ReceiverBank: s.ReceiverBank,
+		TransDate:    s.TransDate,
+		TransTime:    s.TransTime,
+		IsValid:      s.IsValid,
+		ErrorMessage: s.ErrorMessage,
+	}
+}
+
 func (s *paymentServiceImpl) activateSubscription(ctx context.Context, payment *models.Payment) error {
-	// ดึง plan เพื่อเอา duration_days
 	plan, err := s.membershipRepo.GetPlanByID(ctx, payment.PlanID)
 	if err != nil {
 		return err
@@ -119,25 +200,18 @@ func (s *paymentServiceImpl) activateSubscription(ctx context.Context, payment *
 	loc, _ := time.LoadLocation("Asia/Bangkok")
 	now := time.Now().In(loc)
 
-	// เช็คว่ามี active subscription อยู่ไหม
 	existing, _ := s.membershipRepo.GetActiveSubscription(ctx, payment.UserID)
 	if existing != nil {
-		// ต่ออายุ — เพิ่มวันจาก end_date เดิม
 		existing.EndDate = existing.EndDate.AddDate(0, 0, plan.DurationDays)
-		existing.PlanID = payment.PlanID // อัปเกรดเป็น plan ใหม่
+		existing.PlanID = payment.PlanID
 		existing.TotalAmount += payment.Amount
 		if err := s.membershipRepo.UpdateSubscription(ctx, existing); err != nil {
 			return err
 		}
-		logger.InfoContext(ctx, "Subscription extended",
-			"subscription_id", existing.ID,
-			"user_id", payment.UserID,
-			"new_end_date", existing.EndDate,
-		)
+		logger.InfoContext(ctx, "Subscription extended", "subscription_id", existing.ID, "user_id", payment.UserID)
 		return nil
 	}
 
-	// สร้างใหม่
 	sub := &models.Subscription{
 		UserID:      payment.UserID,
 		PlanID:      payment.PlanID,
@@ -150,13 +224,36 @@ func (s *paymentServiceImpl) activateSubscription(ctx context.Context, payment *
 		return err
 	}
 
-	logger.InfoContext(ctx, "Subscription created",
-		"subscription_id", sub.ID,
-		"user_id", payment.UserID,
-		"plan", plan.Name,
-		"end_date", sub.EndDate,
-	)
+	logger.InfoContext(ctx, "Subscription created", "subscription_id", sub.ID, "user_id", payment.UserID)
 	return nil
+}
+
+func (s *paymentServiceImpl) getSettingBool(ctx context.Context, key string) bool {
+	setting, _ := s.settingsRepo.GetByKey(ctx, key)
+	if setting == nil {
+		return false
+	}
+	var val bool
+	if err := json.Unmarshal(setting.Value, &val); err != nil {
+		var strVal string
+		if err := json.Unmarshal(setting.Value, &strVal); err == nil {
+			return strVal == "true"
+		}
+		return false
+	}
+	return val
+}
+
+func (s *paymentServiceImpl) getSettingString(ctx context.Context, key string) string {
+	setting, _ := s.settingsRepo.GetByKey(ctx, key)
+	if setting == nil {
+		return ""
+	}
+	var val string
+	if err := json.Unmarshal(setting.Value, &val); err != nil {
+		return ""
+	}
+	return val
 }
 
 func toPaymentResponse(p *models.Payment) dto.PaymentResponse {

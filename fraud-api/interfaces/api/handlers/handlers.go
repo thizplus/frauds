@@ -50,7 +50,7 @@ func NewHandlers(
 		SearchHandler:          NewSearchHandler(searchService),
 		SettingsHandler:        NewSettingsHandler(settingsService),
 		MembershipHandler:      NewMembershipHandler(membershipService),
-		PaymentHandler:         NewPaymentHandler(paymentService, settingsService),
+		PaymentHandler:         NewPaymentHandler(paymentService),
 		UserHandler:            NewUserHandler(userService),
 		ServiceHandler:         NewServiceHandler(serviceService),
 		UploadHandler:          NewUploadHandler(storage),
