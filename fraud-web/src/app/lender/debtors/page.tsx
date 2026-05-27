@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Search, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Eye, ShieldAlert, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Eye, ShieldAlert, CheckCircle } from 'lucide-react'
+import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { useDebtorList, useCheckDebtor } from '@/features/lender'
@@ -64,13 +65,13 @@ export default function DebtorsPage() {
         {meta && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{meta.total} คน</span>}
       </div>
 
-      {/* Search + Filter */}
-      <div className="flex gap-2 mb-4">
-        <div className="flex-1 report-input-wrap">
-          <Search className="report-input-icon" />
-          <input type="text" className="input pl-10 text-sm" placeholder="ค้นหา ชื่อ / เบอร์ / เลข ปชช"
-            value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
-        </div>
+      {/* Search */}
+      <div className="mb-4">
+        <SearchInput
+          value={search}
+          onChange={(v) => { setSearch(v); setPage(1) }}
+          placeholder="ค้นหา ชื่อ / เบอร์ / เลข ปชช"
+        />
       </div>
 
       <div className="flex gap-2 mb-4">

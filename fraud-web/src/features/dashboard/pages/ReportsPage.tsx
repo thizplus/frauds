@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Clock, BadgeCheck, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2, Search, X } from 'lucide-react'
+import { ArrowLeft, FileText, Clock, BadgeCheck, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
+import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { ServiceDetailDrawer, PaymentDrawer } from '@/features/services'
@@ -99,30 +100,12 @@ export function ReportsPage() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-          style={{ color: search ? 'var(--accent)' : 'var(--text-dim)' }} />
-        <input
-          type="text"
-          placeholder="ค้นหาชื่อ เบอร์ หรือเลขบัญชี..."
+      <div className="mb-3">
+        <SearchInput
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl outline-none"
-          style={{
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-          }}
+          onChange={setSearch}
+          placeholder="ค้นหาชื่อ เบอร์ หรือเลขบัญชี..."
         />
-        {search && (
-          <button
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded"
-            style={{ color: 'var(--text-dim)' }}
-            onClick={() => setSearch('')}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
       {/* Status filter */}
