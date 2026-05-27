@@ -149,7 +149,7 @@ function DebtorCard({ debtor, onOpenDetail, onCheck, checkPending }: {
   const initials = (d.firstName?.[0] || '?').toUpperCase()
 
   return (
-    <button className="card w-full text-left p-0 overflow-hidden" onClick={onOpenDetail}>
+    <div className="card w-full text-left p-0 overflow-hidden cursor-pointer" onClick={onOpenDetail}>
       <div className="flex items-center gap-3 p-3">
         {/* Avatar circle */}
         <div
@@ -207,6 +207,6 @@ function DebtorCard({ debtor, onOpenDetail, onCheck, checkPending }: {
           )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
