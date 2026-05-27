@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Eye, ShieldAlert, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Phone, ShieldAlert, CheckCircle, Clock } from 'lucide-react'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { useDebtorList, useCheckDebtor } from '@/features/lender'
 import type { Debtor } from '@/features/lender'
+import { DebtorDetailDrawer } from './DebtorDetailDrawer'
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  active: { label: 'ปกติ', color: 'var(--accent)' },
-  flagged: { label: 'โกง', color: 'var(--danger)' },
-  cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)' },
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
+  active: { label: 'ปกติ', color: 'var(--accent)', bg: 'rgba(34,197,94,0.1)', icon: CheckCircle },
+  flagged: { label: 'โกง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)', icon: ShieldAlert },
+  cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)', bg: 'var(--bg-elevated)', icon: Clock },
 }
 
 function formatDate(dateStr: string): string {
@@ -27,6 +28,7 @@ export default function DebtorsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
+  const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   useEffect(() => { setMounted(true) }, [])
@@ -74,6 +76,7 @@ export default function DebtorsPage() {
         />
       </div>
 
+      {/* Status filter */}
       <div className="flex gap-2 mb-4">
         {[{ value: '', label: 'ทั้งหมด' }, { value: 'active', label: 'ปกติ' }, { value: 'flagged', label: 'โกง' }, { value: 'cleared', label: 'ปลดแล้ว' }].map((f) => (
           <button key={f.value} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
@@ -93,46 +96,22 @@ export default function DebtorsPage() {
       ) : debtors.length === 0 ? (
         <div className="card p-8 text-center">
           <Users className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-dim)' }} />
-          <p className="text-sm" style={{ color: 'var(--text-dim)' }}>ยังไม่มีสมาชิก</p>
+          <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
+            {search || statusFilter ? 'ไม่พบสมาชิกที่ตรงกัน' : 'ยังไม่มีสมาชิก'}
+          </p>
         </div>
       ) : (
         <>
           <div className="space-y-2">
-            {debtors.map((d) => {
-              const st = STATUS_MAP[d.status] || STATUS_MAP.active
-              return (
-                <Link key={d.id} href={`/lender/debtors/${d.id}`} className="card p-4 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>
-                      {[d.firstName, d.lastName].filter(Boolean).join(' ')}
-                    </div>
-                    <div className="flex items-center gap-3 text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>
-                      {d.phone && <span className="font-mono">{d.phone}</span>}
-                      <span>{formatDate(d.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  {/* Check matches */}
-                  <div className="text-center flex-shrink-0">
-                    {d.checkedAt ? (
-                      <span className="text-xs font-mono" style={{ color: d.checkMatches > 0 ? 'var(--danger)' : 'var(--text-dim)' }}>
-                        {d.checkMatches > 0 ? `${d.checkMatches} พบ` : '—'}
-                      </span>
-                    ) : (
-                      <button className="text-xs px-2 py-1 rounded" style={{ color: 'var(--accent)', background: 'var(--accent-dim)' }}
-                        onClick={(e) => { e.preventDefault(); checkMutation.mutate(d.id) }}>
-                        เช็ค
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Status */}
-                  <span className="text-xs font-bold flex-shrink-0" style={{ color: st.color }}>
-                    {st.label}
-                  </span>
-                </Link>
-              )
-            })}
+            {debtors.map((d) => (
+              <DebtorCard
+                key={d.id}
+                debtor={d}
+                onOpenDetail={() => setSelectedDebtorId(d.id)}
+                onCheck={() => checkMutation.mutate(d.id)}
+                checkPending={checkMutation.isPending}
+              />
+            ))}
           </div>
 
           {meta && meta.totalPages > 1 && (
@@ -148,6 +127,86 @@ export default function DebtorsPage() {
           )}
         </>
       )}
+
+      {/* Detail Drawer */}
+      <DebtorDetailDrawer
+        debtorId={selectedDebtorId}
+        open={!!selectedDebtorId}
+        onClose={() => setSelectedDebtorId(null)}
+      />
     </section>
+  )
+}
+
+// === Debtor Card ===
+
+function DebtorCard({ debtor, onOpenDetail, onCheck, checkPending }: {
+  debtor: Debtor; onOpenDetail: () => void; onCheck: () => void; checkPending: boolean
+}) {
+  const d = debtor
+  const st = STATUS_MAP[d.status] || STATUS_MAP.active
+  const StatusIcon = st.icon
+  const initials = (d.firstName?.[0] || '?').toUpperCase()
+
+  return (
+    <button className="card w-full text-left p-0 overflow-hidden" onClick={onOpenDetail}>
+      <div className="flex items-center gap-3 p-3">
+        {/* Avatar circle */}
+        <div
+          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-base font-bold"
+          style={{ background: st.bg, color: st.color }}
+        >
+          {initials}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>
+              {[d.firstName, d.lastName].filter(Boolean).join(' ')}
+            </span>
+            <span
+              className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style={{ background: st.bg, color: st.color }}
+            >
+              <StatusIcon className="w-3 h-3" />
+              {st.label}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mt-0.5">
+            {d.phone && (
+              <span className="flex items-center gap-1 text-xs font-mono" style={{ color: 'var(--text-dim)' }}>
+                <Phone className="w-3 h-3" />{d.phone}
+              </span>
+            )}
+            <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{formatDate(d.createdAt)}</span>
+          </div>
+        </div>
+
+        {/* Check badge */}
+        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          {d.checkedAt ? (
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-lg"
+              style={{
+                background: d.checkMatches > 0 ? 'rgba(248,113,113,0.1)' : 'var(--bg-elevated)',
+                color: d.checkMatches > 0 ? 'var(--danger)' : 'var(--text-dim)',
+              }}
+            >
+              {d.checkMatches > 0 ? `พบ ${d.checkMatches}` : 'สะอาด'}
+            </span>
+          ) : (
+            <button
+              className="text-xs font-medium px-2.5 py-1 rounded-lg transition-all"
+              style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)' }}
+              onClick={(e) => { e.stopPropagation(); onCheck() }}
+              disabled={checkPending}
+            >
+              เช็ค
+            </button>
+          )}
+        </div>
+      </div>
+    </button>
   )
 }
