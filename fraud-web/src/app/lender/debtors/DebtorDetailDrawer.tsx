@@ -53,10 +53,11 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
     setScanStep(0)
     setScanProgress(0)
 
+    const stepDelays = [1500, 2000, 1500] // รวม ~5 วินาที
     for (let i = 0; i < 3; i++) {
       setScanStep(i)
       setScanProgress(((i + 1) / 3) * 100)
-      await new Promise(r => setTimeout(r, 800))
+      await new Promise(r => setTimeout(r, stepDelays[i]))
     }
 
     checkMutation.mutate(debtorId!, {
