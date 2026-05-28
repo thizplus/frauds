@@ -129,7 +129,7 @@ function SocialCard({ item }: { item: SocialResult }) {
   const confidencePct = Math.round(item.confidence * 100)
 
   return (
-    <div className="card p-4 flex items-center gap-3">
+    <div className="flex items-center gap-3" style={{ padding: '.7rem 1rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12 }}>
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
         style={{ background: 'var(--accent-dim)' }}
