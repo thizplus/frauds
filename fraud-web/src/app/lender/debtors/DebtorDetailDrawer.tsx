@@ -386,6 +386,19 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
   const [reason, setReason] = useState('')
   const [amount, setAmount] = useState('')
   const [detail, setDetail] = useState('')
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+    fetch(`${apiUrl}/categories`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && Array.isArray(d.data)) {
+          setCategories(d.data)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <Drawer open={true} onClose={onClose} title={
@@ -393,15 +406,12 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
     }>
       <div className="space-y-4">
         <div>
-          <label className="report-label">เหตุผล <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <label className="report-label">หมวดหมู่ <span style={{ color: 'var(--danger)' }}>*</span></label>
           <select className="input" value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="">เลือกเหตุผล</option>
-            <option value="ไม่จ่ายเงิน">ไม่จ่ายเงิน</option>
-            <option value="หนีหนี้">หนีหนี้</option>
-            <option value="ไม่ส่งแชร์">ไม่ส่งแชร์</option>
-            <option value="ไม่ส่งของ">ไม่ส่งของ</option>
-            <option value="หลอกลงทุน">หลอกลงทุน</option>
-            <option value="อื่นๆ">อื่นๆ</option>
+            <option value="">เลือกหมวดหมู่</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
           </select>
         </div>
         <div>
