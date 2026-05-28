@@ -1,10 +1,13 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { User, BadgeCheck, Phone, CreditCard, IdCard, ShieldAlert, Flag, Lock } from 'lucide-react'
 import { formatDateShort } from '@/lib/utils/format-date'
 import { Drawer } from '@/components/ui/Drawer'
+import { EvidenceGallery } from '@/components/ui/EvidenceGallery'
 import { useSubscription } from '@/lib/hooks/useSubscription'
-import type { FraudResponse } from '@/features/search/types'
+import { searchService } from '@/features/search/service'
+import type { FraudResponse, FraudPublicDetail } from '@/features/search/types'
 import Link from 'next/link'
 
 interface FraudDetailDrawerProps {
@@ -16,7 +19,25 @@ interface FraudDetailDrawerProps {
 export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerProps) {
   const { data: subInfo } = useSubscription()
   const isMember = subInfo?.hasSubscription ?? false
+  const [detail, setDetail] = useState<FraudPublicDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Fetch detail เมื่อเปิด drawer
+  useEffect(() => {
+    if (!open || !fraud?.id) {
+      setDetail(null)
+      return
+    }
+    setLoading(true)
+    searchService.getFraudDetail(fraud.id)
+      .then(setDetail)
+      .catch(() => setDetail(null))
+      .finally(() => setLoading(false))
+  }, [open, fraud?.id])
+
   if (!fraud) return null
+
+  const evidenceUrls = detail?.evidenceUrls ?? []
 
   return (
     <Drawer
@@ -29,12 +50,12 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-100 truncate">
+              <h2 className="text-base font-semibold truncate" style={{ color: 'var(--text)' }}>
                 {fraud.name || 'ไม่ทราบชื่อ'}
               </h2>
               {fraud.verified && <BadgeCheck className="w-4 h-4 text-accent flex-shrink-0" />}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">{fraud.categoryName}</div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>{fraud.categoryName}</div>
           </div>
         </>
       }
@@ -57,11 +78,11 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
           </span>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-100">พบข้อมูลในระบบ</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>พบข้อมูลในระบบ</span>
               <span className="ai-status-tag">DETECTED</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1 font-mono">
-              ถูกรายงาน <span className="text-slate-200 font-semibold">{fraud.reportCount} ครั้ง</span>
+            <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
+              ถูกรายงาน <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{fraud.reportCount} ครั้ง</span>
             </p>
           </div>
         </div>
@@ -100,7 +121,7 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
         <div className="detail-icon"><IdCard className="w-4 h-4" /></div>
         <div className="flex-1 min-w-0">
           <div className="detail-label">บัตรประชาชน</div>
-          <div className="detail-value text-slate-500 italic text-sm">
+          <div className="detail-value" style={{ color: isMember && fraud.idCard ? 'var(--text)' : 'var(--text-dim)', fontStyle: !fraud.idCard ? 'italic' : 'normal' }}>
             {isMember ? (fraud.idCard || 'ไม่มีข้อมูล') : 'สมาชิกเท่านั้น'}
           </div>
         </div>
@@ -117,6 +138,22 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
           </a>
         </div>
       )}
+
+      {/* Evidence Gallery */}
+      {loading ? (
+        <div className="mt-4">
+          <div className="text-xs uppercase tracking-wider mb-2 px-1 font-mono" style={{ color: 'var(--text-dim)' }}>
+            หลักฐาน
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="aspect-square rounded-lg animate-pulse" style={{ background: 'var(--bg-elevated)' }} />
+            ))}
+          </div>
+        </div>
+      ) : evidenceUrls.length > 0 ? (
+        <EvidenceGallery urls={evidenceUrls} isMember={isMember} />
+      ) : null}
 
       {/* Description */}
       {fraud.description && (
@@ -136,14 +173,14 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
       {/* Extra data */}
       {fraud.extraData && Object.keys(fraud.extraData).length > 0 && (
         <div className="mt-5">
-          <div className="text-xs uppercase tracking-wider text-slate-500 mb-2 px-1 font-mono">
+          <div className="text-xs uppercase tracking-wider mb-2 px-1 font-mono" style={{ color: 'var(--text-dim)' }}>
             ข้อมูลเพิ่มเติม
           </div>
           <div className="space-y-1">
             {Object.entries(fraud.extraData).map(([key, val]) => (
               <div key={key} className="flex items-center justify-between text-sm px-1">
-                <span className="text-slate-400">{key}</span>
-                <span className="text-slate-200 font-mono">{String(val)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{key}</span>
+                <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>{String(val)}</span>
               </div>
             ))}
           </div>

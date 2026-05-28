@@ -148,6 +148,24 @@ func (h *FraudHandler) List(c *fiber.Ctx) error {
 }
 
 // GetByID GET /admin/frauds/:id
+// GetPublicDetail GET /frauds/:id (public — verified/settled only)
+func (h *FraudHandler) GetPublicDetail(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid ID")
+	}
+
+	detail, err := h.fraudService.GetPublicDetail(ctx, id)
+	if err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, detail)
+}
+
+// GetByID GET /admin/frauds/:id
 func (h *FraudHandler) GetByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 

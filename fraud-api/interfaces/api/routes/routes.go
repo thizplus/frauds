@@ -38,6 +38,12 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	search.Get("/unified", h.SearchHandler.UnifiedSearch)
 	search.Post("/face", middleware.JWTMiddleware(jwtSecret), h.FaceSearchHandler.SearchByFace)
 
+	// Public fraud detail (verified/settled only)
+	fraudPublic := api.Group("/frauds")
+	fraudPublic.Use(middleware.RateLimitMiddleware(60, 1*time.Minute))
+	fraudPublic.Use(middleware.OptionalJWTMiddleware(jwtSecret))
+	fraudPublic.Get("/:id", h.FraudHandler.GetPublicDetail)
+
 	// Public membership plans
 	api.Get("/plans", h.MembershipHandler.ListPlans)
 

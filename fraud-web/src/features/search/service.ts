@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import type { PaginatedResponse } from '@/lib/api/types'
-import type { FraudResponse, CategoryResponse, SearchParams, UnifiedSearchResponse, FaceSearchResponse } from './types'
+import type { FraudResponse, FraudPublicDetail, CategoryResponse, SearchParams, UnifiedSearchResponse, FaceSearchResponse } from './types'
 
 export const searchService = {
   async search(params: SearchParams): Promise<PaginatedResponse<FraudResponse>> {
@@ -34,6 +34,13 @@ export const searchService = {
   async getCategories(): Promise<CategoryResponse[]> {
     const res = await apiClient.get<{ success: boolean; data: CategoryResponse[] }>(
       ENDPOINTS.CATEGORIES,
+    )
+    return res.data.data
+  },
+
+  async getFraudDetail(id: string): Promise<FraudPublicDetail> {
+    const res = await apiClient.get<{ success: boolean; data: FraudPublicDetail }>(
+      `/frauds/${id}`,
     )
     return res.data.data
   },

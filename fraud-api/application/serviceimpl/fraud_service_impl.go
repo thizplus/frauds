@@ -189,6 +189,45 @@ func (s *fraudServiceImpl) GetByID(ctx context.Context, id uuid.UUID) (*dto.Frau
 	return mappers.FraudToDetailResponse(fraud, nil, reports), nil
 }
 
+func (s *fraudServiceImpl) GetPublicDetail(ctx context.Context, id uuid.UUID) (*dto.FraudPublicDetailResponse, error) {
+	fraud, err := s.fraudRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("fraud not found")
+	}
+
+	// เฉพาะ verified/settled เท่านั้น (pending ไม่เปิดให้ดู)
+	if fraud.Status != models.FraudVerified && fraud.Status != models.FraudSettled {
+		return nil, errors.New("fraud not found")
+	}
+
+	resp := mappers.FraudToResponse(fraud)
+
+	// ดึง evidence URLs จาก reports
+	reports, _ := s.fraudRepo.ListReportsByFraudID(ctx, id)
+	var evidenceURLs []string
+	var firstDate string
+	for _, r := range reports {
+		if r.EvidenceURL != "" {
+			// Parse JSON array หรือ single URL
+			var urls []string
+			if err := json.Unmarshal([]byte(r.EvidenceURL), &urls); err == nil {
+				evidenceURLs = append(evidenceURLs, urls...)
+			} else if strings.HasPrefix(r.EvidenceURL, "http") {
+				evidenceURLs = append(evidenceURLs, r.EvidenceURL)
+			}
+		}
+		if firstDate == "" {
+			firstDate = r.CreatedAt.Format("2006-01-02T15:04:05Z")
+		}
+	}
+
+	return &dto.FraudPublicDetailResponse{
+		FraudResponse:   *resp,
+		EvidenceURLs:    evidenceURLs,
+		FirstReportDate: firstDate,
+	}, nil
+}
+
 func (s *fraudServiceImpl) Update(ctx context.Context, id uuid.UUID, req *dto.UpdateFraudRequest) (*dto.FraudResponse, error) {
 	fraud, err := s.fraudRepo.GetByID(ctx, id)
 	if err != nil {

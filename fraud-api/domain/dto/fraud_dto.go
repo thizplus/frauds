@@ -105,6 +105,12 @@ type FraudDetailResponse struct {
 	Reports []FraudReportResponse `json:"reports"`
 }
 
+type FraudPublicDetailResponse struct {
+	FraudResponse
+	EvidenceURLs    []string `json:"evidenceUrls,omitempty"`
+	FirstReportDate string   `json:"firstReportDate,omitempty"`
+}
+
 type FraudSourceResponse struct {
 	ID          string `json:"id"`
 	SourceType  string `json:"sourceType"`

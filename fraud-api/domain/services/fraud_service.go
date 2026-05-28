@@ -27,6 +27,9 @@ type FraudService interface {
 	Verify(ctx context.Context, id uuid.UUID) (*dto.FraudResponse, error)
 	Unverify(ctx context.Context, id uuid.UUID) error
 
+	// Public
+	GetPublicDetail(ctx context.Context, id uuid.UUID) (*dto.FraudPublicDetailResponse, error)
+
 	// Report
 	CreateReport(ctx context.Context, req *dto.CreateReportRequest) (*dto.CreateReportResult, error)
 

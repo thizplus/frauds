@@ -77,6 +77,11 @@ export interface SocialResult {
   }
 }
 
+export interface FraudPublicDetail extends FraudResponse {
+  evidenceUrls?: string[]
+  firstReportDate?: string
+}
+
 export interface FaceSearchResponse {
   faceDetected: boolean
   matches: FaceMatch[]
