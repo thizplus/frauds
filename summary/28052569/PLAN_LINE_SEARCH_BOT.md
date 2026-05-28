@@ -104,14 +104,24 @@ Link Rich Menu ตาม subscription status
 
 ### Keys
 ```
-user:{lineUserId}:mode        = "search"     (TTL 60s)
-user:{lineUserId}:search_count = "3"         (TTL 24h, นับ quota)
+user:{lineUserId}:mode = "search"  (TTL 60s)  ← แค่นี้ตัวเดียว!
+```
+
+### Quota — ใช้ระบบเดิม (ไม่ต้อง Redis)
+```
+SearchService.CheckQuota(userID, ip) ← ตัวเดิมจาก DB
+  - นับจาก search_logs (CountByUserToday)
+  - Free: ≥ 5 ครั้ง/วัน = เกิน
+  - Member (hasSubscription): bypass ไม่จำกัด
+  - ค่า quota ดึงจาก system_settings (configurable)
 ```
 
 ### Flow
 ```
 กด "ค้นหา" → SET mode=search TTL=60
-พิมพ์ query → GET mode → "search" → ค้นหา → DEL mode
+พิมพ์ query → GET mode → "search"
+  → CheckQuota(userID) → ถ้าเกิน → reply "ค้นหาครบแล้ว"
+  → ถ้าผ่าน → ค้นหา → reply flex → DEL mode
 พิมพ์ปกติ  → GET mode → nil → ไม่ตอบ
 หมดเวลา 60s → mode หายเอง
 ```
