@@ -225,12 +225,12 @@ export default function SearchPage() {
           <div className="mt-8 trust-row">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-              ไม่เก็บข้อมูลผู้ค้นหา
+              ไม่เก็บข้อมูล
             </span>
             <span className="sep" />
             <span className="flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-accent" />
-              เข้ารหัส end-to-end
+              เข้ารหัส
             </span>
             <span className="sep" />
             <span className="flex items-center gap-1.5">
