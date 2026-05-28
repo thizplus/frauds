@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { useDebtorList } from '@/features/lender'
 import type { Debtor } from '@/features/lender'
+import { formatDateNoYear } from '@/lib/utils/format-date'
 import { DebtorDetailDrawer } from './DebtorDetailDrawer'
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
@@ -15,12 +16,6 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string; ico
   flagged: { label: 'ถูกแจ้ง', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)', icon: ShieldAlert },
   cleared: { label: 'ปลดแล้ว', color: 'var(--text-muted)', bg: 'var(--bg-elevated)', icon: Clock },
   archived: { label: 'ถังขยะ', color: 'var(--text-dim)', bg: 'var(--bg-elevated)', icon: Clock },
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
-  } catch { return dateStr }
 }
 
 export default function DebtorsPage() {
@@ -176,7 +171,7 @@ function DebtorCard({ debtor, onOpenDetail }: {
                 <Phone className="w-3 h-3" />{d.phone}
               </span>
             )}
-            <span className="text-sm" style={{ color: 'var(--text-dim)' }}>{formatDate(d.createdAt)}</span>
+            <span className="text-sm" style={{ color: 'var(--text-dim)' }}>{formatDateNoYear(d.createdAt)}</span>
           </div>
         </div>
 

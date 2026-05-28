@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Search, Clock, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
+import { formatDatetime } from '@/lib/utils/format-date'
 import { useMySearches } from '../hooks'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -13,15 +14,6 @@ const TYPE_LABELS: Record<string, string> = {
   bank: 'เลขบัญชี',
   idcard: 'บัตร ปชช.',
   name: 'ชื่อ',
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return dateStr
-  }
 }
 
 export function SearchesPage() {
@@ -98,7 +90,7 @@ export function SearchesPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
-                    {formatDate(s.createdAt)}
+                    {formatDatetime(s.createdAt)}
                   </span>
                 </div>
               </div>

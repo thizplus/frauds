@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive } from 'lucide-react'
+import { formatDateShort, formatDatetime } from '@/lib/utils/format-date'
 import { CategoryPicker } from '@/components/shared/CategoryPicker'
 import { Drawer } from '@/components/ui/Drawer'
 import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor, useDeleteDebtor } from '@/features/lender'
@@ -219,7 +220,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                   <SectionTitle>
                     ผลตรวจสอบประวัติ
                     <span className="text-xs font-normal" style={{ color: 'var(--text-dim)' }}>
-                      {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                      {' '}({formatDatetime(debtor.checkedAt)})
                     </span>
                   </SectionTitle>
                   {debtor.status !== 'archived' && !confirmArchive && (
@@ -284,7 +285,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                     <div className="text-sm">
                       <span style={{ color: 'var(--danger)' }}>แจ้งเตือนเมื่อ </span>
                       <span style={{ color: 'var(--text)' }}>
-                        {new Date(debtor.flaggedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        {formatDateShort(debtor.flaggedAt)}
                       </span>
                       {debtor.flaggedReason && <span style={{ color: 'var(--text-muted)' }}> • {debtor.flaggedReason}</span>}
                       {debtor.flaggedAmount ? <span style={{ color: 'var(--text-muted)' }}> • {(debtor.flaggedAmount / 100).toLocaleString()} บาท</span> : null}
@@ -300,7 +301,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                       <div className="text-sm">
                         <span style={{ color: 'var(--accent)' }}>ปลดแจ้งเตือนเมื่อ </span>
                         <span style={{ color: 'var(--text)' }}>
-                          {new Date(debtor.clearedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          {formatDateShort(debtor.clearedAt)}
                         </span>
                         {debtor.clearedNote && <span style={{ color: 'var(--text-muted)' }}> • {debtor.clearedNote}</span>}
                       </div>

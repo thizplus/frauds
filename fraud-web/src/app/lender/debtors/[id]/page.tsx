@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor } from '@/features/lender'
+import { formatDatetime } from '@/lib/utils/format-date'
 import type { CheckResultItem } from '@/features/lender'
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -78,7 +79,7 @@ export default function DebtorDetailPage() {
         <div className="card p-4 mb-4">
           <p className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>
             ผลเช็คประวัติ <span className="font-normal text-xs" style={{ color: 'var(--text-dim)' }}>
-              (เช็คเมื่อ {new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
+              (เช็คเมื่อ {formatDatetime(debtor.checkedAt)})
             </span>
           </p>
           {checkResults.length === 0 ? (

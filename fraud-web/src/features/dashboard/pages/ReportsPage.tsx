@@ -10,20 +10,12 @@ import { ServiceDetailDrawer, PaymentDrawer } from '@/features/services'
 import type { ServiceItem } from '@/features/services'
 import { useMyReports, useServicePaymentAction } from '../hooks'
 import type { MyReport, ReportServicePayment } from '../types'
+import { formatDateShort } from '@/lib/utils/format-date'
 import { ReportDetailSheet } from '../components/ReportDetailSheet'
 
 const REPORT_STATUS: Record<string, { label: string; color: string }> = {
   unverified: { label: 'รอตรวจสอบ', color: 'var(--warning, #facc15)' },
   verified: { label: 'ยืนยันแล้ว', color: 'var(--accent)' },
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
-  } catch {
-    return dateStr
-  }
 }
 
 export function ReportsPage() {
@@ -245,7 +237,7 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
             <div className="text-sm font-mono mt-0.5" style={{ color: 'var(--accent)' }}>{r.refCode}</div>
           )}
           <div className="flex items-center gap-2 text-sm mt-1" style={{ color: 'var(--text-dim)' }}>
-            <span>{formatDate(r.createdAt)}</span>
+            <span>{formatDateShort(r.createdAt)}</span>
             <span className="flex items-center gap-1">
               {r.status === 'verified' ? <BadgeCheck className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
               {rs.label}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BadgeCheck, Clock, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Drawer } from '@/components/ui/Drawer'
+import { formatDateLong } from '@/lib/utils/format-date'
 import type { MyReport } from '../types'
 
 interface ReportDetailSheetProps {
@@ -10,15 +11,6 @@ interface ReportDetailSheetProps {
   open: boolean
   onClose: () => void
   robotButton?: React.ReactNode
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
-  } catch {
-    return dateStr
-  }
 }
 
 function parseEvidenceUrls(raw?: string): string[] {
@@ -128,7 +120,7 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
             <SectionTitle>ข้อมูลอ้างอิง</SectionTitle>
             <div className="card p-3 space-y-3">
               <DetailRow icon={Hash} label="รหัสอ้างอิง" value={r.refCode} mono accent />
-              <DetailRow icon={Calendar} label="วันที่แจ้ง" value={formatDate(r.createdAt)} />
+              <DetailRow icon={Calendar} label="วันที่แจ้ง" value={formatDateLong(r.createdAt)} />
             </div>
           </div>
 
