@@ -204,12 +204,28 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
             {/* ผลเช็คประวัติ */}
             {debtor.checkedAt && (
               <div>
-                <SectionTitle>
-                  ผลตรวจสอบประวัติ
-                  <span className="text-[10px] font-normal normal-case" style={{ color: 'var(--text-dim)' }}>
-                    {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
-                  </span>
-                </SectionTitle>
+                <div className="flex items-center justify-between mb-1.5">
+                  <SectionTitle>
+                    ผลตรวจสอบประวัติ
+                    <span className="text-[10px] font-normal normal-case" style={{ color: 'var(--text-dim)' }}>
+                      {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                    </span>
+                  </SectionTitle>
+                  {debtor.status !== 'archived' && (
+                    <button
+                      className="text-[11px] flex items-center gap-1"
+                      style={{ color: 'var(--text-dim)' }}
+                      onClick={() => {
+                        if (confirm('ซ่อนรายชื่อนี้? (กู้คืนได้จากถังขยะ)')) {
+                          archiveMutation.mutate(debtorId!, { onSuccess: onClose })
+                        }
+                      }}
+                      disabled={archiveMutation.isPending}
+                    >
+                      <Archive className="w-3 h-3" /> ซ่อนรายชื่อนี้
+                    </button>
+                  )}
+                </div>
                 {checkResults.length === 0 ? (
                   <div className="card p-3">
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>ไม่พบข้อมูลในระบบ</p>
@@ -257,23 +273,6 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
               </div>
             )}
 
-            {/* ซ่อนรายชื่อนี้ — ชิดขวา ใต้เนื้อหาทั้งหมด */}
-            {debtor.status !== 'archived' && (
-              <div className="flex justify-end pt-2">
-                <button
-                  className="text-xs flex items-center gap-1 py-1 px-2 rounded"
-                  style={{ color: 'var(--text-dim)' }}
-                  onClick={() => {
-                    if (confirm('ซ่อนรายชื่อนี้? (กู้คืนได้จากถังขยะ)')) {
-                      archiveMutation.mutate(debtorId!, { onSuccess: onClose })
-                    }
-                  }}
-                  disabled={archiveMutation.isPending}
-                >
-                  <Archive className="w-3 h-3" /> ซ่อนรายชื่อนี้
-                </button>
-              </div>
-            )}
           </div>
         )}
       </Drawer>
