@@ -27,6 +27,7 @@ export function SearchesPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const { data, isLoading } = useMySearches(page)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -58,7 +59,6 @@ export function SearchesPage() {
     )
   }
 
-  const { data, isLoading } = useMySearches(page)
   const searches = data?.data || []
   const meta = data?.meta
 
