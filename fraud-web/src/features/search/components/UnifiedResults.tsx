@@ -1,6 +1,7 @@
 'use client'
 
 import { Bot, Database, Globe, Sparkles, BadgeCheck, Clock, ExternalLink } from 'lucide-react'
+import { formatPhone } from '@/lib/utils/format-phone'
 import type { FraudResponse, UnifiedSection, SocialResult } from '../types'
 import { FraudRow } from './FraudRow'
 
@@ -146,7 +147,7 @@ function SocialCard({ item }: { item: SocialResult }) {
           )}
         </div>
         <div className="flex items-center gap-2 text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          <span className="font-mono">{item.matchedValue}</span>
+          <span className="font-mono">{item.entityType === 'phone' ? formatPhone(item.matchedValue) : item.matchedValue}</span>
           <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
             {item.entityType}
           </span>
