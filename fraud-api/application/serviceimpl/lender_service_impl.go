@@ -319,7 +319,7 @@ func (s *lenderServiceImpl) FlagDebtor(ctx context.Context, userID, debtorID uui
 	reportReq := &dto.CreateReportRequest{
 		UserID:       userID.String(),
 		CategoryID:   "loan_fraud",
-		ReporterNote: req.Reason + "\n" + req.Detail,
+		ReporterNote: req.Detail,
 		FirstName:    debtor.FirstName,
 		LastName:     debtor.LastName,
 		IDCard:       debtor.IDCard,

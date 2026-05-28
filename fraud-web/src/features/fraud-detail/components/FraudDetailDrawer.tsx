@@ -1,6 +1,7 @@
 'use client'
 
 import { User, BadgeCheck, Phone, CreditCard, IdCard, ShieldAlert, Flag, Lock } from 'lucide-react'
+import { formatDateShort } from '@/lib/utils/format-date'
 import { Drawer } from '@/components/ui/Drawer'
 import { useSubscription } from '@/lib/hooks/useSubscription'
 import type { FraudResponse } from '@/features/search/types'
@@ -146,9 +147,7 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
 
       {/* Created at */}
       <div className="mt-5 text-xs text-slate-500 font-mono px-1">
-        ลงข้อมูล: {new Date(fraud.createdAt).toLocaleDateString('th-TH', {
-          year: 'numeric', month: 'short', day: 'numeric',
-        })}
+        ลงข้อมูล: {formatDateShort(fraud.createdAt)}
       </div>
     </Drawer>
   )
