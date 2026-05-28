@@ -77,17 +77,12 @@ export function UnifiedResults({
       {sorted.map((section) => (
         <div key={section.source} className="mb-6">
           {/* Section header */}
-          <div className="flex items-center gap-2 mb-3 px-1">
-            {section.source === 'frauds' ? (
-              <Database className="w-5 h-5 text-accent" />
-            ) : (
-              <Globe className="w-5 h-5 text-accent" />
-            )}
-            <span className="text-base font-semibold" style={{ color: 'var(--text)' }}>
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
               {section.label}
             </span>
             <span
-              className="text-sm px-2 py-0.5 rounded-full font-bold"
+              className="text-xs px-1.5 py-0.5 rounded-full font-bold"
               style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
             >
               {section.count}
