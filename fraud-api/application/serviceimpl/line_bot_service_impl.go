@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -360,7 +361,7 @@ func buildNoResultMessage(query string) []ports.FlexContainer {
 				"type":   "box",
 				"layout": "vertical",
 				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ค้นเพิ่มเติมบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", query)}, "style": "secondary"},
+					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ค้นเพิ่มเติมบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query))}, "style": "secondary"},
 				},
 			},
 		},
@@ -445,7 +446,7 @@ func buildSearchResultMessage(query string, result *dto.UnifiedSearchResponse, i
 				"type":   "box",
 				"layout": "vertical",
 				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ดูรายละเอียดบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", query)}, "style": "primary", "color": "#00d492"},
+					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ดูรายละเอียดบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query))}, "style": "primary", "color": "#00d492"},
 				},
 			},
 		},
