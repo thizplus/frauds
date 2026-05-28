@@ -17,9 +17,9 @@ export function FaceSearchDrawer({ open, onClose, onSelectFraud }: FaceSearchDra
       open={open}
       onClose={onClose}
       title={
-        <div className="flex items-center gap-2">
-          <Camera className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ค้นหาด้วยใบหน้า</h2>
+        <div className="flex items-center gap-2.5">
+          <Camera className="w-6 h-6" style={{ color: 'var(--accent)' }} />
+          <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>ค้นหาด้วยใบหน้า</h2>
         </div>
       }
     >

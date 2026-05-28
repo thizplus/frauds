@@ -92,7 +92,7 @@ export function UnifiedResults({
           {/* Section content */}
           {section.source === 'social' && (
             <p className="text-sm mb-2 px-1" style={{ color: 'var(--text-dim)' }}>
-              ข้อมูลนี้ไม่ใช่การยืนยันการโกง เป็นเพียงข้อมูลที่เก็บจาก Facebook กรุณาตรวจสอบ URL ต้นทางเพื่อประกอบการพิจารณา
+              ข้อมูลนี้ไม่ใช่การยืนยันการโกง เป็นเพียงข้อมูลที่เก็บจากโซเชียลมีเดีย กรุณาตรวจสอบ URL ต้นทางเพื่อประกอบการพิจารณา
             </p>
           )}
           <div className="row-ai-list">
@@ -140,9 +140,9 @@ function SocialCard({ item }: { item: SocialResult }) {
         <div className="flex items-center gap-3 text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
           <span className="flex items-center gap-1 font-mono">
             {item.entityType === 'phone' ? <Phone className="w-3.5 h-3.5" /> :
-             item.entityType === 'bank_account' ? <CreditCard className="w-3.5 h-3.5" /> :
-             item.entityType === 'id_card' ? <IdCard className="w-3.5 h-3.5" /> :
-             <User className="w-3.5 h-3.5" />}
+              item.entityType === 'bank_account' ? <CreditCard className="w-3.5 h-3.5" /> :
+                item.entityType === 'id_card' ? <IdCard className="w-3.5 h-3.5" /> :
+                  <User className="w-3.5 h-3.5" />}
             {item.entityType === 'phone' ? formatPhone(item.matchedValue) : item.matchedValue}
           </span>
           {item.permalinkUrl && (

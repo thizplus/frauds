@@ -77,5 +77,12 @@ export interface FaceSearchResponse {
 export interface FaceMatch {
   evidenceStrength: string
   sourceType: string
+  similarity: number
   fraud?: FraudResponse
+  socialPost?: {
+    postId: string
+    displayName?: string
+    permalinkUrl?: string
+    groupId?: string
+  }
 }

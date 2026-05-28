@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { BrainCircuit, Loader2, Check, Power, Timer } from 'lucide-react'
 
 export interface ScanStep {
@@ -129,7 +130,7 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="scan-modal">
       <div className="scan-modal-content fade-in">
         <div className="particles">
@@ -140,17 +141,17 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
 
         <div className="ai-brain">
           <div className="ai-brain-icon">
-            <BrainCircuit className="w-6 h-6" />
+            <BrainCircuit className="w-12 h-12" />
           </div>
         </div>
-        <div className="text-center mb-1">
-          <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</div>
+        <div className="text-center mb-2">
+          <div className="text-lg font-bold" style={{ color: 'var(--text)' }}>{title}</div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-3 text-xs">
+        <div className="flex items-center justify-center gap-3 mb-4 text-sm">
           {subtitle && <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>{subtitle}</span>}
-          <span className="text-accent flex items-center gap-1 font-mono">
-            <Timer className="w-3 h-3" />{elapsed}s
+          <span className="text-accent flex items-center gap-1.5 font-mono">
+            <Timer className="w-4 h-4" />{elapsed}s
           </span>
         </div>
 
@@ -163,12 +164,12 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
             const state = stepStates[i]
             return (
               <li key={i} className={`ai-step ${state}`}>
-                <div className="ai-step-icon"><step.icon className="w-3.5 h-3.5" /></div>
+                <div className="ai-step-icon"><step.icon className="w-5 h-5" /></div>
                 <div className="ai-step-label">{step.label}</div>
                 <div className="ai-step-status">
-                  {state === 'active' && <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--accent)' }} />}
-                  {state === 'done' && <Check className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />}
-                  {state === 'idle' && <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-faint)' }} />}
+                  {state === 'active' && <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent)' }} />}
+                  {state === 'done' && <Check className="w-5 h-5" style={{ color: 'var(--accent)' }} />}
+                  {state === 'idle' && <span className="w-2 h-2 rounded-full" style={{ background: 'var(--text-faint)' }} />}
                 </div>
               </li>
             )
@@ -177,11 +178,12 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
 
         <div className="scan-modal-footer">
           <button className="btn-abort" onClick={handleCancel}>
-            <span className="btn-abort-icon"><Power className="w-3 h-3" /></span>
+            <span className="btn-abort-icon"><Power className="w-4 h-4" /></span>
             หยุด
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

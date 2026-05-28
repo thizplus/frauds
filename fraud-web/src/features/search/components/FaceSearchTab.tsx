@@ -1,21 +1,21 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Camera, Search, UserX, AlertCircle, ImageOff, ScanFace, Database, Brain, ListChecks } from 'lucide-react'
+import { Camera, Search, UserX, AlertCircle, ImageOff, ScanFace, Database, Brain, ListChecks, Globe, ExternalLink, Sparkles, ShieldAlert, User, Info } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { searchService } from '../service'
 import { FraudRow } from './FraudRow'
 import { ScanAnimation } from '@/components/shared/ScanAnimation'
 import type { ScanStep } from '@/components/shared/ScanAnimation'
-import type { FaceSearchResponse, FraudResponse } from '../types'
+import type { FaceSearchResponse, FraudResponse, FaceMatch } from '../types'
 
 type FaceSearchState = 'idle' | 'scanning' | 'results' | 'no_face' | 'no_match' | 'error'
 
 const FACE_SCAN_STEPS: ScanStep[] = [
-  { icon: ScanFace, label: 'ตรวจจับใบหน้า', duration: 2000, logs: ['detecting faces...', 'analyzing features...', 'face detected'] },
-  { icon: Database, label: 'เปรียบเทียบกับฐานข้อมูล', duration: 2500, logs: ['loading embeddings...', 'computing similarity...', 'matching vectors...'] },
-  { icon: Brain, label: 'AI ประเมินความน่าเชื่อถือ', duration: 2000, logs: ['running confidence model...', 'scoring matches...'] },
-  { icon: ListChecks, label: 'สรุปผล', duration: 1000, logs: ['preparing response...', 'scan complete ✓'] },
+  { icon: ScanFace, label: 'ตรวจจับใบหน้า', duration: 2000, logs: ['detecting faces...', 'face detected'] },
+  { icon: Database, label: 'เปรียบเทียบฐานข้อมูล', duration: 2500, logs: ['computing similarity...', 'matching vectors...'] },
+  { icon: Brain, label: 'ประเมินความน่าเชื่อถือ', duration: 2000, logs: ['scoring matches...'] },
+  { icon: ListChecks, label: 'สรุปผล', duration: 1000, logs: ['scan complete ✓'] },
 ]
 
 interface FaceSearchTabProps {
@@ -89,34 +89,50 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
   return (
     <>
       <div className="space-y-4">
-        {/* Upload area */}
-        <button
-          className="face-search-upload"
-          onClick={() => fileInputRef.current?.click()}
-          type="button"
-        >
-          {preview ? (
-            <div className="face-search-preview">
-              <img src={preview} alt="Preview" />
-            </div>
-          ) : (
-            <>
-              <Camera className="w-10 h-10" />
-              <p className="text-sm font-medium">อัปโหลดรูปเพื่อค้นหา</p>
-              <p className="text-xs" style={{ color: 'var(--text-dim)' }}>กดเพื่อเลือกรูป หรือถ่ายภาพ</p>
-            </>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </button>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
 
-        {/* Actions */}
+        {/* Header: รูปเล็กซ้าย + disclaimer ขวา (แสดงตลอด) */}
+        <div className="flex gap-3">
+          <button
+            className="shrink-0 w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center"
+            style={{ border: `2px dashed ${preview ? 'var(--accent)' : 'var(--border)'}`, background: preview ? 'transparent' : 'var(--bg-tertiary, rgba(255,255,255,0.03))' }}
+            onClick={() => fileInputRef.current?.click()}
+            type="button"
+          >
+            {preview ? (
+              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <Camera className="w-6 h-6" style={{ color: 'var(--text-dim)' }} />
+            )}
+          </button>
+          <div className="flex-1 min-w-0">
+            {state === 'results' && result ? (
+              <p className="text-base font-bold" style={{ color: 'var(--accent)' }}>
+                พบ {result.count} รายการที่คล้ายกัน
+              </p>
+            ) : (
+              <p className="text-base font-bold" style={{ color: 'var(--text)' }}>
+                {preview ? 'พร้อมค้นหา' : 'อัปโหลดรูปเพื่อค้นหา'}
+              </p>
+            )}
+            <div className="flex items-start gap-1.5 mt-1.5" style={{ color: 'var(--text-muted)' }}>
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-sm leading-relaxed">
+                ผลการเปรียบเทียบใบหน้าเท่านั้น กรุณาตรวจสอบโพสต์ต้นทางประกอบ
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions: ค้นหา / เปลี่ยนรูป */}
         {file && state === 'idle' && (
           <div className="flex gap-2">
             <button className="btn btn-primary btn-lg flex-1" onClick={handleSearch}>
@@ -130,53 +146,62 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
 
         {/* No face */}
         {state === 'no_face' && (
-          <div className="card p-6 text-center">
-            <ImageOff className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-base font-bold mb-1" style={{ color: 'var(--text)' }}>ไม่พบใบหน้าในรูปภาพ</p>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>กรุณาอัปโหลดรูปที่เห็นใบหน้าชัดเจน</p>
-            <button className="btn btn-secondary" onClick={handleReset}>ลองใหม่</button>
+          <div className="card p-5 text-center">
+            <ImageOff className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+            <p className="text-sm font-bold mb-1" style={{ color: 'var(--text)' }}>ไม่พบใบหน้าในรูปภาพ</p>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>กรุณาอัปโหลดรูปที่เห็นใบหน้าชัดเจน</p>
+            <button className="btn btn-secondary btn-sm" onClick={handleReset}>ลองใหม่</button>
           </div>
         )}
 
         {/* No match */}
         {state === 'no_match' && (
-          <div className="card p-6 text-center">
-            <UserX className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-base font-bold mb-1" style={{ color: 'var(--text)' }}>ไม่พบข้อมูลที่ตรงกัน</p>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลในระบบที่ตรงกับใบหน้าในรูปภาพ</p>
-            <button className="btn btn-secondary" onClick={handleReset}>ลองใหม่</button>
+          <div className="card p-5 text-center">
+            <UserX className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+            <p className="text-sm font-bold mb-1" style={{ color: 'var(--text)' }}>ไม่พบข้อมูลที่ตรงกัน</p>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลในระบบที่ตรงกับใบหน้าในรูปภาพ</p>
+            <button className="btn btn-secondary btn-sm" onClick={handleReset}>ลองใหม่</button>
           </div>
         )}
 
         {/* Error */}
         {state === 'error' && (
-          <div className="card p-6 text-center">
-            <AlertCircle className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--danger)' }} />
-            <p className="text-base font-bold mb-1" style={{ color: 'var(--text)' }}>ระบบไม่พร้อมใช้งานชั่วคราว</p>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>กรุณาลองใหม่อีกครั้งในภายหลัง</p>
-            <button className="btn btn-secondary" onClick={handleReset}>ลองใหม่</button>
+          <div className="card p-5 text-center">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--danger)' }} />
+            <p className="text-sm font-bold mb-1" style={{ color: 'var(--text)' }}>ระบบไม่พร้อมใช้งานชั่วคราว</p>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>กรุณาลองใหม่อีกครั้งในภายหลัง</p>
+            <button className="btn btn-secondary btn-sm" onClick={handleReset}>ลองใหม่</button>
           </div>
         )}
 
         {/* Results */}
         {state === 'results' && result && (
-          <div>
-            <p className="text-sm font-bold mb-3" style={{ color: 'var(--accent)' }}>
-              พบ {result.count} รายการที่ตรงกัน
-            </p>
-            <div className="space-y-2">
-              {result.matches.map((match, idx) =>
-                match.fraud ? (
-                  <FraudRow
-                    key={match.fraud.id || idx}
-                    fraud={match.fraud}
-                    onClick={() => onSelectFraud(match.fraud!)}
-                    isMember={isMember}
-                  />
-                ) : null,
-              )}
-            </div>
-            <button className="btn btn-secondary w-full mt-4" onClick={handleReset}>ค้นหาใหม่</button>
+          <div className="space-y-3">
+            {result.matches.map((match, idx) =>
+              match.fraud ? (
+                <FraudRow
+                  key={match.fraud.id || idx}
+                  fraud={match.fraud}
+                  onClick={() => onSelectFraud(match.fraud!)}
+                  isMember={isMember}
+                />
+              ) : match.socialPost ? (
+                <FaceSocialCard key={`social-${idx}`} match={match} />
+              ) : null,
+            )}
+            <button
+              className="flex items-center gap-4 w-full p-2.5 rounded-xl transition-opacity hover:opacity-85"
+              style={{ background: 'var(--accent)', color: '#000' }}
+              onClick={handleReset}
+            >
+              <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(0,0,0,0.15)' }}>
+                <Search className="w-7 h-7" />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-extrabold leading-tight">ค้นหาใหม่</div>
+                <div className="text-xs font-medium opacity-80">อัปโหลดรูปใหม่เพื่อค้นหา</div>
+              </div>
+            </button>
           </div>
         )}
       </div>
@@ -191,5 +216,63 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
         onCancel={() => setState('idle')}
       />
     </>
+  )
+}
+
+function FaceSocialCard({ match }: { match: FaceMatch }) {
+  const social = match.socialPost!
+  const similarityPct = Math.round(match.similarity * 100)
+  const strengthLabel = match.evidenceStrength === 'high' ? 'สูง' : match.evidenceStrength === 'medium' ? 'กลาง' : 'ต่ำ'
+  const strengthColor = match.evidenceStrength === 'high' ? 'var(--danger, #ef4444)' : match.evidenceStrength === 'medium' ? 'var(--warning, #f59e0b)' : 'var(--text-muted)'
+
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '.75rem' }}>
+      {/* Row 1: icon + ผู้โพส + similarity + badge */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: 'var(--accent-dim)' }}
+        >
+          <Globe className="w-4.5 h-4.5 text-accent" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <User className="w-4 h-4 shrink-0" style={{ color: 'var(--text-dim)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>ผู้โพส</span>
+            <span className="text-base font-bold truncate" style={{ color: 'var(--text)' }}>
+              {social.displayName || 'ไม่ทราบชื่อ'}
+            </span>
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: `color-mix(in srgb, ${strengthColor} 15%, transparent)`, color: strengthColor }}
+            >
+              {strengthLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <Sparkles className="w-4 h-4 shrink-0" style={{ color: 'var(--text-dim)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>ใบหน้าตรงกัน</span>
+            <span className="text-sm font-bold" style={{ color: similarityPct >= 70 ? 'var(--accent)' : 'var(--text-dim)' }}>{similarityPct}%</span>
+            <div className="flex-1 h-2 rounded-full" style={{ background: 'var(--bg-tertiary, rgba(255,255,255,0.05))' }}>
+              <div className="h-2 rounded-full" style={{ width: `${similarityPct}%`, background: similarityPct >= 70 ? 'var(--accent)' : 'var(--text-dim)' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: ปุ่มดูต้นทาง */}
+      {social.permalinkUrl && (
+        <a
+          href={social.permalinkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-bold mt-2.5 transition-opacity hover:opacity-80"
+          style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          ดูโพสต้นทาง
+        </a>
+      )}
+    </div>
   )
 }
