@@ -185,8 +185,8 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
                   {fraudMatches.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>รายงานในระบบ</span>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>
+                        <span className="result-section-title">รายงานในระบบ</span>
+                        <span className="result-section-badge" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>
                           {fraudMatches.length}
                         </span>
                       </div>
@@ -206,12 +206,12 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
                   {socialMatches.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>ข้อมูลจากโซเชียล</span>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                        <span className="result-section-title">ข้อมูลจากโซเชียล</span>
+                        <span className="result-section-badge" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
                           {socialMatches.length}
                         </span>
                       </div>
-                      <p className="text-xs mb-2" style={{ color: 'var(--text-dim)' }}>
+                      <p className="result-section-desc">
                         ข้อมูลจากโซเชียลมีเดีย กรุณาตรวจสอบ URL ต้นทางประกอบ
                       </p>
                       <div className="space-y-2">

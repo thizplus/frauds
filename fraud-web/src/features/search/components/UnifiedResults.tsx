@@ -75,19 +75,19 @@ export function UnifiedResults({
       {sorted.map((section) => (
         <div key={section.source} className="mb-6">
           <div className="flex items-center gap-2 mb-2 px-1">
-            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
-              {section.label}
-            </span>
+            <span className="result-section-title">{section.label}</span>
             <span
-              className="text-xs px-1.5 py-0.5 rounded-full font-bold"
-              style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+              className="result-section-badge"
+              style={section.source === 'frauds'
+                ? { background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }
+                : { background: 'var(--accent-dim)', color: 'var(--accent)' }}
             >
               {section.count}
             </span>
           </div>
 
           {section.source === 'social' && (
-            <p className="text-sm mb-2 px-1" style={{ color: 'var(--text-dim)' }}>
+            <p className="result-section-desc px-1">
               ข้อมูลนี้ไม่ใช่การยืนยันการโกง เป็นเพียงข้อมูลที่เก็บจากโซเชียลมีเดีย กรุณาตรวจสอบ URL ต้นทางเพื่อประกอบการพิจารณา
             </p>
           )}
