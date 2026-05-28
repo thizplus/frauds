@@ -255,36 +255,74 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>ไม่พบข้อมูลในระบบ</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium" style={{ color: 'var(--danger)' }}>พบ {checkResults.length} รายการ</p>
-                    {checkResults.map((r, i) => r.source === 'social' ? (
-                      <SocialResultCard
-                        key={i}
-                        displayName={r.displayName}
-                        role={r.role}
-                        permalinkUrl={r.permalinkUrl}
-                        postInfo={r.postInfo}
-                        icon="user"
-                      />
-                    ) : (
-                      <div key={i} className="card p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="detail-icon shrink-0"><User className="w-4 h-4" /></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                                {r.name || 'รายงานจากผู้ใช้'}
-                              </span>
-                              {r.verified && <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>ยืนยันแล้ว</span>}
+                  <div className="space-y-4">
+                    {(() => {
+                      const fraudResults = checkResults.filter((r) => r.source === 'fraud_report')
+                      const socialResults = checkResults.filter((r) => r.source === 'social')
+                      return (
+                        <>
+                          {/* Fraud section */}
+                          {fraudResults.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>รายงานในระบบ</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>
+                                  {fraudResults.length}
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {fraudResults.map((r, i) => (
+                                  <div key={i} className="card p-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="detail-icon shrink-0"><User className="w-4 h-4" /></div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                                            {r.name || 'รายงานจากผู้ใช้'}
+                                          </span>
+                                          {r.verified && <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>ยืนยันแล้ว</span>}
+                                        </div>
+                                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                          {r.matchedFields?.length ? `ตรงกัน: ${r.matchedFields.join(', ')}` : `ตรงกัน: ${r.matchedBy}`}
+                                          {r.reportCount ? ` • ถูกแจ้ง ${r.reportCount} ครั้ง` : ''}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                              {r.matchedFields?.length ? `ตรงกัน: ${r.matchedFields.join(', ')}` : `ตรงกัน: ${r.matchedBy}`}
-                              {r.reportCount ? ` • ถูกแจ้ง ${r.reportCount} ครั้ง` : ''}
+                          )}
+
+                          {/* Social section */}
+                          {socialResults.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>ข้อมูลจากโซเชียล</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                                  {socialResults.length}
+                                </span>
+                              </div>
+                              <p className="text-xs mb-2" style={{ color: 'var(--text-dim)' }}>
+                                ข้อมูลจากโซเชียลมีเดีย กรุณาตรวจสอบ URL ต้นทางประกอบ
+                              </p>
+                              <div className="space-y-2">
+                                {socialResults.map((r, i) => (
+                                  <SocialResultCard
+                                    key={i}
+                                    displayName={r.displayName}
+                                    role={r.role}
+                                    permalinkUrl={r.permalinkUrl}
+                                    postInfo={r.postInfo}
+                                    icon="user"
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 )}
               </div>
