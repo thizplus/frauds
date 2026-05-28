@@ -24,6 +24,7 @@ func (h *SettingsHandler) GetPublic(c *fiber.Ctx) error {
 	publicKeys := []string{
 		"quota.guest_search_limit", "quota.free_search_limit", "quota.member_search_limit",
 		"payment.promptpay_type", "payment.promptpay_number", "payment.promptpay_name", "payment.bank_account", "payment.bank_name",
+		"social.links",
 	}
 	result := make(map[string]any)
 	for _, key := range publicKeys {

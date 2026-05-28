@@ -33,6 +33,9 @@ func SeedSettings(db *gorm.DB) error {
 		{Key: "payment.slipok_api_key", Value: datatypes.JSON(`""`), Description: "SlipOK API Key", Category: "payment"},
 		{Key: "payment.auto_verify_slip", Value: datatypes.JSON(`false`), Description: "ตรวจสลิปอัตโนมัติด้วย SlipOK", Category: "payment"},
 
+		// Social
+		{Key: "social.links", Value: datatypes.JSON(`[]`), Description: "Social media links แสดงหน้าแรก", Category: "social"},
+
 		// System
 		{Key: "system.maintenance_mode", Value: datatypes.JSON(`false`), Description: "ปิดปรับปรุง", Category: "system"},
 		{Key: "system.registration_open", Value: datatypes.JSON(`true`), Description: "เปิดรับสมัคร", Category: "system"},

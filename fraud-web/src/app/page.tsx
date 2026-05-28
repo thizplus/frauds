@@ -8,6 +8,7 @@ import { SearchBar } from '@/features/search/components/SearchBar'
 import { LiveTicker } from '@/features/search/components/LiveTicker'
 import { FraudDetailDrawer } from '@/features/fraud-detail'
 import { FaceSearchDrawer } from '@/components/shared/FaceSearchDrawer'
+import { SocialLinks } from '@/components/shared/SocialLinks'
 import { LoginModal } from '@/features/auth'
 import type { FraudResponse } from '@/features/search/types'
 import { canGuestSearch, incrementGuestSearch, getGuestSearchRemaining, fetchGuestQuota } from '@/lib/utils/guest-quota'
@@ -88,6 +89,9 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      <SocialLinks />
+
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
 
       <FaceSearchDrawer
