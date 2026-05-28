@@ -13,7 +13,9 @@ import { SearchBar } from '@/features/search/components/SearchBar'
 import { SearchResults } from '@/features/search/components/SearchResults'
 import { UnifiedResults } from '@/features/search/components/UnifiedResults'
 import { ScanModal } from '@/features/search/components/ScanModal'
-import { ShieldCheck, Lock, RefreshCcw } from 'lucide-react'
+import { FaceSearchTab } from '@/features/search/components/FaceSearchTab'
+import { Drawer } from '@/components/ui/Drawer'
+import { ShieldCheck, Lock, RefreshCcw, Camera } from 'lucide-react'
 import type { FraudResponse, SearchParams } from '@/features/search/types'
 
 export default function SearchPage() {
@@ -44,6 +46,7 @@ export default function SearchPage() {
   const [scanning, setScanning] = useState(!!storeQuery)
   const [searchParams, setSearchParams] = useState<SearchParams | null>(null)
   const [selectedFraud, setSelectedFraud] = useState<FraudResponse | null>(null)
+  const [faceSearchOpen, setFaceSearchOpen] = useState(false)
 
   // ใช้ unified search เมื่อ type เป็น "all", ใช้ search เดิมเมื่อเลือก type เฉพาะ
   const isUnified = !searchParams?.type || searchParams.type === 'all'
@@ -112,6 +115,10 @@ export default function SearchPage() {
             value={inputValue}
             onChange={setInputValue}
             onSearch={handleSearch}
+            onFaceSearch={() => {
+              if (!isLoggedIn) { setLoginOpen(true); return }
+              setFaceSearchOpen(true)
+            }}
             loading={scanning}
           />
         </div>
@@ -240,6 +247,20 @@ export default function SearchPage() {
       />
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+
+      {/* Face Search Drawer */}
+      <Drawer
+        open={faceSearchOpen}
+        onClose={() => setFaceSearchOpen(false)}
+        title={
+          <div className="flex items-center gap-2">
+            <Camera className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ค้นหาด้วยใบหน้า</h2>
+          </div>
+        }
+      >
+        <FaceSearchTab onSelectFraud={(fraud) => { setFaceSearchOpen(false); setSelectedFraud(fraud) }} />
+      </Drawer>
     </>
   )
 }
