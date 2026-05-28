@@ -1,17 +1,8 @@
 'use client'
 
 import { User, Phone, CreditCard, BadgeCheck, CheckCircle, Clock, ChevronRight, Sparkles, AlertOctagon, AlertTriangle, Circle } from 'lucide-react'
+import { formatPhone, maskPhone, maskBank } from '@/lib/utils/format-phone'
 import type { FraudResponse } from '../types'
-
-function maskPhone(phone: string): string {
-  if (phone.length < 7) return phone
-  return phone.slice(0, 3) + '-xxx-' + phone.slice(-4)
-}
-
-function maskBank(account: string): string {
-  if (account.length < 4) return account
-  return 'xxx-x-xxxxx-' + account.slice(-1)
-}
 
 // คำนวณ AI match score จาก reportCount (mock - อนาคตมาจาก API)
 function getAiScore(fraud: FraudResponse): number {
@@ -58,7 +49,7 @@ export function FraudRow({ fraud, onClick, isMember = false }: FraudRowProps) {
           {fraud.phone && (
             <span className="row-ai-meta-item">
               <Phone className="w-3.5 h-3.5" />
-              {isMember ? fraud.phone : maskPhone(fraud.phone)}
+              {isMember ? formatPhone(fraud.phone) : maskPhone(fraud.phone)}
             </span>
           )}
           {fraud.bankAccount && (
