@@ -91,7 +91,7 @@ export function SearchesPage() {
               const typeKey = s.searchSource || s.searchType || 'all'
               const config = TYPE_CONFIG[typeKey] || TYPE_CONFIG.all
               const TypeIcon = config.icon
-              const hasResults = s.resultCount > 0
+              const hasResults = s.resultsCount > 0
               const isFace = typeKey === 'face'
 
               return (
@@ -126,7 +126,7 @@ export function SearchesPage() {
                             style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}
                           >
                             <ShieldAlert className="w-3 h-3" />
-                            พบ {s.resultCount} รายการ
+                            พบ {s.resultsCount} รายการ
                           </span>
                         ) : (
                           <span
