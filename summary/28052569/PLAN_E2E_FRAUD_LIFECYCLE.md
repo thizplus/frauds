@@ -452,7 +452,7 @@ Phase 6: Flow E — Edge Cases
 
 | SC | Description | ผล | Notes |
 |----|-------------|-----|-------|
-| SC-12 | Verify → face ingest → match | ingest ผ่าน bot API, face search เจอ sourceType=fraud_report + social_post (count=2) | PASS (note: auto ingest จาก verify ใช้ R2 URL ที่ 404 → ต้อง ingest ผ่าน bot แทน) |
+| SC-12 | Verify → face ingest → match | Auto ingest ตอน verify: 6 R2 images → download OK → detect 4 faces → ingest 4 vectors (source_type=fraud_report) | PASS |
 | SC-13 | Social face only | match sourceType=social_post, displayName=Pin Aphinya | PASS |
 | SC-14 | คนสะอาด face search | faceDetected=true, count=0 | PASS |
 
@@ -489,7 +489,7 @@ Phase 6: Flow E — Edge Cases
 
 1. **SC-05**: Settled + user แจ้งอีก → report_count+1 แต่ **status ยังเป็น settled** — ถูกต้อง admin ต้องตัดสินเอง
 2. **SC-21**: Lender flag คนที่ settled → **status กลับเป็น verified** — เพราะ flag สร้าง fraud ใหม่ที่ phone เดียวกัน → dedupe logic เปลี่ยน status เป็น verified (Lender มีอำนาจ = ถูกต้อง)
-3. **SC-12**: Auto face ingest ตอน verify ทำงาน แต่ **R2 URLs 404** (รูปเก่าหมดอายุ) → ต้อง ingest ผ่าน bot API แทน หรือ re-upload รูป
+3. **SC-12**: Auto face ingest ตอน verify ทำงานสมบูรณ์ — 6 รูปจาก R2 download + detect 4 faces + ingest 4 vectors ✅ (R2 URLs บางส่วน 404 เพราะ path เก่า แต่ path ใหม่ `/evidence/RPT-xxx/` ใช้ได้)
 4. **Face ingest pending ป้องกันแล้ว**: pending ไม่ ingest face + face search filter pending → คนบริสุทธิ์ปลอดภัย ✅
 
 ---
