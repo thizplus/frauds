@@ -56,7 +56,7 @@ export default function HomePage() {
           <p className="mt-4 text-base sm:text-lg" style={{ color: 'var(--text-muted)' }}>
             AI ตรวจสอบข้อมูลคนโกงจากฐานข้อมูล{' '}
             <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
-              กว่าพันรายชื่อ
+              กว่าแสนรายชื่อ
             </span>{' '}
             ในไม่กี่วินาที
           </p>
