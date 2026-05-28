@@ -39,10 +39,16 @@ type socialSearchRow struct {
 
 	// JOIN social_persons
 	DisplayName *string
+	NamesJSON   *string
 
 	// JOIN social_posts
-	PermalinkURL *string
-	CreationTime *string
+	PermalinkURL  *string
+	CreationTime  *string
+	AuthorName    *string
+	Message       *string
+	ReactionCount int
+	CommentCount  int
+	ImageCount    int
 
 	// Computed (fuzzy search only)
 	Similarity *float64
@@ -69,8 +75,14 @@ func (r *socialSearchRepository) SearchExact(ctx context.Context, entityType str
 			se.post_id,
 			se.group_id,
 			sp.display_name,
+			sp.names_json::text AS names_json,
 			p.permalink_url,
 			p.creation_time::text AS creation_time,
+			p.author_name,
+			LEFT(p.message, 300) AS message,
+			COALESCE(p.reaction_count, 0) AS reaction_count,
+			COALESCE(p.comment_count, 0) AS comment_count,
+			COALESCE(p.image_count, 0) AS image_count,
 			NULL::float8 AS similarity
 		FROM searchable_entities se
 		LEFT JOIN social_persons sp ON se.person_id = sp.id
@@ -109,8 +121,14 @@ func (r *socialSearchRepository) SearchFuzzyName(ctx context.Context, name strin
 			se.post_id,
 			se.group_id,
 			sp.display_name,
+			sp.names_json::text AS names_json,
 			p.permalink_url,
 			p.creation_time::text AS creation_time,
+			p.author_name,
+			LEFT(p.message, 300) AS message,
+			COALESCE(p.reaction_count, 0) AS reaction_count,
+			COALESCE(p.comment_count, 0) AS comment_count,
+			COALESCE(p.image_count, 0) AS image_count,
 			similarity(se.normalized_value, ?) AS similarity
 		FROM searchable_entities se
 		LEFT JOIN social_persons sp ON se.person_id = sp.id
@@ -162,26 +180,39 @@ func rowsToEntities(rows []socialSearchRow) []models.SearchableEntity {
 		}
 
 		// Populate relations จาก JOIN fields
-		if row.DisplayName != nil {
-			entity.Person = &models.SocialPerson{
-				DisplayName: *row.DisplayName,
+		if row.DisplayName != nil || row.NamesJSON != nil {
+			person := &models.SocialPerson{}
+			if row.DisplayName != nil {
+				person.DisplayName = *row.DisplayName
 			}
+			if row.NamesJSON != nil {
+				person.NamesJSON = []byte(*row.NamesJSON)
+			}
+			entity.Person = person
 		}
 
-		if row.PermalinkURL != nil || row.CreationTime != nil {
-			post := &models.SocialPost{}
-			if row.PermalinkURL != nil {
-				post.PermalinkURL = *row.PermalinkURL
-			}
-			if row.CreationTime != nil {
-				if t, err := time.Parse("2006-01-02 15:04:05+00", *row.CreationTime); err == nil {
-					post.CreationTime = &t
-				} else if t, err := time.Parse(time.RFC3339, *row.CreationTime); err == nil {
-					post.CreationTime = &t
-				}
-			}
-			entity.Post = post
+		post := &models.SocialPost{
+			ReactionCount: row.ReactionCount,
+			CommentCount:  row.CommentCount,
+			ImageCount:    row.ImageCount,
 		}
+		if row.PermalinkURL != nil {
+			post.PermalinkURL = *row.PermalinkURL
+		}
+		if row.AuthorName != nil {
+			post.AuthorName = *row.AuthorName
+		}
+		if row.Message != nil {
+			post.Message = *row.Message
+		}
+		if row.CreationTime != nil {
+			if t, err := time.Parse("2006-01-02 15:04:05+00", *row.CreationTime); err == nil {
+				post.CreationTime = &t
+			} else if t, err := time.Parse(time.RFC3339, *row.CreationTime); err == nil {
+				post.CreationTime = &t
+			}
+		}
+		entity.Post = post
 
 		entities = append(entities, entity)
 	}

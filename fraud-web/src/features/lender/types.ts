@@ -53,8 +53,24 @@ export interface DebtorDetail extends Debtor {
 export interface CheckResultItem {
   source: string
   matchedBy: string
+  // fraud
   name?: string
   reportCount?: number
   verified?: boolean
   createdAt?: string
+  // social
+  displayName?: string
+  role?: string
+  verificationState?: string
+  confidence?: number
+  permalinkUrl?: string
+  sourceType?: string
+  postInfo?: {
+    authorName: string
+    message: string
+    postDate?: string
+    reactionCount: number
+    commentCount: number
+    imageCount: number
+  }
 }

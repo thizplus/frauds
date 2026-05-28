@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,20 +22,23 @@ import (
 )
 
 type lenderServiceImpl struct {
-	lenderRepo   repositories.LenderRepository
-	fraudService services.FraudService
-	notifier     ports.NotificationPort
+	lenderRepo       repositories.LenderRepository
+	fraudService     services.FraudService
+	notifier         ports.NotificationPort
+	socialSearchRepo repositories.SocialSearchRepository
 }
 
 func NewLenderService(
 	lenderRepo repositories.LenderRepository,
 	fraudService services.FraudService,
 	notifier ports.NotificationPort,
+	socialSearchRepo repositories.SocialSearchRepository,
 ) services.LenderService {
 	return &lenderServiceImpl{
-		lenderRepo:   lenderRepo,
-		fraudService: fraudService,
-		notifier:     notifier,
+		lenderRepo:       lenderRepo,
+		fraudService:     fraudService,
+		notifier:         notifier,
+		socialSearchRepo: socialSearchRepo,
 	}
 }
 
@@ -257,32 +262,44 @@ func (s *lenderServiceImpl) CheckDebtor(ctx context.Context, userID, debtorID uu
 		return nil, err
 	}
 
-	// ค้นหาจาก frauds ด้วย multiple fields
 	fullName := debtor.FirstName
 	if debtor.LastName != "" {
 		fullName += " " + debtor.LastName
 	}
-	frauds, _ := s.fraudService.SearchByMultipleFields(ctx, debtor.IDCard, debtor.Phone, debtor.BankAccount, fullName)
 
 	var results []dto.CheckResultItem
-	for _, f := range frauds {
-		matchedBy := "name"
-		if debtor.IDCard != "" && f.IDCard == debtor.IDCard {
-			matchedBy = "id_card"
-		} else if debtor.Phone != "" && f.Phone == debtor.Phone {
-			matchedBy = "phone"
-		} else if debtor.BankAccount != "" && f.BankAccount == debtor.BankAccount {
-			matchedBy = "bank_account"
-		}
 
+	// === 1. ค้น frauds table ===
+	frauds, _ := s.fraudService.SearchByMultipleFields(ctx, debtor.IDCard, debtor.Phone, debtor.BankAccount, fullName)
+	for _, f := range frauds {
+		var matchedFields []string
+		if debtor.Phone != "" && f.Phone == debtor.Phone {
+			matchedFields = append(matchedFields, "phone")
+		}
+		if debtor.BankAccount != "" && f.BankAccount == debtor.BankAccount {
+			matchedFields = append(matchedFields, "bank_account")
+		}
+		if debtor.IDCard != "" && f.IDCard == debtor.IDCard {
+			matchedFields = append(matchedFields, "id_card")
+		}
+		if len(matchedFields) == 0 {
+			matchedFields = append(matchedFields, "name")
+		}
 		results = append(results, dto.CheckResultItem{
-			Source:      "fraud_report",
-			MatchedBy:   matchedBy,
-			Name:        f.Name,
-			ReportCount: f.ReportCount,
-			Verified:    f.Verified,
-			CreatedAt:   f.CreatedAt,
+			Source:        "fraud_report",
+			MatchedBy:     matchedFields[0],
+			MatchedFields: matchedFields,
+			Name:          f.Name,
+			ReportCount:   f.ReportCount,
+			Verified:      f.Verified,
+			CreatedAt:     f.CreatedAt,
 		})
+	}
+
+	// === 2. ค้น social tables ===
+	if s.socialSearchRepo != nil {
+		socialResults := s.searchSocial(ctx, debtor)
+		results = append(results, socialResults...)
 	}
 
 	// Save result to debtor
@@ -297,8 +314,100 @@ func (s *lenderServiceImpl) CheckDebtor(ctx context.Context, userID, debtorID uu
 	}
 	s.lenderRepo.UpdateDebtor(ctx, debtor)
 
-	logger.InfoContext(ctx, "Debtor checked", "debtor_id", debtorID, "matches", len(results))
+	logger.InfoContext(ctx, "Debtor checked", "debtor_id", debtorID, "matches", len(results), "fraud", len(frauds), "social", len(results)-len(frauds))
 	return results, nil
+}
+
+// searchSocial — ค้น social_* tables ด้วยทุก field ที่ debtor มี
+func (s *lenderServiceImpl) searchSocial(ctx context.Context, debtor *models.Debtor) []dto.CheckResultItem {
+	var results []dto.CheckResultItem
+	seen := map[string]bool{} // dedupe by entity_id
+
+	fullName := debtor.FirstName
+	if debtor.LastName != "" {
+		fullName += " " + debtor.LastName
+	}
+
+	type searchJob struct {
+		entityType string
+		value      string
+		matchedBy  string
+	}
+
+	var jobs []searchJob
+	if debtor.Phone != "" {
+		normalized := strings.NewReplacer("-", "", " ", "", "+66", "0").Replace(debtor.Phone)
+		jobs = append(jobs, searchJob{"phone", normalized, "phone"})
+	}
+	if debtor.BankAccount != "" {
+		jobs = append(jobs, searchJob{"bank_account", debtor.BankAccount, "bank_account"})
+	}
+	if debtor.IDCard != "" {
+		jobs = append(jobs, searchJob{"id_card", debtor.IDCard, "id_card"})
+	}
+
+	// Exact search (phone, bank, id_card)
+	for _, job := range jobs {
+		entities, err := s.socialSearchRepo.SearchExact(ctx, job.entityType, job.value)
+		if err != nil {
+			continue
+		}
+		for i := range entities {
+			if seen[entities[i].EntityID] {
+				continue
+			}
+			seen[entities[i].EntityID] = true
+			results = append(results, s.entityToCheckResult(&entities[i], job.matchedBy))
+		}
+	}
+
+	// Fuzzy name search
+	if fullName != "" {
+		entities, err := s.socialSearchRepo.SearchFuzzyName(ctx, fullName, 0.5)
+		if err == nil {
+			for i := range entities {
+				if seen[entities[i].EntityID] {
+					continue
+				}
+				seen[entities[i].EntityID] = true
+				results = append(results, s.entityToCheckResult(&entities[i], "name"))
+			}
+		}
+	}
+
+	return results
+}
+
+// entityToCheckResult — แปลง SearchableEntity เป็น CheckResultItem (เหมือน SocialCard)
+func (s *lenderServiceImpl) entityToCheckResult(entity *models.SearchableEntity, matchedBy string) dto.CheckResultItem {
+	item := dto.CheckResultItem{
+		Source:            "social",
+		MatchedBy:         matchedBy,
+		VerificationState: entity.VerificationState,
+		Confidence:        math.Round(entity.ConfidenceScore*100) / 100,
+		SourceType:        mappers.DerefStr(entity.SourceType),
+	}
+
+	if entity.Person != nil {
+		item.DisplayName = entity.Person.DisplayName
+		item.Role = mappers.ExtractRole(entity.Person.NamesJSON, entity.RawValue)
+	}
+
+	if entity.Post != nil {
+		item.PermalinkURL = entity.Post.PermalinkURL
+		item.PostInfo = &dto.SocialPostInfo{
+			AuthorName:    entity.Post.AuthorName,
+			Message:       entity.Post.Message,
+			ReactionCount: entity.Post.ReactionCount,
+			CommentCount:  entity.Post.CommentCount,
+			ImageCount:    entity.Post.ImageCount,
+		}
+		if entity.Post.CreationTime != nil {
+			item.PostInfo.PostDate = entity.Post.CreationTime.Format(time.RFC3339)
+		}
+	}
+
+	return item
 }
 
 func (s *lenderServiceImpl) FlagDebtor(ctx context.Context, userID, debtorID uuid.UUID, req *dto.FlagDebtorRequest) error {

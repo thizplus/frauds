@@ -94,7 +94,6 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFileChange}
           className="hidden"
         />

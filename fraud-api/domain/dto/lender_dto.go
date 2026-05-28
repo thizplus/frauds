@@ -91,10 +91,22 @@ type DebtorDetailResponse struct {
 }
 
 type CheckResultItem struct {
-	Source    string `json:"source"`    // "fraud_report", "lender_flag", "bot_collector"
-	MatchedBy string `json:"matchedBy"` // "phone", "bank_account", "id_card", "name"
-	Name      string `json:"name,omitempty"`
-	ReportCount int  `json:"reportCount,omitempty"`
-	Verified  bool   `json:"verified,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
+	Source        string   `json:"source"`                  // "fraud_report" | "social"
+	MatchedBy     string   `json:"matchedBy"`               // primary match: "phone", "bank_account", "id_card", "name"
+	MatchedFields []string `json:"matchedFields,omitempty"` // ทุก fields ที่ match (fraud อาจ match หลาย field)
+
+	// fraud_report fields
+	Name        string `json:"name,omitempty"`
+	ReportCount int    `json:"reportCount,omitempty"`
+	Verified    bool   `json:"verified,omitempty"`
+	CreatedAt   string `json:"createdAt,omitempty"`
+
+	// social fields (เหมือน UnifiedSocialResult)
+	DisplayName       string          `json:"displayName,omitempty"`
+	Role              string          `json:"role,omitempty"`
+	VerificationState string          `json:"verificationState,omitempty"`
+	Confidence        float64         `json:"confidence,omitempty"`
+	PermalinkURL      string          `json:"permalinkUrl,omitempty"`
+	SourceType        string          `json:"sourceType,omitempty"`
+	PostInfo          *SocialPostInfo `json:"postInfo,omitempty"`
 }

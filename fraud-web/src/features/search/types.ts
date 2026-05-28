@@ -65,6 +65,16 @@ export interface SocialResult {
   confidence: number
   similarity?: number
   permalinkUrl?: string
+  role?: string
+  sourceType?: string
+  postInfo?: {
+    authorName: string
+    message: string
+    postDate?: string
+    reactionCount: number
+    commentCount: number
+    imageCount: number
+  }
 }
 
 export interface FaceSearchResponse {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive } from 'lucide-react'
+import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive, ExternalLink, Calendar, Heart, MessageSquare, Image, UserCheck, MessageCircle } from 'lucide-react'
 import { formatDateShort, formatDatetime } from '@/lib/utils/format-date'
 import { CategoryPicker } from '@/components/shared/CategoryPicker'
 import { Drawer } from '@/components/ui/Drawer'
@@ -256,12 +256,12 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm font-medium" style={{ color: 'var(--danger)' }}>พบ {checkResults.length} รายการ</p>
-                    {checkResults.map((r, i) => (
+                    {checkResults.map((r, i) => r.source === 'social' ? (
+                      <CheckSocialCard key={i} item={r} />
+                    ) : (
                       <div key={i} className="card p-3 text-sm">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium" style={{ color: 'var(--text)' }}>
-                            {r.source === 'fraud_report' ? 'รายงานจากผู้ใช้' : r.source}
-                          </span>
+                          <span className="font-medium" style={{ color: 'var(--text)' }}>รายงานจากผู้ใช้</span>
                           {r.verified && <span className="text-xs font-bold" style={{ color: 'var(--danger)' }}>ยืนยันแล้ว</span>}
                         </div>
                         <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -362,6 +362,88 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-1.5 text-sm font-bold mb-1.5" style={{ color: 'var(--text-muted)' }}>
       {children}
+    </div>
+  )
+}
+
+const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof AlertTriangle }> = {
+  mentioned: { label: 'ถูกกล่าวถึง', color: 'var(--danger, #ef4444)', bg: 'rgba(239,68,68,.12)', icon: AlertTriangle },
+  poster: { label: 'ผู้โพส', color: 'var(--text-muted)', bg: 'rgba(255,255,255,.06)', icon: UserCheck },
+  commenter: { label: 'ผู้แสดงความเห็น', color: 'var(--text-muted)', bg: 'rgba(255,255,255,.06)', icon: MessageCircle },
+}
+
+function CheckSocialCard({ item }: { item: CheckResultItem }) {
+  const role = ROLE_CONFIG[item.role || ''] || ROLE_CONFIG.mentioned
+  const RoleIcon = role.icon
+  const post = item.postInfo
+
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '.75rem 1rem' }}>
+      {/* Row 1: ชื่อ + role badge */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className="shrink-0 flex items-center justify-center"
+          style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, var(--accent-dim), rgba(0,212,146,.05))', border: '1px solid var(--border-accent)', color: 'var(--accent)' }}
+        >
+          <User className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-base font-bold truncate" style={{ color: 'var(--text)' }}>
+              {item.displayName || item.name || '?'}
+            </span>
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+              style={{ background: role.bg, color: role.color }}
+            >
+              <RoleIcon className="w-3 h-3" />
+              {role.label}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: ข้อความโพส */}
+      {post?.message && (
+        <div
+          className="text-sm mt-2.5 rounded-lg"
+          style={{ padding: '.5rem .75rem', background: 'rgba(255,255,255,.03)', color: 'var(--text-secondary)', lineHeight: 1.5 }}
+        >
+          &ldquo;{post.message.length > 150 ? post.message.slice(0, 150) + '...' : post.message}&rdquo;
+        </div>
+      )}
+
+      {/* Row 3: post meta */}
+      {post && (
+        <div className="flex items-center gap-3 flex-wrap mt-2 text-xs" style={{ color: 'var(--text-dim)' }}>
+          {post.authorName && (
+            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{post.authorName}</span>
+          )}
+          {post.postDate && (
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              {new Date(post.postDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+            </span>
+          )}
+          {post.reactionCount > 0 && <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{post.reactionCount}</span>}
+          {post.commentCount > 0 && <span className="flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" />{post.commentCount}</span>}
+          {post.imageCount > 0 && <span className="flex items-center gap-1"><Image className="w-3.5 h-3.5" />{post.imageCount}</span>}
+        </div>
+      )}
+
+      {/* Row 4: link */}
+      {item.permalinkUrl && (
+        <a
+          href={item.permalinkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-bold mt-2.5 transition-opacity hover:opacity-80"
+          style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+        >
+          <ExternalLink className="w-4 h-4" />
+          ดูโพสต้นทาง
+        </a>
+      )}
     </div>
   )
 }

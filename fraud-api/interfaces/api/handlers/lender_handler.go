@@ -180,9 +180,16 @@ func (h *LenderHandler) CheckDebtor(c *fiber.Ctx) error {
 
 	results, err := h.lenderService.CheckDebtor(ctx, user.ID, debtorID)
 	if err != nil {
-		return utils.BadRequestResponse(c, err.Error())
+		msg := err.Error()
+		if msg == "ไม่พบลูกหนี้" {
+			return utils.NotFoundResponse(c, msg)
+		}
+		return utils.BadRequestResponse(c, msg)
 	}
 
+	if results == nil {
+		results = []dto.CheckResultItem{}
+	}
 	return utils.SuccessResponse(c, fiber.Map{"matches": len(results), "results": results})
 }
 

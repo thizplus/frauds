@@ -2,6 +2,7 @@ package mappers
 
 import (
 	"encoding/json"
+	"time"
 
 	"fraud-api/domain/dto"
 	"fraud-api/domain/models"
@@ -15,16 +16,58 @@ func EntityToUnifiedSocialResult(entity *models.SearchableEntity) dto.UnifiedSoc
 		VerificationState: entity.VerificationState,
 		Confidence:        entity.ConfidenceScore,
 		Similarity:        entity.Similarity,
+		SourceType:        DerefStr(entity.SourceType),
 	}
 
 	if entity.Person != nil {
 		result.DisplayName = entity.Person.DisplayName
+		result.Role = ExtractRole(entity.Person.NamesJSON, entity.RawValue)
 	}
+
 	if entity.Post != nil {
 		result.PermalinkURL = entity.Post.PermalinkURL
+		result.PostInfo = &dto.SocialPostInfo{
+			AuthorName:    entity.Post.AuthorName,
+			Message:       entity.Post.Message,
+			ReactionCount: entity.Post.ReactionCount,
+			CommentCount:  entity.Post.CommentCount,
+			ImageCount:    entity.Post.ImageCount,
+		}
+		if entity.Post.CreationTime != nil {
+			result.PostInfo.PostDate = entity.Post.CreationTime.Format(time.RFC3339)
+		}
 	}
 
 	return result
+}
+
+// ExtractRole — ดึง role จาก names_json JSONB
+func ExtractRole(namesJSON []byte, rawValue string) string {
+	if len(namesJSON) == 0 {
+		return ""
+	}
+
+	var names []struct {
+		Raw   string   `json:"raw"`
+		Roles []string `json:"roles"`
+	}
+	if err := json.Unmarshal(namesJSON, &names); err != nil {
+		return ""
+	}
+
+	// หา role ของ entity ที่ตรงกับ rawValue
+	for _, n := range names {
+		if n.Raw == rawValue && len(n.Roles) > 0 {
+			return n.Roles[0]
+		}
+	}
+
+	// fallback: เอา role แรกที่เจอ
+	if len(names) > 0 && len(names[0].Roles) > 0 {
+		return names[0].Roles[0]
+	}
+
+	return ""
 }
 
 // EntitiesToUnifiedSocialResults — batch convert
@@ -52,7 +95,6 @@ func EntityToSocialEvidence(entity *models.SearchableEntity) dto.SocialEvidence 
 		ev.PermalinkURL = entity.Post.PermalinkURL
 	}
 
-	// Parse context from evidence_json
 	if entity.EvidenceJSON != nil {
 		var ejMap map[string]any
 		if err := json.Unmarshal([]byte(*entity.EvidenceJSON), &ejMap); err == nil {
