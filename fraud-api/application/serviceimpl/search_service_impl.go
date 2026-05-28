@@ -210,7 +210,12 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 
 	go func() {
 		defer wg.Done()
-		frauds, fraudTotal, fraudErr = s.fraudRepo.SearchAll(ctx, query, "", 1, 20)
+		// ใช้ normalized query สำหรับ phone/bank/idcard เพื่อให้เจอแม้มี -/space
+		fraudQuery := query
+		if entityType != "name" {
+			fraudQuery = normalized
+		}
+		frauds, fraudTotal, fraudErr = s.fraudRepo.SearchAll(ctx, fraudQuery, "", 1, 20)
 	}()
 
 	go func() {
