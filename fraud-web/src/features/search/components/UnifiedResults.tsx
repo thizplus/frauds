@@ -72,10 +72,6 @@ export function UnifiedResults({
             <span className="font-mono" style={{ color: 'var(--text)' }}>{query}</span>
           </span>
         </div>
-        <span className="hidden sm:inline-flex live-pill text-sm">
-          <Sparkles className="w-3.5 h-3.5" />
-          AI scored
-        </span>
       </div>
 
       {sorted.map((section) => (
