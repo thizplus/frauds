@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ShieldCheck, Lock, Zap, Check, Search, Crown } from 'lucide-react'
+import { Check, Crown } from 'lucide-react'
+import { TrustBadges } from '@/components/shared/TrustBadges'
 import { usePlans } from '@/features/membership'
 import { CheckoutModal } from '@/features/membership/components/CheckoutModal'
 import { LoginModal } from '@/features/auth'
@@ -53,21 +54,8 @@ export default function PricingPage() {
           </div>
 
           {/* Trust badges */}
-          <div className="trust-row mb-10">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-              ข้อมูลอัปเดตทุกวัน
-            </span>
-            <span className="sep" />
-            <span className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-accent" />
-              ปลอดภัย เข้ารหัส
-            </span>
-            <span className="sep" />
-            <span className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-accent" />
-              ค้นหาได้ทันที
-            </span>
+          <div className="mb-10">
+            <TrustBadges />
           </div>
 
           {/* Loading */}

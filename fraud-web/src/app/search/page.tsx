@@ -16,7 +16,7 @@ import { ScanAnimation } from '@/components/shared/ScanAnimation'
 import type { ScanStep } from '@/components/shared/ScanAnimation'
 import { TextSearch, Database, Bot, Brain, ListChecks } from 'lucide-react'
 import { FaceSearchDrawer } from '@/components/shared/FaceSearchDrawer'
-import { ShieldCheck, Lock, RefreshCcw } from 'lucide-react'
+import { TrustBadges } from '@/components/shared/TrustBadges'
 import type { FraudResponse, SearchParams } from '@/features/search/types'
 
 const TEXT_SCAN_STEPS: ScanStep[] = [
@@ -222,21 +222,8 @@ export default function SearchPage() {
             </>
           )}
 
-          <div className="mt-8 trust-row">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-              ปลอดภัย 100%
-            </span>
-            <span className="sep" />
-            <span className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-accent" />
-              ยืนยันตัวตน
-            </span>
-            <span className="sep" />
-            <span className="flex items-center gap-1.5">
-              <RefreshCcw className="w-3.5 h-3.5 text-accent" />
-              อัปเดตทุกวัน
-            </span>
+          <div className="mt-8">
+            <TrustBadges />
           </div>
         </section>
       )}
