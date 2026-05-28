@@ -28,6 +28,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
 
   const [flagDialog, setFlagDialog] = useState(false)
   const [clearDialog, setClearDialog] = useState(false)
+  const [confirmArchive, setConfirmArchive] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanStep, setScanStep] = useState(0)
   const [scanProgress, setScanProgress] = useState(0)
@@ -212,19 +213,30 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                       {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
                     </span>
                   </SectionTitle>
-                  {debtor.status !== 'archived' && (
+                  {debtor.status !== 'archived' && !confirmArchive && (
                     <button
                       className="text-xs flex items-center gap-1"
                       style={{ color: 'var(--text-dim)' }}
-                      onClick={() => {
-                        if (confirm('ซ่อนรายชื่อนี้? (กู้คืนได้จากถังขยะ)')) {
-                          archiveMutation.mutate(debtorId!, { onSuccess: onClose })
-                        }
-                      }}
-                      disabled={archiveMutation.isPending}
+                      onClick={() => setConfirmArchive(true)}
                     >
                       <Archive className="w-3.5 h-3.5" /> ซ่อนรายชื่อนี้
                     </button>
+                  )}
+                  {confirmArchive && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs" style={{ color: 'var(--danger)' }}>ซ่อน?</span>
+                      <button
+                        className="text-xs font-bold px-2.5 py-1 rounded-md"
+                        style={{ background: 'var(--danger)', color: '#fff' }}
+                        onClick={() => archiveMutation.mutate(debtorId!, { onSuccess: onClose })}
+                        disabled={archiveMutation.isPending}
+                      >ใช่</button>
+                      <button
+                        className="text-xs font-bold px-2.5 py-1 rounded-md"
+                        style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
+                        onClick={() => setConfirmArchive(false)}
+                      >ไม่</button>
+                    </div>
                   )}
                 </div>
                 {checkResults.length === 0 ? (
