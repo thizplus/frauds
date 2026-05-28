@@ -249,7 +249,7 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
         </button>
 
         {/* Right: AI Robot button — คงอยู่ใน card เหมือนเดิม */}
-        <div className="flex-shrink-0 flex items-center px-2" style={{ borderLeft: '1px solid var(--border, rgba(255,255,255,0.06))' }}>
+        <div className="flex-shrink-0 flex items-center justify-center" style={{ borderLeft: '1px solid var(--border, rgba(255,255,255,0.06))', width: 90 }}>
           <RobotButton
             sp={sp}
             reportStatus={r.status}
