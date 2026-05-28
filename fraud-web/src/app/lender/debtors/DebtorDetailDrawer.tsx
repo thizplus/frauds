@@ -30,6 +30,14 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
   const [clearDialog, setClearDialog] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [scanning, setScanning] = useState(false)
+
+  // Reset state เมื่อเปิด drawer ใหม่ หรือเปลี่ยน debtor
+  useEffect(() => {
+    setConfirmArchive(false)
+    setFlagDialog(false)
+    setClearDialog(false)
+    setScanning(false)
+  }, [debtorId, open])
   const [scanStep, setScanStep] = useState(0)
   const [scanProgress, setScanProgress] = useState(0)
   const [scanElapsed, setScanElapsed] = useState(0)
