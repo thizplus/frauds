@@ -98,24 +98,22 @@ export function UnifiedResults({
           </div>
 
           {/* Section content */}
-          {section.source === 'frauds' ? (
-            <div className="row-ai-list">
-              {(section.results as FraudResponse[]).map((fraud) => (
+          <div className="row-ai-list">
+            {section.source === 'frauds' ? (
+              (section.results as FraudResponse[]).map((fraud) => (
                 <FraudRow
                   key={fraud.id}
                   fraud={fraud}
                   onClick={() => onSelectFraud(fraud)}
                   isMember={isMember}
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {(section.results as SocialResult[]).map((item, idx) => (
+              ))
+            ) : (
+              (section.results as SocialResult[]).map((item, idx) => (
                 <SocialCard key={`${item.matchedValue}-${idx}`} item={item} />
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       ))}
     </>
@@ -126,40 +124,33 @@ function SocialCard({ item }: { item: SocialResult }) {
   const confidencePct = Math.round(item.confidence * 100)
 
   return (
-    <div className="card p-4 flex items-center gap-4">
+    <div className="card p-3 flex items-center gap-3">
       <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
         style={{ background: 'var(--accent-dim)' }}
       >
-        <Globe className="w-5 h-5 text-accent" />
+        <Globe className="w-4 h-4 text-accent" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium truncate" style={{ color: 'var(--text)' }}>
+          <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
             {item.displayName || item.matchedValue}
           </span>
           {item.verificationState === 'verified' && (
-            <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
-          )}
-          {item.verificationState === 'pending' && (
-            <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+            <BadgeCheck className="w-3.5 h-3.5 text-accent shrink-0" />
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center gap-2 text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
           <span className="font-mono">{item.matchedValue}</span>
-          <span
-            className="px-1.5 py-0.5 rounded"
-            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
-          >
+          <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
             {item.entityType}
           </span>
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ความเชื่อมั่น</div>
         <div
-          className="text-sm font-semibold"
-          style={{ color: confidencePct >= 80 ? 'var(--accent)' : 'var(--text-secondary)' }}
+          className="text-sm font-bold"
+          style={{ color: confidencePct >= 80 ? 'var(--accent)' : 'var(--text-dim)' }}
         >
           {confidencePct}%
         </div>
