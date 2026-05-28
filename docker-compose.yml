@@ -30,6 +30,8 @@ services:
       - LINE_CALLBACK_URL=https://xn--12cainl6g3mua5b.com/auth/line/callback
       - LINE_MESSAGING_CHANNEL_ID=2010174406
       - LINE_MESSAGING_CHANNEL_SECRET=cca3293965efc072dc5cebf70b05569b
+      - LINE_RICH_MENU_FREE=richmenu-c278bdeae8a3a173f3ece866f2160b19
+      - LINE_RICH_MENU_MEMBER=richmenu-cfc0efa3c128de25a5822c0c4601f26e
       - FACE_SERVICE_URL=http://face-service:3002
       # Social Search — fuzzy name similarity threshold (0.0-1.0, ยิ่งสูงยิ่ง strict)
       # - SEARCH_NAME_SIMILARITY=0.65
