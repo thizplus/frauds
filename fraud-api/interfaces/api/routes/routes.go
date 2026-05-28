@@ -94,6 +94,11 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	social.Use(middleware.RateLimitMiddleware(60, 1*time.Minute))
 	social.Get("/search", h.SocialSearchHandler.Search)
 
+	// === LINE Webhook (signature verify — ไม่ใช้ API key / JWT) ===
+	if h.LineWebhookHandler != nil {
+		api.Post("/bot/line-webhook", h.LineWebhookHandler.HandleWebhook)
+	}
+
 	// === Bot (API Key auth — bypass rate limit) ===
 	bot := api.Group("/bot")
 	bot.Use(middleware.ApiKeyMiddleware(apiKey))

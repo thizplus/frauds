@@ -8,6 +8,7 @@ import (
 	"fraud-api/infrastructure/line"
 	"fraud-api/infrastructure/notification"
 	"fraud-api/infrastructure/postgres"
+	"fraud-api/infrastructure/session"
 	"fraud-api/infrastructure/storage"
 	"fraud-api/pkg/config"
 	"fraud-api/pkg/faceclient"
@@ -56,6 +57,11 @@ type Container struct {
 	ServicePaymentService services.ServicePaymentService
 	MemberService         services.MemberService
 	AdminService          services.AdminService
+	LineBotService        services.LineBotService
+
+	// Ports (additional)
+	SessionStore  ports.SessionStore
+	LineMessaging ports.LineMessagingPort
 }
 
 func NewContainer() *Container {
@@ -174,6 +180,16 @@ func (c *Container) Initialize() error {
 	// FaceSearchService ต้องการ FaceClient + FraudService + SocialSearchRepo (resolve social_post)
 	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService, c.SocialSearchRepo)
 	logger.Info("Face service client initialized", "url", cfg.FaceService.URL)
+
+	// LINE Bot Service
+	if cfg.LINE.ChannelAccessToken != "" {
+		c.LineMessaging = line.NewLineMessagingAdapter(cfg.LINE.ChannelAccessToken)
+		c.SessionStore = session.NewMemoryStore()
+		c.LineBotService = serviceimpl.NewLineBotService(
+			c.LineMessaging, c.SearchService, c.UserRepo, c.MembershipRepo, c.SessionStore,
+		)
+		logger.Info("LINE Bot service initialized")
+	}
 
 	logger.Info("Container initialized", "app", cfg.App.Name, "env", cfg.App.Env)
 

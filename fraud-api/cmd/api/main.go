@@ -70,6 +70,14 @@ func main() {
 		container.Storage,
 	)
 
+	// LINE Webhook Handler (สร้างแยกเพราะต้องใช้ channelSecret)
+	if container.LineBotService != nil {
+		h.LineWebhookHandler = handlers.NewLineWebhookHandler(
+			container.LineBotService,
+			container.Config.LINE.ChannelSecret,
+		)
+	}
+
 	// 5. Setup routes
 	routes.SetupRoutes(app, h, container.Config.BotAPI.Key, container.Config.JWT.Secret)
 
