@@ -194,11 +194,11 @@ func (s *searchServiceImpl) CheckQuota(ctx context.Context, userID *uuid.UUID, i
 
 func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*dto.UnifiedSearchResponse, error) {
 	var (
-		frauds       []models.Fraud
-		fraudTotal   int64
-		socialRows   []repositories.SocialEntityRow
-		fraudErr     error
-		socialErr    error
+		frauds         []models.Fraud
+		fraudTotal     int64
+		socialEntities []models.SearchableEntity
+		fraudErr       error
+		socialErr      error
 	)
 
 	// ตรวจจับ query type
@@ -224,9 +224,9 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 			return
 		}
 		if entityType == "name" {
-			socialRows, socialErr = s.socialSearchRepo.SearchFuzzyName(ctx, normalized, 0.65)
+			socialEntities, socialErr = s.socialSearchRepo.SearchFuzzyName(ctx, normalized, 0.65)
 		} else {
-			socialRows, socialErr = s.socialSearchRepo.SearchExact(ctx, entityType, normalized)
+			socialEntities, socialErr = s.socialSearchRepo.SearchExact(ctx, entityType, normalized)
 		}
 	}()
 
@@ -255,28 +255,9 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 		totalResults += int(fraudTotal)
 	}
 
-	// Section 2: social (แปลง rows เป็น simple results)
-	if len(socialRows) > 0 {
-		socialResults := make([]dto.UnifiedSocialResult, 0, len(socialRows))
-		for _, row := range socialRows {
-			displayName := ""
-			if row.DisplayName != nil {
-				displayName = *row.DisplayName
-			}
-			permalinkURL := ""
-			if row.PermalinkURL != nil {
-				permalinkURL = *row.PermalinkURL
-			}
-			socialResults = append(socialResults, dto.UnifiedSocialResult{
-				MatchedValue:      row.RawValue,
-				DisplayName:       displayName,
-				EntityType:        row.EntityType,
-				VerificationState: row.VerificationState,
-				Confidence:        row.ConfidenceScore,
-				Similarity:        row.Similarity,
-				PermalinkURL:      permalinkURL,
-			})
-		}
+	// Section 2: social — ใช้ mapper แปลง Model → DTO
+	if len(socialEntities) > 0 {
+		socialResults := mappers.EntitiesToUnifiedSocialResults(socialEntities)
 
 		sections = append(sections, dto.UnifiedSearchSection{
 			Source:  "social",
@@ -289,7 +270,7 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 
 	logger.InfoContext(ctx, "Unified search completed",
 		"query", query, "type", entityType,
-		"frauds", fraudTotal, "social", len(socialRows),
+		"frauds", fraudTotal, "social", len(socialEntities),
 	)
 
 	return &dto.UnifiedSearchResponse{

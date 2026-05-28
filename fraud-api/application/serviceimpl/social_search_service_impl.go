@@ -2,7 +2,6 @@ package serviceimpl
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"regexp"
 	"strconv"
@@ -11,6 +10,8 @@ import (
 	"unicode"
 
 	"fraud-api/domain/dto"
+	"fraud-api/domain/mappers"
+	"fraud-api/domain/models"
 	"fraud-api/domain/repositories"
 	"fraud-api/domain/services"
 	"fraud-api/pkg/logger"
@@ -57,7 +58,6 @@ func detectQueryCandidates(query string) []dto.QueryCandidate {
 	}
 
 	if !isAllDigits || len(cleaned) < 3 {
-		// name search
 		return []dto.QueryCandidate{
 			{Type: "name", Normalized: strings.TrimSpace(query)},
 		}
@@ -81,7 +81,6 @@ func detectQueryCandidates(query string) []dto.QueryCandidate {
 	}
 
 	if len(candidates) == 0 {
-		// fallback: treat as name
 		candidates = append(candidates, dto.QueryCandidate{Type: "name", Normalized: strings.TrimSpace(query)})
 	}
 
@@ -102,41 +101,41 @@ func (s *socialSearchServiceImpl) Search(ctx context.Context, query string) (*dt
 		warnings = append(warnings, "query_interpreted_as_"+strings.Join(types, "_and_"))
 	}
 
-	// Collect all rows from all candidates
-	var allRows []repositories.SocialEntityRow
+	// Collect all entities from all candidates
+	var allEntities []models.SearchableEntity
 	hiddenByThreshold := false
 
 	for _, candidate := range candidates {
 		if candidate.Type == "name" {
-			rows, err := s.socialSearchRepo.SearchFuzzyName(ctx, candidate.Normalized, nameSimilarityThreshold)
+			entities, err := s.socialSearchRepo.SearchFuzzyName(ctx, candidate.Normalized, nameSimilarityThreshold)
 			if err != nil {
 				logger.ErrorContext(ctx, "Social search fuzzy failed", "error", err)
 				continue
 			}
-			for i := range rows {
-				rows[i].EntityType = "name"
+			for i := range entities {
+				entities[i].EntityType = "name"
 			}
-			allRows = append(allRows, rows...)
+			allEntities = append(allEntities, entities...)
 
-			// D) Check if there were matches below threshold
-			lowRows, _ := s.socialSearchRepo.SearchFuzzyName(ctx, candidate.Normalized, nameSimilarityThreshold-0.25)
-			if len(lowRows) > len(rows) {
+			// Check if there were matches below threshold
+			lowEntities, _ := s.socialSearchRepo.SearchFuzzyName(ctx, candidate.Normalized, nameSimilarityThreshold-0.25)
+			if len(lowEntities) > len(entities) {
 				hiddenByThreshold = true
 			}
 		} else {
-			rows, err := s.socialSearchRepo.SearchExact(ctx, candidate.Type, candidate.Normalized)
+			entities, err := s.socialSearchRepo.SearchExact(ctx, candidate.Type, candidate.Normalized)
 			if err != nil {
 				logger.ErrorContext(ctx, "Social search exact failed", "error", err, "type", candidate.Type)
 				continue
 			}
-			allRows = append(allRows, rows...)
+			allEntities = append(allEntities, entities...)
 		}
 	}
 
-	// Group by verification_state → person
-	verified, metadata, weak := groupByState(allRows, candidates)
+	// Group by verification_state -> person
+	verified, metadata, weak := groupByState(allEntities, candidates)
 
-	// Sort: mention_count DESC → confidence.max DESC → last_seen DESC
+	// Sort: mention_count DESC -> confidence.max DESC -> last_seen DESC
 	sortMatches(verified)
 	sortMatches(metadata)
 	sortMatches(weak)
@@ -146,13 +145,12 @@ func (s *socialSearchServiceImpl) Search(ctx context.Context, query string) (*dt
 		warnings = append(warnings, "low_similarity_match_hidden")
 	}
 
-	// C) Latency metric
 	durationMs := time.Since(startTime).Milliseconds()
 
 	resp := &dto.SocialSearchResponse{
-		SchemaVersion:     "social_search_v1",
-		Query:             query,
-		QueryCandidates:   candidates,
+		SchemaVersion:   "social_search_v1",
+		Query:           query,
+		QueryCandidates: candidates,
 		ResultStats: dto.ResultStats{
 			VerifiedCount:   len(verified),
 			MetadataCount:   len(metadata),
@@ -177,9 +175,8 @@ func (s *socialSearchServiceImpl) Search(ctx context.Context, query string) (*dt
 	return resp, nil
 }
 
-// groupByState — group rows into matches by person + verification_state
-func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCandidate) (verified, metadata, weak []dto.SocialMatchResult) {
-	// Group by person_id + verification_state
+// groupByState — group entities into matches by person + verification_state
+func groupByState(entities []models.SearchableEntity, candidates []dto.QueryCandidate) (verified, metadata, weak []dto.SocialMatchResult) {
 	type personKey struct {
 		personID string
 		state    string
@@ -189,36 +186,37 @@ func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCan
 	postSets := map[personKey]map[string]bool{}
 	timeMap := map[personKey][]time.Time{}
 
-	for _, row := range rows {
+	for i := range entities {
+		entity := &entities[i]
+
 		pid := ""
-		if row.PersonID != nil {
-			pid = *row.PersonID
+		if entity.PersonID != nil {
+			pid = *entity.PersonID
 		}
-		key := personKey{personID: pid, state: row.VerificationState}
+		key := personKey{personID: pid, state: entity.VerificationState}
 
 		if _, ok := groups[key]; !ok {
 			displayName := ""
-			if row.DisplayName != nil {
-				displayName = *row.DisplayName
+			if entity.Person != nil {
+				displayName = entity.Person.DisplayName
 			}
 
 			matchedValue := ""
-			if row.NormalizedValue != nil {
-				matchedValue = *row.NormalizedValue
+			if entity.NormalizedValue != nil {
+				matchedValue = *entity.NormalizedValue
 			}
 
-			// determine match reason from candidates
-			mr := buildMatchReason(row, candidates)
+			mr := buildMatchReason(entity, candidates)
 
 			vr := ""
-			if row.VerificationReason != nil {
-				vr = *row.VerificationReason
+			if entity.VerificationReason != nil {
+				vr = *entity.VerificationReason
 			}
 
 			groups[key] = &dto.SocialMatchResult{
 				MatchedValue:       matchedValue,
 				DisplayName:        displayName,
-				VerificationState:  row.VerificationState,
+				VerificationState:  entity.VerificationState,
 				VerificationReason: vr,
 				MatchReason:        mr,
 			}
@@ -226,47 +224,22 @@ func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCan
 			timeMap[key] = []time.Time{}
 		}
 
-		// Evidence
-		ev := dto.SocialEvidence{
-			EntityType:      row.EntityType,
-			RawValue:        row.RawValue,
-			NormalizedValue: derefStr(row.NormalizedValue),
-			SourceType:      derefStr(row.SourceType),
-			SourceID:        derefStr(row.SourceID),
-			Confidence:      row.ConfidenceScore,
-			PostID:          row.PostID,
-			PermalinkURL:    derefStr(row.PermalinkURL),
-		}
-
-		// Parse context from evidence_json
-		if row.EvidenceJSON != nil {
-			var ejMap map[string]interface{}
-			if err := json.Unmarshal([]byte(*row.EvidenceJSON), &ejMap); err == nil {
-				if ctx, ok := ejMap["context"].(string); ok {
-					ev.Context = ctx
-				}
-			}
-		}
-
+		// Evidence — ใช้ mapper
+		ev := mappers.EntityToSocialEvidence(entity)
 		evidenceMap[key] = append(evidenceMap[key], ev)
-		postSets[key][row.PostID] = true
+		postSets[key][entity.PostID] = true
 
-		// Parse time
-		if row.CreationTime != nil {
-			if t, err := time.Parse("2006-01-02 15:04:05+00", *row.CreationTime); err == nil {
-				timeMap[key] = append(timeMap[key], t)
-			} else if t, err := time.Parse(time.RFC3339, *row.CreationTime); err == nil {
-				timeMap[key] = append(timeMap[key], t)
-			}
+		// Time from Post relation
+		if entity.Post != nil && entity.Post.CreationTime != nil {
+			timeMap[key] = append(timeMap[key], *entity.Post.CreationTime)
 		}
 	}
 
 	// Finalize
 	for key, match := range groups {
 		match.Evidence = evidenceMap[key]
-		match.MentionCount = len(postSets[key]) // DISTINCT post_id
+		match.MentionCount = len(postSets[key])
 
-		// confidence summary
 		var maxConf, sumConf float64
 		for _, ev := range match.Evidence {
 			if ev.Confidence > maxConf {
@@ -280,7 +253,6 @@ func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCan
 		}
 		match.ConfidenceSummary = dto.ConfidenceSummary{Max: maxConf, Avg: avgConf}
 
-		// time range
 		times := timeMap[key]
 		if len(times) > 0 {
 			first := times[0]
@@ -307,7 +279,6 @@ func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCan
 		}
 	}
 
-	// ensure non-nil slices
 	if verified == nil {
 		verified = []dto.SocialMatchResult{}
 	}
@@ -321,22 +292,22 @@ func groupByState(rows []repositories.SocialEntityRow, candidates []dto.QueryCan
 	return
 }
 
-func buildMatchReason(row repositories.SocialEntityRow, candidates []dto.QueryCandidate) dto.MatchReason {
+func buildMatchReason(entity *models.SearchableEntity, candidates []dto.QueryCandidate) dto.MatchReason {
 	mr := dto.MatchReason{
-		MatchedEntityType: row.EntityType,
+		MatchedEntityType: entity.EntityType,
 		MatchType:         "exact",
-		MatchedValue:      derefStr(row.NormalizedValue),
+		MatchedValue:      mappers.DerefStr(entity.NormalizedValue),
 	}
 
-	if row.Similarity != nil && *row.Similarity > 0 {
+	if entity.Similarity != nil && *entity.Similarity > 0 {
 		mr.MatchType = "fuzzy"
-		mr.Similarity = row.Similarity
+		mr.Similarity = entity.Similarity
 	}
 
 	return mr
 }
 
-// sortMatches — deterministic: mention_count DESC → confidence.max DESC → last_seen DESC
+// sortMatches — deterministic: mention_count DESC -> confidence.max DESC -> last_seen DESC
 func sortMatches(matches []dto.SocialMatchResult) {
 	for i := 0; i < len(matches); i++ {
 		for j := i + 1; j < len(matches); j++ {
@@ -358,11 +329,4 @@ func shouldSwap(a, b dto.SocialMatchResult) bool {
 		return b.LastSeen.After(*a.LastSeen)
 	}
 	return false
-}
-
-func derefStr(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

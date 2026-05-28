@@ -1,5 +1,11 @@
 -- Social Intelligence Schema v1
 -- ใช้ร่วมกับ fraud-api DB (fraud_checker)
+--
+-- WARNING: fraud-api มี Read-Only GORM models สำหรับ tables เหล่านี้
+-- ถ้าแก้ schema ต้อง update Go models ด้วย:
+--   fraud-api/domain/models/social_post.go
+--   fraud-api/domain/models/social_person.go
+--   fraud-api/domain/models/searchable_entity.go
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 

@@ -46,6 +46,8 @@ func NewDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE EXTENSION IF NOT EXISTS pg_trgm")
 
+	// social_* tables (SocialPost, SocialPerson, SearchableEntity)
+	// ไม่รวมที่นี่ — schema managed by fraud-collector (Python migration)
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.FraudCategory{},
