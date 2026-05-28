@@ -66,6 +66,10 @@ func (s *faceSearchServiceImpl) SearchByFace(ctx context.Context, imageBytes []b
 			if err == nil {
 				detail, err := s.fraudService.GetByID(ctx, fraudID)
 				if err == nil && detail != nil {
+					// Skip pending — ป้องกันกลั่นแกล้ง (ต้อง verified/settled เท่านั้น)
+					if detail.Status == "pending" {
+						continue
+					}
 					match.Fraud = &detail.FraudResponse
 				}
 			}

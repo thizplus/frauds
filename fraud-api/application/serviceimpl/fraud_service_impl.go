@@ -260,7 +260,35 @@ func (s *fraudServiceImpl) Verify(ctx context.Context, id uuid.UUID) (*dto.Fraud
 		return nil, err
 	}
 	logger.InfoContext(ctx, "Fraud verified", "fraud_id", id)
+
+	// Auto face ingest เมื่อ verify — ดึง evidence จาก reports แล้ว ingest
+	if s.faceClient != nil {
+		go s.ingestFacesFromReports(id)
+	}
+
 	return mappers.FraudToResponse(fraud), nil
+}
+
+// ingestFacesFromReports — ดึง evidence URLs จาก fraud_reports แล้ว ingest face
+func (s *fraudServiceImpl) ingestFacesFromReports(fraudID uuid.UUID) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("Face ingest from reports panic", "error", r, "fraud_id", fraudID)
+		}
+	}()
+
+	ctx := context.Background()
+	reports, err := s.fraudRepo.ListReportsByFraudID(ctx, fraudID)
+	if err != nil {
+		return
+	}
+
+	for _, report := range reports {
+		if report.EvidenceURL == "" {
+			continue
+		}
+		s.autoIngestFaces(report.ID.String(), fraudID, report.EvidenceURL)
+	}
 }
 
 func (s *fraudServiceImpl) Unverify(ctx context.Context, id uuid.UUID) error {
@@ -360,10 +388,8 @@ func (s *fraudServiceImpl) CreateReport(ctx context.Context, req *dto.CreateRepo
 
 	logger.InfoContext(ctx, "Fraud report created", "report_id", report.ID, "fraud_id", *fraudID)
 
-	// Auto face ingest (fire-and-forget)
-	if s.faceClient != nil && req.EvidenceURL != "" {
-		go s.autoIngestFaces(report.ID.String(), *fraudID, req.EvidenceURL)
-	}
+	// Face ingest ไม่ทำตอน pending — ป้องกันกลั่นแกล้ง
+	// จะ ingest ตอน Admin verify แทน (ดู Verify method)
 
 	var fraudIDStr *string
 	if fraudID != nil {
