@@ -190,9 +190,9 @@ func (h *SearchHandler) UnifiedSearch(c *fiber.Ctx) error {
 			"error":   fiber.Map{"code": "QUOTA_EXCEEDED", "message": err.Error()},
 		})
 	}
-	_ = userID
+	ip := c.Get("CF-Connecting-IP", c.IP())
 
-	result, err := h.searchService.UnifiedSearch(ctx, q)
+	result, err := h.searchService.UnifiedSearch(ctx, q, userID, ip)
 	if err != nil {
 		logger.ErrorContext(ctx, "Unified search failed", "error", err)
 		return utils.InternalServerErrorResponse(c)
