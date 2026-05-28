@@ -99,7 +99,7 @@ export function UnifiedResults({
 
           {/* Section content */}
           {section.source === 'social' && (
-            <p className="text-xs mb-2 px-1" style={{ color: 'var(--text-dim)' }}>
+            <p className="text-sm mb-2 px-1" style={{ color: 'var(--text-dim)' }}>
               ข้อมูลนี้ไม่ใช่การยืนยันการโกง เป็นเพียงข้อมูลที่เก็บจาก Facebook กรุณาตรวจสอบ URL ต้นทางเพื่อประกอบการพิจารณา
             </p>
           )}
@@ -129,25 +129,25 @@ function SocialCard({ item }: { item: SocialResult }) {
   const confidencePct = Math.round(item.confidence * 100)
 
   return (
-    <div className="card p-3 flex items-center gap-3">
+    <div className="card p-4 flex items-center gap-3">
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
         style={{ background: 'var(--accent-dim)' }}
       >
-        <Globe className="w-4 h-4 text-accent" />
+        <Globe className="w-5 h-5 text-accent" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
+          <span className="text-base font-medium truncate" style={{ color: 'var(--text)' }}>
             {item.displayName || item.matchedValue}
           </span>
           {item.verificationState === 'verified' && (
-            <BadgeCheck className="w-3.5 h-3.5 text-accent shrink-0" />
+            <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center gap-2 text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
           <span className="font-mono">{item.matchedValue}</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
+          <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
             {item.entityType}
           </span>
           {item.permalinkUrl && (
@@ -155,20 +155,20 @@ function SocialCard({ item }: { item: SocialResult }) {
               href={item.permalinkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-0.5 hover:underline"
+              className="flex items-center gap-1 hover:underline text-xs"
               style={{ color: 'var(--accent)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="w-3.5 h-3.5" />
               ดูต้นทาง
             </a>
           )}
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>ความเชื่อมั่น</div>
+        <div className="text-xs" style={{ color: 'var(--text-dim)' }}>ความเชื่อมั่น</div>
         <div
-          className="text-sm font-bold"
+          className="text-base font-bold"
           style={{ color: confidencePct >= 80 ? 'var(--accent)' : 'var(--text-dim)' }}
         >
           {confidencePct}%
