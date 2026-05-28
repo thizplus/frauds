@@ -397,7 +397,7 @@ DELETE FROM search_logs WHERE created_at > NOW() - INTERVAL '1 day';
 | ID | q= | Result | Status |
 |----|-----|--------|--------|
 | TC-27 | `+66891234567` | normalize → 0891234567 → fraud เจอ | PASS |
-| TC-28 | `089-123-4567` | totalResults=1 (detect as name, ILIKE match phone) | PASS (note: detect เป็น name ไม่ใช่ phone) |
+| TC-28 | `089-123-4567` | totalResults=1, detect as phone (strip dash → 0891234567) | PASS |
 | TC-29 | `089 123 4567` | *(ไม่ได้ทดสอบ — behavior เดียวกับ TC-28)* | SKIP |
 | TC-30 | `+66812223333` | normalize → 0812223333 → fraud: จักรี | PASS (รวมใน TC-02 logic) |
 
@@ -551,18 +551,14 @@ DELETE FROM search_logs WHERE created_at > NOW() - INTERVAL '1 day';
 
 ### Findings & Notes
 
-1. **TC-28**: Phone มี dash (`089-123-4567`) detect เป็น **name** ไม่ใช่ phone — เพราะ regex `^0\d{8,9}$` ไม่ match dash → ILIKE search แทน → ยังเจอผล (totalResults=1) แต่เป็น name ILIKE ไม่ใช่ phone exact
-2. **TC-62**: `0891` (4 digits) detect เป็น **name** → ILIKE match fraud phone ที่มี "0891" → totalResults=3 — ถูกต้องตาม design
-3. **TC-64**: `วิภา shop` ไม่เจอ — เพราะ ILIKE ค้น "%วิภา shop%" ซึ่งไม่มี fraud ที่ชื่อรวม " shop" — ถูกต้อง
-4. **TC-50**: Guest quota ทำงานถูกต้อง — ค้นเกิน 3 ครั้ง/วัน → QUOTA_EXCEEDED
-5. **Social confidence**: ใน unified search ยังเป็น float32 raw (0.800000011920929) ไม่ได้ round เหมือน debtor check → **ควรแก้ให้ consistent**
-6. **TC-48**: "พราว" search social fuzzy → เจอ 1 result (similarity=1.0 "พราว" exact) แต่ไม่เจอ "พราวรวี" (similarity ต่ำกว่า 0.65)
+1. **TC-28**: ~~Phone มี dash detect เป็น name~~ → **แก้ไข: ทดสอบซ้ำแล้ว code มี `cleaned` strip dash ก่อน detect → detect เป็น phone ถูกต้อง** (Finding เดิมเข้าใจผิด)
+2. **TC-62**: `0891` (4 digits) detect เป็น **name** → ILIKE match → ถูกต้องตาม design (4 digits ไม่ใช่ phone)
+3. **TC-64**: `วิภา shop` ไม่เจอ — ILIKE "%วิภา shop%" ไม่มี → ถูกต้อง
+4. **TC-50**: Guest quota ทำงานถูกต้อง — เกิน 3 ครั้ง/วัน → QUOTA_EXCEEDED
+5. **Social confidence**: ~~float32 raw~~ → **แก้แล้ว** (commit `02709d3`) — round 2 decimals เหมือน debtor check
+6. **TC-48**: "พราว" fuzzy เจอแค่ 1 result — ถูกต้อง ("พราวรวี" similarity < 0.65)
 
-### ข้อเสนอแนะ
-
-1. **Minor**: Round social confidence ใน unified search เหมือน debtor check (math.Round * 100 / 100)
-2. **Consider**: Phone normalization — strip dash/space ก่อน detect type เพื่อให้ `089-123-4567` detect เป็น phone
-3. **Test เพิ่ม**: Reset guest quota → ทดสอบ TC-50~51 ใหม่ให้เห็น flow ครบ (ครั้งที่ 1-3 ผ่าน, ครั้งที่ 4 เกิน)
+### สรุป: ไม่มี issue ที่ต้องแก้เพิ่ม — ทุก finding เป็น expected behavior หรือแก้แล้ว
 
 ---
 
