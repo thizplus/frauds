@@ -251,8 +251,8 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
               </div>
             )}
 
-            {/* Flag info */}
-            {debtor.status === 'flagged' && (
+            {/* Flag info — แสดงเฉพาะเมื่อ flagged + มีข้อมูล */}
+            {debtor.status === 'flagged' && (debtor.flaggedReason || debtor.flaggedAmount || debtor.flaggedDetail) && (
               <div>
                 <SectionTitle>ข้อมูลการแจ้งเตือน</SectionTitle>
                 <div className="card p-3 space-y-1" style={{ borderColor: 'var(--danger)' }}>
