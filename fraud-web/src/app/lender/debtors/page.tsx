@@ -76,9 +76,9 @@ export default function DebtorsPage() {
       </div>
 
       {/* Status filter */}
-      <div className="flex gap-2 mb-4">
-        {[{ value: '', label: 'ทั้งหมด' }, { value: 'unchecked', label: 'รอตรวจสอบ' }, { value: 'active', label: 'ปกติ' }, { value: 'flagged', label: 'ถูกแจ้ง' }, { value: 'cleared', label: 'ปลดแล้ว' }, { value: 'archived', label: '🗑 ถังขยะ' }].map((f) => (
-          <button key={f.value} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        {[{ value: '', label: 'ทั้งหมด' }, { value: 'unchecked', label: 'รอตรวจสอบ' }, { value: 'active', label: 'ปกติ' }, { value: 'flagged', label: 'ถูกแจ้ง' }, { value: 'archived', label: '🗑 ถังขยะ' }].map((f) => (
+          <button key={f.value} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex-shrink-0"
             style={{
               background: statusFilter === f.value ? 'var(--accent-dim)' : 'var(--bg-input)',
               color: statusFilter === f.value ? 'var(--accent)' : 'var(--text-muted)',
