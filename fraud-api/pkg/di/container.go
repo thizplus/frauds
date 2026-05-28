@@ -184,7 +184,12 @@ func (c *Container) Initialize() error {
 	// LINE Bot Service
 	if cfg.LINE.ChannelAccessToken != "" {
 		c.LineMessaging = line.NewLineMessagingAdapter(cfg.LINE.ChannelAccessToken)
-		c.SessionStore = session.NewMemoryStore()
+		if cfg.RedisURL != "" {
+			c.SessionStore = session.NewRedisStore(cfg.RedisURL)
+		} else {
+			c.SessionStore = session.NewMemoryStore()
+			logger.Info("Session store: Memory (Redis not configured)")
+		}
 		c.LineBotService = serviceimpl.NewLineBotService(
 			c.LineMessaging, c.SearchService, c.UserRepo, c.MembershipRepo, c.SessionStore,
 			cfg.LINE.RichMenuFree, cfg.LINE.RichMenuMember,

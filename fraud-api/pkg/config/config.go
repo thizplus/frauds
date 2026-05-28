@@ -17,6 +17,7 @@ type Config struct {
 	Storage     StorageConfig
 	LINE        LINEConfig
 	FaceService FaceServiceConfig
+	RedisURL    string
 }
 
 type FaceServiceConfig struct {
@@ -145,6 +146,7 @@ func LoadConfig() (*Config, error) {
 		FaceService: FaceServiceConfig{
 			URL: getEnv("FACE_SERVICE_URL", "http://face-service:3002"),
 		},
+		RedisURL: getEnv("REDIS_URL", ""),
 		LINE: LINEConfig{
 			ChannelID:              getEnv("LINE_CHANNEL_ID", ""),
 			ChannelSecret:          getEnv("LINE_CHANNEL_SECRET", ""),
