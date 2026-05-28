@@ -384,7 +384,8 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
   onSubmit: (data: { reason: string; amount?: number; detail?: string }) => void
   loading: boolean
 }) {
-  const [reason, setReason] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [categoryName, setCategoryName] = useState('')
   const [amount, setAmount] = useState('')
   const [detail, setDetail] = useState('')
 
@@ -393,7 +394,11 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
       <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>แจ้งเตือน "{name}"</h3>
     }>
       <div className="space-y-4">
-        <CategoryPicker value={reason} onChange={setReason} label="หมวดหมู่" />
+        <CategoryPicker
+          value={categoryId}
+          onChange={(id, name) => { setCategoryId(id); setCategoryName(name || id) }}
+          label="หมวดหมู่"
+        />
         <div>
           <label className="report-label">จำนวนเงิน (บาท)</label>
           <input type="number" className="input font-mono" placeholder="เช่น 20000" value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -407,8 +412,8 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
           ข้อมูลจะถูกเผยแพร่ในระบบค้นหาทันทีหลังยืนยัน
         </div>
         <button className="btn btn-lg w-full" style={{ background: 'var(--danger)', color: '#fff' }}
-          disabled={!reason || loading}
-          onClick={() => onSubmit({ reason, amount: amount ? Math.round(parseFloat(amount) * 100) : undefined, detail })}>
+          disabled={!categoryId || loading}
+          onClick={() => onSubmit({ reason: categoryName, amount: amount ? Math.round(parseFloat(amount) * 100) : undefined, detail })}>
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldAlert className="w-5 h-5" />}
           ยืนยันแจ้งเตือน
         </button>

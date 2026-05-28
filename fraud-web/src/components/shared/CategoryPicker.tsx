@@ -18,7 +18,7 @@ interface Category {
 
 interface CategoryPickerProps {
   value: string
-  onChange: (categoryId: string) => void
+  onChange: (categoryId: string, categoryName?: string) => void
   label?: string
 }
 
@@ -54,7 +54,7 @@ export function CategoryPicker({ value, onChange, label = 'หมวดหมู
                 border: isActive ? '2px solid var(--accent)' : '2px solid transparent',
                 color: isActive ? 'var(--accent)' : 'var(--text-muted)',
               }}
-              onClick={() => onChange(cat.id)}
+              onClick={() => onChange(cat.id, cat.name)}
             >
               <Icon className="w-7 h-7" />
               <span className="text-xs font-semibold leading-tight text-center">{cat.name}</span>
