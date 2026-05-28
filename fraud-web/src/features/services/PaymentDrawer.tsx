@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { X, Upload, Check, Loader2, Copy, ImagePlus, AlertCircle, FileImage, Eye, Bot, LayoutDashboard, Search } from 'lucide-react'
+import { useAuthStore } from '@/lib/stores/auth'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
 import { apiClient } from '@/lib/api/client'
@@ -46,7 +47,7 @@ export function PaymentDrawer({ service, open, onClose, fraudId }: PaymentDrawer
     setAutoApproved(false)
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-    const token = localStorage.getItem('accessToken')
+    const token = useAuthStore.getState().accessToken
     fetch(`${apiUrl}/me/payment-settings`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
