@@ -57,6 +57,15 @@ export interface UnifiedSection {
   results: FraudResponse[] | SocialResult[]
 }
 
+export interface PostInfo {
+  authorName: string
+  message: string
+  postDate?: string
+  reactionCount: number
+  commentCount: number
+  imageCount: number
+}
+
 export interface SocialResult {
   matchedValue: string
   displayName?: string
@@ -67,14 +76,7 @@ export interface SocialResult {
   permalinkUrl?: string
   role?: string
   sourceType?: string
-  postInfo?: {
-    authorName: string
-    message: string
-    postDate?: string
-    reactionCount: number
-    commentCount: number
-    imageCount: number
-  }
+  postInfo?: PostInfo
 }
 
 export interface FraudPublicDetail extends FraudResponse {
