@@ -176,6 +176,7 @@ export function ReportsPage() {
         robotButton={selectedReport && (
           <RobotButton
             sp={selectedReport.servicePayment}
+            reportStatus={selectedReport.status}
             confirmCancel={confirmCancel}
             actionPending={actionPending}
             onOpenServiceDrawer={() => {
@@ -251,6 +252,7 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
         <div className="flex-shrink-0 flex items-center px-2" style={{ borderLeft: '1px solid var(--border, rgba(255,255,255,0.06))' }}>
           <RobotButton
             sp={sp}
+            reportStatus={r.status}
             confirmCancel={confirmCancel}
             actionPending={actionPending}
             onOpenServiceDrawer={onOpenServiceDrawer}
@@ -264,8 +266,9 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
   )
 }
 
-function RobotButton({ sp, confirmCancel, actionPending, onOpenServiceDrawer, onAction, onConfirmCancel, onDismissCancel }: {
+function RobotButton({ sp, reportStatus, confirmCancel, actionPending, onOpenServiceDrawer, onAction, onConfirmCancel, onDismissCancel }: {
   sp?: ReportServicePayment | null
+  reportStatus?: string
   confirmCancel: string | null
   actionPending: boolean
   onOpenServiceDrawer: () => void
@@ -273,6 +276,18 @@ function RobotButton({ sp, confirmCancel, actionPending, onOpenServiceDrawer, on
   onConfirmCancel: (id: string) => void
   onDismissCancel: () => void
 }) {
+  // settled → disabled + แสดง "ได้เงินคืนแล้ว"
+  if (reportStatus === 'settled') {
+    return (
+      <div className="flex flex-col items-center gap-1.5 py-2 px-3 rounded-xl" style={{ opacity: 0.4 }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ border: '2px solid var(--accent)' }}>
+          <Bot className="w-7 h-7" style={{ color: 'var(--accent)' }} />
+        </div>
+        <span className="text-[10px] font-medium leading-tight text-center" style={{ color: 'var(--accent)' }}>ได้เงินคืนแล้ว</span>
+      </div>
+    )
+  }
+
   if (!sp) {
     return (
       <button className="flex flex-col items-center gap-1.5 py-2 px-3 rounded-xl" onClick={onOpenServiceDrawer}>
