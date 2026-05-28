@@ -77,7 +77,7 @@ export function SocialLinks() {
             >
               <div
                 className="flex items-center justify-center"
-                style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent-dim), rgba(0,212,146,.05))', border: '1px solid var(--border-accent)', color: 'var(--accent)' }}
+                style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
                 <PlatformIcon className="w-5 h-5" />
               </div>
