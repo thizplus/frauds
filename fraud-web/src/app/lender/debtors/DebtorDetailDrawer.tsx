@@ -132,22 +132,6 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
               </div>
             )}
 
-            {/* Secondary: archive — เล็กๆ ไม่เด่น */}
-            {debtor.status !== 'archived' && (
-              <button
-                className="w-full text-xs py-2 flex items-center justify-center gap-1"
-                style={{ color: 'var(--text-dim)' }}
-                onClick={() => {
-                  if (confirm('ซ่อนสมาชิกคนนี้? (กู้คืนได้จากถังขยะ)')) {
-                    archiveMutation.mutate(debtorId!, { onSuccess: onClose })
-                  }
-                }}
-                disabled={archiveMutation.isPending}
-              >
-                <Archive className="w-3.5 h-3.5" /> ซ่อน
-              </button>
-            )}
-
             {/* Scan Animation */}
             {scanning && (
               <div className="card p-4 space-y-3">
@@ -270,6 +254,24 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                 <div className="card p-3">
                   <p className="text-sm" style={{ color: 'var(--text)' }}>{debtor.note}</p>
                 </div>
+              </div>
+            )}
+
+            {/* ซ่อนรายชื่อนี้ — ชิดขวา ใต้เนื้อหาทั้งหมด */}
+            {debtor.status !== 'archived' && (
+              <div className="flex justify-end pt-2">
+                <button
+                  className="text-xs flex items-center gap-1 py-1 px-2 rounded"
+                  style={{ color: 'var(--text-dim)' }}
+                  onClick={() => {
+                    if (confirm('ซ่อนรายชื่อนี้? (กู้คืนได้จากถังขยะ)')) {
+                      archiveMutation.mutate(debtorId!, { onSuccess: onClose })
+                    }
+                  }}
+                  disabled={archiveMutation.isPending}
+                >
+                  <Archive className="w-3 h-3" /> ซ่อนรายชื่อนี้
+                </button>
               </div>
             )}
           </div>
