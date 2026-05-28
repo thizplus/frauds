@@ -225,17 +225,17 @@ export default function SearchPage() {
           <div className="mt-8 trust-row">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-              ไม่เก็บข้อมูล
+              ปลอดภัย 100%
             </span>
             <span className="sep" />
             <span className="flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-accent" />
-              เข้ารหัส
+              ยืนยันตัวตน
             </span>
             <span className="sep" />
             <span className="flex items-center gap-1.5">
               <RefreshCcw className="w-3.5 h-3.5 text-accent" />
-              อัปเดตทุก 5 นาที
+              อัปเดตทุกวัน
             </span>
           </div>
         </section>
