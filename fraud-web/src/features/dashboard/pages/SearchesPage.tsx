@@ -95,74 +95,54 @@ export function SearchesPage() {
               const isFace = typeKey === 'face'
 
               return (
-                <div key={s.id} className="card overflow-hidden">
-                  <div className="flex">
-                    {/* Left: content */}
-                    <div className="flex-1 p-4 min-w-0">
-                      {/* Query */}
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>
-                          {isFace ? 'ค้นด้วยใบหน้า' : s.query}
-                        </span>
-                        {!isFace && (
-                          <button
-                            className="shrink-0 p-1 rounded transition-colors hover:bg-white/5"
-                            onClick={() => handleCopy(s.query, s.id)}
-                            title="คัดลอก"
-                          >
-                            {copiedId === s.id
-                              ? <Check className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                              : <Copy className="w-3.5 h-3.5" style={{ color: 'var(--text-dim)' }} />
-                            }
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Result count badge */}
-                      <div className="flex items-center gap-2 mb-2">
-                        {hasResults ? (
-                          <span
-                            className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}
-                          >
-                            <ShieldAlert className="w-3 h-3" />
-                            พบ {s.resultsCount} รายการ
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            ไม่พบประวัติ
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Meta: type + time */}
-                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-dim)' }}>
-                        <span className="flex items-center gap-1">
-                          <TypeIcon className="w-3.5 h-3.5" />
-                          {config.label}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatDatetime(s.createdAt)}
-                        </span>
-                      </div>
+                <div key={s.id} className="card p-3.5">
+                  {/* Row 1: query + badge */}
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>
+                        {isFace ? 'ค้นด้วยใบหน้า' : s.query}
+                      </span>
+                      {!isFace && (
+                        <button
+                          className="shrink-0 p-1 rounded transition-colors hover:bg-white/5"
+                          onClick={() => handleCopy(s.query, s.id)}
+                          title="คัดลอก"
+                        >
+                          {copiedId === s.id
+                            ? <Check className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+                            : <Copy className="w-3 h-3" style={{ color: 'var(--text-dim)' }} />
+                          }
+                        </button>
+                      )}
                     </div>
-
-                    {/* Right: re-search button */}
-                    {!isFace && (
-                      <button
-                        className="flex flex-col items-center justify-center gap-1 px-4 shrink-0 transition-opacity hover:opacity-80"
-                        style={{ background: 'var(--accent-dim)', color: 'var(--accent)', minWidth: 72 }}
-                        onClick={() => handleResearch(s.query)}
+                    {hasResults ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+                        style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}
                       >
-                        <Search className="w-5 h-5" />
-                        <span className="text-xs font-bold">ค้นอีกครั้ง</span>
-                      </button>
+                        <ShieldAlert className="w-3 h-3" />
+                        พบ {s.resultsCount}
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+                        style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        ไม่พบ
+                      </span>
                     )}
+                  </div>
+                  {/* Row 2: type + time */}
+                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-dim)' }}>
+                    <span className="flex items-center gap-1">
+                      <TypeIcon className="w-3.5 h-3.5" />
+                      {config.label}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatDatetime(s.createdAt)}
+                    </span>
                   </div>
                 </div>
               )
