@@ -24,10 +24,12 @@ func NewLineMessagingAdapter(accessToken string) ports.LineMessagingPort {
 	}
 }
 
-func (a *LineMessagingAdapter) Reply(ctx context.Context, replyToken string, messages []ports.FlexContainer) error {
+func (a *LineMessagingAdapter) ReplyText(ctx context.Context, replyToken string, text string) error {
 	body := map[string]any{
 		"replyToken": replyToken,
-		"messages":   messages,
+		"messages": []map[string]any{
+			{"type": "text", "text": text},
+		},
 	}
 	jsonBody, err := json.Marshal(body)
 	if err != nil {

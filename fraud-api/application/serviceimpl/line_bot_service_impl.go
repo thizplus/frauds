@@ -52,30 +52,22 @@ func NewLineBotService(
 	}
 }
 
-// HandleFollow — auto-register + welcome message
+// HandleFollow — auto-register + welcome
 func (s *lineBotServiceImpl) HandleFollow(ctx context.Context, lineUserID, replyToken string) error {
-	// ตรวจว่ามี user แล้วหรือยัง
 	existingUser, _ := s.userRepo.GetByLineUserID(ctx, lineUserID)
 	if existingUser == nil {
-		// ดึง profile จาก LINE
 		profile, err := s.lineMessaging.GetProfileByUserID(ctx, lineUserID)
 		if err != nil {
-			logger.WarnContext(ctx, "Get LINE profile failed", "line_user_id", lineUserID, "error", err)
 			profile = &ports.LineProfile{UserID: lineUserID, DisplayName: "LINE User"}
 		}
-
-		// สร้าง user ใหม่
 		user := &models.User{
-			ID:         uuid.New(),
-			Name:       profile.DisplayName,
-			LineUserID: lineUserID,
-			AvatarURL:  profile.PictureURL,
-			Role:       models.RoleMember,
+			ID: uuid.New(), Name: profile.DisplayName,
+			LineUserID: lineUserID, AvatarURL: profile.PictureURL, Role: models.RoleMember,
 		}
 		if err := s.userRepo.Create(ctx, user); err != nil {
-			logger.ErrorContext(ctx, "Auto-register LINE user failed", "error", err)
+			logger.ErrorContext(ctx, "Auto-register failed", "error", err)
 		} else {
-			logger.InfoContext(ctx, "LINE user auto-registered", "user_id", user.ID, "name", profile.DisplayName)
+			logger.InfoContext(ctx, "LINE user registered", "user_id", user.ID, "name", profile.DisplayName)
 		}
 	}
 
@@ -86,130 +78,106 @@ func (s *lineBotServiceImpl) HandleFollow(ctx context.Context, lineUserID, reply
 			hasSub, _ = s.memberRepo.HasActiveSubscription(ctx, existingUser.ID)
 		}
 		menuID := s.richMenuFree
-		if hasSub {
+		if hasSub && s.richMenuMember != "" {
 			menuID = s.richMenuMember
 		}
-		if menuID != "" {
-			_ = s.lineMessaging.LinkRichMenu(ctx, lineUserID, menuID)
-		}
+		_ = s.lineMessaging.LinkRichMenu(ctx, lineUserID, menuID)
 	}
 
-	// Reply welcome
-	welcome := buildWelcomeMessage()
-	return s.lineMessaging.Reply(ctx, replyToken, welcome)
+	msg := "🛡️ ยินดีต้อนรับสู่ เช็กคนโกง!\n━━━━━━━━━━━━━\nตรวจสอบประวัติคนโกงได้ทันที\n\nวิธีใช้:\n1️⃣ กดปุ่ม 🔍 ค้นหา ที่เมนูด้านล่าง\n2️⃣ พิมพ์เบอร์โทร ชื่อ หรือเลขบัญชี\n3️⃣ รอผลลัพธ์ไม่กี่วินาที\n\n📊 ค้นหาฟรี 5 ครั้ง/วัน\n👑 สมัครสมาชิกเพื่อค้นไม่จำกัด"
+	return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 }
 
-// HandlePostback — Rich Menu button press
+// HandlePostback — Rich Menu button
 func (s *lineBotServiceImpl) HandlePostback(ctx context.Context, lineUserID, replyToken, data string) error {
 	params := parsePostbackData(data)
-	action := params["action"]
 
-	switch action {
+	switch params["action"] {
 	case "search":
-		// เข้าโหมดค้นหา
 		s.sessionStore.Set(ctx, "line:mode:"+lineUserID, "search", 60)
-
-		// ดึง quota เหลือ
 		user, _ := s.userRepo.GetByLineUserID(ctx, lineUserID)
-		quotaUsed, quotaTotal := s.getQuotaInfo(ctx, user)
+		used, total := s.getQuotaInfo(ctx, user)
 
-		prompt := buildSearchPromptMessage(quotaUsed, quotaTotal)
-		return s.lineMessaging.Reply(ctx, replyToken, prompt)
+		quotaText := fmt.Sprintf("📊 เหลือ %d/%d ครั้งวันนี้", total-used, total)
+		if total == -1 {
+			quotaText = "📊 👑 สมาชิก — ค้นหาไม่จำกัด"
+		}
+
+		msg := fmt.Sprintf("🔍 /AI-SEARCH\n━━━━━━━━━━━━━\nคุณกำลังเข้าสู่โหมดค้นหา\n\nกรุณาพิมพ์ข้อมูลที่ต้องการตรวจสอบ:\n▸ 📱 เบอร์โทร เช่น 0891234567\n▸ 🏦 เลขบัญชี เช่น 1234567890\n▸ 🪪 เลขบัตรประชาชน 13 หลัก\n▸ 👤 ชื่อ-นามสกุล เช่น สมศักดิ์\n\n%s\n⏱️ หมดเวลาใน 60 วินาที", quotaText)
+		return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 
 	case "help":
-		help := buildHelpMessage()
-		return s.lineMessaging.Reply(ctx, replyToken, help)
-
-	default:
-		return nil
+		msg := "📖 วิธีใช้งาน เช็กคนโกง\n━━━━━━━━━━━━━\n1️⃣ กดปุ่ม 🔍 ค้นหา ที่เมนูด้านล่าง\n2️⃣ พิมพ์เบอร์โทร ชื่อ หรือเลขบัญชี\n3️⃣ รอผลลัพธ์ไม่กี่วินาที\n\n💡 ค้นหาเพิ่มเติมที่ เช็กคนโกง.com"
+		return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 	}
+	return nil
 }
 
 // HandleTextMessage — ค้นหาเมื่ออยู่ในโหมด search
 func (s *lineBotServiceImpl) HandleTextMessage(ctx context.Context, lineUserID, replyToken, text string) error {
 	query := strings.TrimSpace(text)
 
-	// ตรวจ mode จาก session store
 	mode, _ := s.sessionStore.Get(ctx, "line:mode:"+lineUserID)
 	if mode != "search" {
-		// ไม่อยู่ในโหมดค้นหา → ไม่ตอบ (แชทปกติ)
-		return nil
+		return nil // ไม่อยู่ในโหมด → ไม่ตอบ
 	}
-
-	// ลบ mode ทันที (ออกจากโหมด)
 	s.sessionStore.Del(ctx, "line:mode:"+lineUserID)
 
-	// Validate
 	if len(query) < 2 {
-		msg := buildTextReply("กรุณาพิมพ์อย่างน้อย 2 ตัวอักษร")
-		return s.lineMessaging.Reply(ctx, replyToken, msg)
+		return s.lineMessaging.ReplyText(ctx, replyToken, "⚠️ กรุณาพิมพ์อย่างน้อย 2 ตัวอักษร")
 	}
 
-	// หา user จาก lineUserID → ตรวจ quota
 	user, _ := s.userRepo.GetByLineUserID(ctx, lineUserID)
 	var userID *uuid.UUID
 	if user != nil {
 		userID = &user.ID
 	}
 
-	_, err := s.searchService.CheckQuota(ctx, userID, "")
-	if err != nil {
-		// Quota exceeded
-		msg := buildQuotaExceededMessage()
-		return s.lineMessaging.Reply(ctx, replyToken, msg)
+	if _, err := s.searchService.CheckQuota(ctx, userID, ""); err != nil {
+		msg := "⚠️ ค้นหาครบแล้ววันนี้\n━━━━━━━━━━━━━\n👑 สมัครสมาชิกเพื่อค้นหาไม่จำกัด\nhttps://xn--12cainl6g3mua5b.com/pricing"
+		return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 	}
 
-	// ค้นหา
 	result, err := s.searchService.UnifiedSearch(ctx, query, userID, "line")
 	if err != nil {
-		logger.ErrorContext(ctx, "LINE search failed", "query", query, "error", err)
-		msg := buildTextReply("เกิดข้อผิดพลาด กรุณาลองใหม่")
-		return s.lineMessaging.Reply(ctx, replyToken, msg)
+		return s.lineMessaging.ReplyText(ctx, replyToken, "❌ เกิดข้อผิดพลาด กรุณาลองใหม่")
 	}
 
-	// ตรวจ subscription สำหรับ mask/ไม่ mask
 	isMember := false
 	if user != nil {
 		isMember, _ = s.memberRepo.HasActiveSubscription(ctx, user.ID)
 	}
 
-	// Build flex message
-	var flex []ports.FlexContainer
+	var msg string
 	if result.TotalResults == 0 {
-		flex = buildNoResultMessage(query)
+		msg = fmt.Sprintf("✅ ไม่พบประวัติ\n━━━━━━━━━━━━━\nค้นหา「%s」ไม่พบข้อมูลในระบบ\n\n💡 ระบบอัปเดตทุกวัน\nกดค้นหาใหม่ได้ที่เมนูด้านล่าง", query)
 	} else {
-		flex = buildSearchResultMessage(query, result, isMember)
+		msg = buildSearchResultText(query, result, isMember)
 	}
 
-	return s.lineMessaging.Reply(ctx, replyToken, flex)
+	return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 }
 
 // HandleImageMessage — ยังไม่รองรับ
 func (s *lineBotServiceImpl) HandleImageMessage(ctx context.Context, lineUserID, replyToken string) error {
-	// ตรวจ mode
 	mode, _ := s.sessionStore.Get(ctx, "line:mode:"+lineUserID)
 	if mode != "search" {
 		return nil
 	}
 	s.sessionStore.Del(ctx, "line:mode:"+lineUserID)
-
-	msg := buildTextReply("ขออภัย ยังไม่รองรับค้นด้วยรูปภาพ\nกรุณาพิมพ์เบอร์โทร ชื่อ หรือเลขบัญชีแทน\n\nหรือค้นด้วยใบหน้าที่ เช็กคนโกง.com")
-	return s.lineMessaging.Reply(ctx, replyToken, msg)
+	return s.lineMessaging.ReplyText(ctx, replyToken, "⚠️ ยังไม่รองรับค้นด้วยรูปภาพ\nกรุณาพิมพ์เบอร์โทร ชื่อ หรือเลขบัญชีแทน\n\n📷 ค้นด้วยใบหน้าได้ที่ เช็กคนโกง.com")
 }
 
-// getQuotaInfo — ดึงจำนวน quota จาก settings + นับจริงจาก search_logs
+// === Helpers ===
+
 func (s *lineBotServiceImpl) getQuotaInfo(ctx context.Context, user *models.User) (used int, total int) {
 	if user == nil {
 		return 0, 5
 	}
-
-	// Member → ไม่จำกัด
 	hasSub, _ := s.memberRepo.HasActiveSubscription(ctx, user.ID)
 	if hasSub {
-		return 0, -1 // -1 = ไม่จำกัด
+		return 0, -1
 	}
-
-	// ดึง quota จาก settings
 	total = 5
 	setting, _ := s.settingsRepo.GetByKey(ctx, "quota.free_search_limit")
 	if setting != nil {
@@ -218,15 +186,9 @@ func (s *lineBotServiceImpl) getQuotaInfo(ctx context.Context, user *models.User
 			total = int(v)
 		}
 	}
-
-	// นับจำนวนที่ใช้ไปวันนี้จาก search_logs
 	count, _ := s.searchLogRepo.CountByUserToday(ctx, user.ID)
-	used = int(count)
-
-	return used, total
+	return int(count), total
 }
-
-// === Helper functions ===
 
 func parsePostbackData(data string) map[string]string {
 	params := make(map[string]string)
@@ -239,216 +201,104 @@ func parsePostbackData(data string) map[string]string {
 	return params
 }
 
-func buildTextReply(text string) []ports.FlexContainer {
-	return []ports.FlexContainer{{
-		Type:    "text",
-		AltText: text,
-		Contents: map[string]any{
-			"type": "text",
-			"text": text,
-		},
-	}}
-}
-
-func buildWelcomeMessage() []ports.FlexContainer {
-	return []ports.FlexContainer{{
-		Type:    "flex",
-		AltText: "ยินดีต้อนรับสู่ เช็กคนโกง",
-		Contents: map[string]any{
-			"type": "bubble",
-			"body": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "text", "text": "🛡️ เช็กคนโกง", "weight": "bold", "size": "xl", "color": "#00d492"},
-					{"type": "text", "text": "ยินดีต้อนรับ!", "size": "lg", "weight": "bold", "margin": "md"},
-					{"type": "text", "text": "ค้นหาประวัติคนโกงได้ทันที\n• พิมพ์เบอร์โทร\n• พิมพ์ชื่อ-นามสกุล\n• พิมพ์เลขบัญชี", "size": "sm", "color": "#aaaaaa", "margin": "md", "wrap": true},
-					{"type": "text", "text": "คุณค้นหาได้ 5 ครั้ง/วัน (ฟรี)", "size": "xs", "color": "#888888", "margin": "lg"},
-				},
-			},
-			"footer": map[string]any{
-				"type":   "box",
-				"layout": "horizontal",
-				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "postback", "label": "🔍 ค้นหา", "data": "action=search"}, "style": "primary", "color": "#00d492"},
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 เว็บไซต์", "uri": "https://xn--12cainl6g3mua5b.com"}, "style": "secondary"},
-				},
-			},
-		},
-	}}
-}
-
-func buildSearchPromptMessage(quotaUsed, quotaTotal int) []ports.FlexContainer {
-	quotaText := ""
-	if quotaTotal == -1 {
-		quotaText = "👑 สมาชิก — ค้นหาไม่จำกัด"
-	} else {
-		remaining := quotaTotal - quotaUsed
-		if remaining < 0 {
-			remaining = 0
-		}
-		quotaText = fmt.Sprintf("📊 เหลือ %d/%d ครั้งวันนี้", remaining, quotaTotal)
-	}
-
-	return []ports.FlexContainer{{
-		Type:    "flex",
-		AltText: "🔍 /AI-SEARCH — โหมดค้นหา",
-		Contents: map[string]any{
-			"type": "bubble",
-			"body": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "text", "text": "🔍 /AI-SEARCH", "weight": "bold", "size": "lg", "color": "#00d492"},
-					{"type": "text", "text": "คุณกำลังเข้าสู่โหมดค้นหา", "size": "md", "weight": "bold", "margin": "md"},
-					{"type": "separator", "margin": "lg"},
-					{"type": "text", "text": "กรุณาพิมพ์ข้อมูลที่ต้องการค้นหา:", "size": "sm", "color": "#aaaaaa", "margin": "lg"},
-					{"type": "text", "text": "📱 เบอร์โทร เช่น 0891234567\n🏦 เลขบัญชี เช่น 1234567890\n🪪 เลขบัตรประชาชน 13 หลัก\n👤 ชื่อ-นามสกุล เช่น สมศักดิ์", "size": "sm", "color": "#aaaaaa", "margin": "md", "wrap": true},
-					{"type": "separator", "margin": "lg"},
-					{"type": "text", "text": quotaText, "size": "sm", "weight": "bold", "margin": "lg", "color": "#00d492"},
-					{"type": "text", "text": "⏱️ หมดเวลาใน 60 วินาที", "size": "xs", "color": "#888888", "margin": "sm"},
-				},
-			},
-		},
-	}}
-}
-
-func buildHelpMessage() []ports.FlexContainer {
-	return buildTextReply("📖 วิธีใช้งาน เช็กคนโกง Bot\n\n1. กดปุ่ม 🔍 ค้นหา ที่เมนูด้านล่าง\n2. พิมพ์เบอร์โทร ชื่อ หรือเลขบัญชี\n3. รอผลลัพธ์ไม่กี่วินาที\n\n💡 ค้นหาเพิ่มเติมที่ เช็กคนโกง.com")
-}
-
-func buildQuotaExceededMessage() []ports.FlexContainer {
-	return []ports.FlexContainer{{
-		Type:    "flex",
-		AltText: "ค้นหาครบแล้ววันนี้",
-		Contents: map[string]any{
-			"type": "bubble",
-			"body": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "text", "text": "⚠️ ค้นหาครบแล้ววันนี้", "weight": "bold", "size": "lg"},
-					{"type": "text", "text": "สมัครสมาชิกเพื่อค้นหาไม่จำกัด", "size": "sm", "color": "#aaaaaa", "margin": "md"},
-				},
-			},
-			"footer": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "👑 สมัครสมาชิก", "uri": "https://xn--12cainl6g3mua5b.com/pricing"}, "style": "primary", "color": "#00d492"},
-				},
-			},
-		},
-	}}
-}
-
-func buildNoResultMessage(query string) []ports.FlexContainer {
-	return []ports.FlexContainer{{
-		Type:    "flex",
-		AltText: fmt.Sprintf("ไม่พบประวัติ \"%s\"", query),
-		Contents: map[string]any{
-			"type": "bubble",
-			"body": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "text", "text": "✅ ไม่พบประวัติ", "weight": "bold", "size": "lg", "color": "#00d492"},
-					{"type": "text", "text": fmt.Sprintf("ค้นหา \"%s\"", query), "size": "sm", "color": "#aaaaaa", "margin": "md"},
-					{"type": "text", "text": "ไม่พบข้อมูลในระบบ", "size": "sm", "color": "#888888", "margin": "sm"},
-				},
-			},
-			"footer": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ค้นเพิ่มเติมบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query))}, "style": "secondary"},
-				},
-			},
-		},
-	}}
-}
-
-func buildSearchResultMessage(query string, result *dto.UnifiedSearchResponse, isMember bool) []ports.FlexContainer {
-	var bodyContents []map[string]any
-	bodyContents = append(bodyContents, map[string]any{
-		"type": "text", "text": fmt.Sprintf("🔍 ผลค้นหา \"%s\"", query), "weight": "bold", "size": "md",
-	})
-	bodyContents = append(bodyContents, map[string]any{
-		"type": "text", "text": fmt.Sprintf("พบ %d รายการ", result.TotalResults), "size": "sm", "color": "#ff4444", "margin": "sm",
-	})
+func buildSearchResultText(query string, result *dto.UnifiedSearchResponse, isMember bool) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("🛡️ ผลการค้นหา「%s」\n━━━━━━━━━━━━━\nพบ %d รายการ\n", query, result.TotalResults))
 
 	for _, section := range result.Sections {
-		bodyContents = append(bodyContents, map[string]any{"type": "separator", "margin": "md"})
-
 		if section.Source == "frauds" {
-			bodyContents = append(bodyContents, map[string]any{
-				"type": "text", "text": fmt.Sprintf("🔴 รายงานในระบบ %d รายการ", section.Count),
-				"size": "sm", "weight": "bold", "margin": "md", "color": "#ff4444",
-			})
-
+			sb.WriteString(fmt.Sprintf("\n🔴 รายงานในระบบ (%d รายการ)\n───────────────\n", section.Count))
 			if frauds, ok := section.Results.([]dto.FraudResponse); ok {
 				for _, f := range frauds {
 					name := f.Name
 					if name == "" {
 						name = "ไม่ทราบชื่อ"
 					}
-					phone := ""
+					sb.WriteString(fmt.Sprintf("▸ ชื่อ: %s\n", name))
+
 					if f.Phone != "" {
 						if isMember {
-							phone = f.Phone
+							sb.WriteString(fmt.Sprintf("▸ 📱 เบอร์: %s\n", f.Phone))
 						} else {
-							phone = f.Phone[:3] + "-xxx-" + f.Phone[len(f.Phone)-4:]
+							sb.WriteString(fmt.Sprintf("▸ 📱 เบอร์: %s-xxx-%s\n", f.Phone[:3], f.Phone[len(f.Phone)-4:]))
 						}
 					}
-
-					detail := ""
-					if f.Verified {
-						detail = "ยืนยันแล้ว"
+					if f.BankAccount != "" {
+						if isMember {
+							sb.WriteString(fmt.Sprintf("▸ 🏦 บัญชี: %s", f.BankAccount))
+						} else {
+							sb.WriteString(fmt.Sprintf("▸ 🏦 บัญชี: xxx-xxx-%s", f.BankAccount[len(f.BankAccount)-4:]))
+						}
+						if f.BankName != "" {
+							sb.WriteString(fmt.Sprintf(" (%s)", f.BankName))
+						}
+						sb.WriteString("\n")
 					}
+
+					status := "รอตรวจสอบ"
+					if f.Status == "verified" {
+						status = "⚠️ ยืนยันแล้ว"
+					} else if f.Status == "settled" {
+						status = "✅ ชำระหนี้แล้ว"
+					}
+					sb.WriteString(fmt.Sprintf("▸ สถานะ: %s", status))
 					if f.ReportCount > 0 {
-						detail += fmt.Sprintf(" • ถูกแจ้ง %d ครั้ง", f.ReportCount)
+						sb.WriteString(fmt.Sprintf(" • ถูกแจ้ง %d ครั้ง", f.ReportCount))
 					}
+					sb.WriteString("\n")
 
-					bodyContents = append(bodyContents, map[string]any{
-						"type": "text", "text": name, "size": "sm", "weight": "bold", "margin": "sm",
-					})
-					if phone != "" {
-						bodyContents = append(bodyContents, map[string]any{
-							"type": "text", "text": "📞 " + phone, "size": "xs", "color": "#aaaaaa",
-						})
-					}
-					if detail != "" {
-						bodyContents = append(bodyContents, map[string]any{
-							"type": "text", "text": detail, "size": "xs", "color": "#888888",
-						})
+					if f.Description != "" {
+						desc := f.Description
+						if len(desc) > 80 {
+							desc = desc[:80] + "..."
+						}
+						sb.WriteString(fmt.Sprintf("▸ 💬 %s\n", desc))
 					}
 				}
 			}
 		} else if section.Source == "social" {
-			bodyContents = append(bodyContents, map[string]any{
-				"type": "text", "text": fmt.Sprintf("🟡 ข้อมูลจากโซเชียล %d รายการ", section.Count),
-				"size": "sm", "weight": "bold", "margin": "md", "color": "#f59e0b",
-			})
+			sb.WriteString(fmt.Sprintf("\n🟡 ข้อมูลจากโซเชียล (%d รายการ)\n───────────────\n", section.Count))
+			if results, ok := section.Results.([]dto.UnifiedSocialResult); ok {
+				for _, r := range results {
+					name := r.DisplayName
+					if name == "" {
+						name = r.MatchedValue
+					}
+					sb.WriteString(fmt.Sprintf("▸ 👤 %s\n", name))
+					if r.Role != "" {
+						roleLabel := r.Role
+						if r.Role == "mentioned" {
+							roleLabel = "ถูกกล่าวถึง"
+						} else if r.Role == "poster" {
+							roleLabel = "ผู้โพส"
+						}
+						sb.WriteString(fmt.Sprintf("▸ 🏷️ %s\n", roleLabel))
+					}
+					if r.PostInfo != nil {
+						if r.PostInfo.Message != "" {
+							msg := r.PostInfo.Message
+							if len(msg) > 60 {
+								msg = msg[:60] + "..."
+							}
+							sb.WriteString(fmt.Sprintf("▸ 💬 \"%s\"\n", msg))
+						}
+						if r.PostInfo.ReactionCount > 0 || r.PostInfo.CommentCount > 0 || r.PostInfo.ImageCount > 0 {
+							sb.WriteString(fmt.Sprintf("▸ ❤️ %d  💬 %d  📷 %d\n", r.PostInfo.ReactionCount, r.PostInfo.CommentCount, r.PostInfo.ImageCount))
+						}
+					}
+					if r.PermalinkURL != "" {
+						sb.WriteString(fmt.Sprintf("🔗 %s\n", r.PermalinkURL))
+					}
+				}
+			}
 		}
 	}
 
-	return []ports.FlexContainer{{
-		Type:    "flex",
-		AltText: fmt.Sprintf("พบ %d รายการ — \"%s\"", result.TotalResults, query),
-		Contents: map[string]any{
-			"type": "bubble",
-			"body": map[string]any{
-				"type":     "box",
-				"layout":   "vertical",
-				"contents": bodyContents,
-			},
-			"footer": map[string]any{
-				"type":   "box",
-				"layout": "vertical",
-				"contents": []map[string]any{
-					{"type": "button", "action": map[string]any{"type": "uri", "label": "🌐 ดูรายละเอียดบนเว็บ", "uri": fmt.Sprintf("https://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query))}, "style": "primary", "color": "#00d492"},
-				},
-			},
-		},
-	}}
+	if !isMember {
+		sb.WriteString("\n🔒 สมัครสมาชิกเพื่อดูข้อมูลเต็ม\nhttps://xn--12cainl6g3mua5b.com/pricing")
+	}
+
+	sb.WriteString(fmt.Sprintf("\n\n🔗 ดูเพิ่มเติม:\nhttps://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query)))
+
+	return sb.String()
 }
