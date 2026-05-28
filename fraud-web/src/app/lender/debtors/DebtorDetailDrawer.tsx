@@ -112,7 +112,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                   {(checkMutation.isPending || scanning) ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   ตรวจซ้ำ
                 </button>
-                {debtor.status === 'active' && (
+                {(debtor.status === 'active' || debtor.status === 'cleared') && (
                   <button
                     className="btn btn-lg flex-1"
                     style={{ background: 'var(--danger)', color: '#fff' }}
