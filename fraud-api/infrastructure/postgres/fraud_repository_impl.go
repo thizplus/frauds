@@ -241,7 +241,9 @@ func (r *fraudRepository) SearchByMultipleFields(ctx context.Context, idCard, ph
 	}
 
 	orClause := strings.Join(conditions, " OR ")
-	err := q.Where(orClause, args...).Limit(20).Find(&frauds).Error
+	err := q.Where("status IN ?", []string{"verified", "settled"}).
+		Where(orClause, args...).
+		Limit(20).Find(&frauds).Error
 	return frauds, err
 }
 
