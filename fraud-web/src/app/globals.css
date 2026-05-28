@@ -77,12 +77,12 @@ body { background-color: var(--bg); color: var(--text); font-family: var(--font-
 .row-ai:hover { border-color: var(--border-accent); background: var(--bg-hover); }
 .row-ai-avatar { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--bg-elevated), var(--bg-input)); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
 .row-ai-info { min-width: 0; }
-.row-ai-name { display: flex; align-items: center; gap: .35rem; font-size: .95rem; font-weight: 600; color: var(--text); margin-bottom: .2rem; }
-.row-ai-meta { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .78rem; color: var(--text-muted); }
+.row-ai-name { display: flex; align-items: center; gap: .35rem; font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .2rem; }
+.row-ai-meta { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .875rem; color: var(--text-muted); }
 .row-ai-meta-item { display: inline-flex; align-items: center; gap: .35rem; font-family: var(--font-mono), 'JetBrains Mono', monospace; }
 .row-ai-score { display: flex; flex-direction: column; align-items: center; gap: .25rem; min-width: 60px; }
-.row-ai-score-label { font-size: .55rem; color: var(--text-dim); font-family: var(--font-mono), 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; display: inline-flex; align-items: center; gap: .2rem; }
-.row-ai-score-value { font-size: .95rem; font-weight: 700; color: var(--accent); font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+.row-ai-score-label { font-size: .7rem; color: var(--text-dim); font-family: var(--font-mono), 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; display: inline-flex; align-items: center; gap: .2rem; }
+.row-ai-score-value { font-size: 1rem; font-weight: 700; color: var(--accent); font-family: var(--font-mono), 'JetBrains Mono', monospace; }
 .row-ai-risk { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; padding: 0 .15rem; min-width: 64px; }
 .row-ai-risk-label { font-size: .55rem; color: var(--text-dim); font-family: var(--font-mono), 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
 .row-ai-risk-value { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; font-size: .95rem; font-weight: 700; font-family: var(--font-mono), 'JetBrains Mono', monospace; line-height: 1; }
