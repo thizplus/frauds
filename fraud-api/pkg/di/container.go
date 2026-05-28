@@ -149,8 +149,10 @@ func (c *Container) Initialize() error {
 
 	// 6. Services (ลำดับสำคัญ — service ที่ถูก depend ต้องสร้างก่อน)
 	lineAuth := line.NewLineAuthAdapter(cfg.LINE)
+	faceClient := faceclient.New(cfg.FaceService.URL)
+
 	c.AuthService = serviceimpl.NewAuthService(c.UserRepo, cfg.JWT.Secret, lineAuth)
-	c.FraudService = serviceimpl.NewFraudService(c.FraudRepo, c.CategoryRepo)
+	c.FraudService = serviceimpl.NewFraudService(c.FraudRepo, c.CategoryRepo, faceClient)
 	c.CategoryService = serviceimpl.NewCategoryService(c.CategoryRepo, c.FraudRepo)
 	c.SettingsService = serviceimpl.NewSettingsService(c.SettingsRepo)
 	c.MembershipService = serviceimpl.NewMembershipService(c.MembershipRepo)
@@ -170,7 +172,6 @@ func (c *Container) Initialize() error {
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
 
 	// FaceSearchService ต้องการ FaceClient (HTTP) ไม่ใช่ repo
-	faceClient := faceclient.New(cfg.FaceService.URL)
 	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService)
 	logger.Info("Face service client initialized", "url", cfg.FaceService.URL)
 

@@ -1,0 +1,169 @@
+'use client'
+
+import { Bot, Database, Globe, Sparkles, BadgeCheck, Clock, ExternalLink } from 'lucide-react'
+import type { FraudResponse, UnifiedSection, SocialResult } from '../types'
+import { FraudRow } from './FraudRow'
+
+interface UnifiedResultsProps {
+  query: string
+  sections: UnifiedSection[]
+  totalResults: number
+  onSelectFraud: (fraud: FraudResponse) => void
+  loading?: boolean
+  isMember?: boolean
+}
+
+export function UnifiedResults({
+  query,
+  sections,
+  totalResults,
+  onSelectFraud,
+  loading,
+  isMember = false,
+}: UnifiedResultsProps) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card p-4 animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-slate-800" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-slate-800 rounded w-1/3" />
+                <div className="h-3 bg-slate-800 rounded w-1/2" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!sections || sections.length === 0 || totalResults === 0) {
+    return (
+      <div className="card p-8 text-center">
+        <Database className="w-10 h-10 mx-auto text-slate-600 mb-3" />
+        <div className="text-slate-300 font-medium">ไม่พบข้อมูล</div>
+        <div className="text-sm text-slate-500 mt-1">
+          ไม่พบรายชื่อที่ตรงกับ &quot;{query}&quot;
+        </div>
+      </div>
+    )
+  }
+
+  // เรียง fraud section ก่อน social
+  const sorted = [...sections].sort((a, b) => {
+    if (a.source === 'frauds') return -1
+    if (b.source === 'frauds') return 1
+    return 0
+  })
+
+  return (
+    <>
+      {/* Result header */}
+      <div className="mb-4 flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-2.5 text-sm">
+          <span className="result-bot-badge">
+            <Bot className="w-4 h-4" />
+          </span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            AI พบ <span className="text-accent font-semibold">{totalResults} รายการ</span> ที่ตรงกับ{' '}
+            <span className="font-mono" style={{ color: 'var(--text)' }}>{query}</span>
+          </span>
+        </div>
+        <span className="hidden sm:inline-flex live-pill text-xs">
+          <Sparkles className="w-3 h-3" />
+          AI scored
+        </span>
+      </div>
+
+      {sorted.map((section) => (
+        <div key={section.source} className="mb-6">
+          {/* Section header */}
+          <div className="flex items-center gap-2 mb-3 px-1">
+            {section.source === 'frauds' ? (
+              <Database className="w-4 h-4 text-accent" />
+            ) : (
+              <Globe className="w-4 h-4 text-accent" />
+            )}
+            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+              {section.label}
+            </span>
+            <span
+              className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+            >
+              {section.count}
+            </span>
+          </div>
+
+          {/* Section content */}
+          {section.source === 'frauds' ? (
+            <div className="row-ai-list">
+              {(section.results as FraudResponse[]).map((fraud) => (
+                <FraudRow
+                  key={fraud.id}
+                  fraud={fraud}
+                  onClick={() => onSelectFraud(fraud)}
+                  isMember={isMember}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(section.results as SocialResult[]).map((item, idx) => (
+                <SocialCard key={`${item.matchedValue}-${idx}`} item={item} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  )
+}
+
+function SocialCard({ item }: { item: SocialResult }) {
+  const confidencePct = Math.round(item.confidence * 100)
+
+  return (
+    <div className="card p-4 flex items-center gap-4">
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{ background: 'var(--accent-dim)' }}
+      >
+        <Globe className="w-5 h-5 text-accent" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium truncate" style={{ color: 'var(--text)' }}>
+            {item.displayName || item.matchedValue}
+          </span>
+          {item.verificationState === 'verified' && (
+            <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
+          )}
+          {item.verificationState === 'pending' && (
+            <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <span className="font-mono">{item.matchedValue}</span>
+          <span
+            className="px-1.5 py-0.5 rounded"
+            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+          >
+            {item.entityType}
+          </span>
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ความเชื่อมั่น</div>
+        <div
+          className="text-sm font-semibold"
+          style={{ color: confidencePct >= 80 ? 'var(--accent)' : 'var(--text-secondary)' }}
+        >
+          {confidencePct}%
+        </div>
+      </div>
+    </div>
+  )
+}

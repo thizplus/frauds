@@ -43,3 +43,38 @@ export interface StatsResponse {
     fraudCount: number
   }[]
 }
+
+export interface UnifiedSearchResponse {
+  query: string
+  sections: UnifiedSection[]
+  totalResults: number
+}
+
+export interface UnifiedSection {
+  source: string  // "frauds" | "social"
+  label: string
+  count: number
+  results: FraudResponse[] | SocialResult[]
+}
+
+export interface SocialResult {
+  matchedValue: string
+  displayName?: string
+  entityType: string
+  verificationState: string
+  confidence: number
+  similarity?: number
+}
+
+export interface FaceSearchResponse {
+  faceDetected: boolean
+  matches: FaceMatch[]
+  count: number
+  message?: string
+}
+
+export interface FaceMatch {
+  evidenceStrength: string
+  sourceType: string
+  fraud?: FraudResponse
+}

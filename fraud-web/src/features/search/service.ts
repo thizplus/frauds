@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/client'
 import { ENDPOINTS } from '@/lib/api/endpoints'
 import type { PaginatedResponse } from '@/lib/api/types'
-import type { FraudResponse, CategoryResponse, SearchParams } from './types'
+import type { FraudResponse, CategoryResponse, SearchParams, UnifiedSearchResponse, FaceSearchResponse } from './types'
 
 export const searchService = {
   async search(params: SearchParams): Promise<PaginatedResponse<FraudResponse>> {
@@ -23,9 +23,28 @@ export const searchService = {
     return res.data
   },
 
+  async searchUnified(q: string): Promise<UnifiedSearchResponse> {
+    const res = await apiClient.get<{ success: boolean; data: UnifiedSearchResponse }>(
+      ENDPOINTS.SEARCH_UNIFIED,
+      { params: { q } },
+    )
+    return res.data.data
+  },
+
   async getCategories(): Promise<CategoryResponse[]> {
     const res = await apiClient.get<{ success: boolean; data: CategoryResponse[] }>(
       ENDPOINTS.CATEGORIES,
+    )
+    return res.data.data
+  },
+
+  async searchByFace(file: File): Promise<FaceSearchResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await apiClient.post<{ success: boolean; data: FaceSearchResponse }>(
+      ENDPOINTS.SEARCH_FACE,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
     )
     return res.data.data
   },

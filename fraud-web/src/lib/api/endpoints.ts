@@ -16,6 +16,8 @@ export const ENDPOINTS = {
   SEARCH_BANK: '/search/bank',
   SEARCH_IDCARD: '/search/idcard',
   SEARCH_NAME: '/search/name',
+  SEARCH_UNIFIED: '/search/unified',
+  SEARCH_FACE: '/search/face',
   REPORTS: '/reports',
 
   // Membership (public)

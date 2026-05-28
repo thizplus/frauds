@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +17,7 @@ import (
 	"fraud-api/domain/models"
 	"fraud-api/domain/repositories"
 	"fraud-api/domain/services"
+	"fraud-api/pkg/faceclient"
 	"fraud-api/pkg/logger"
 	"fraud-api/pkg/utils"
 )
@@ -21,15 +25,18 @@ import (
 type fraudServiceImpl struct {
 	fraudRepo    repositories.FraudRepository
 	categoryRepo repositories.CategoryRepository
+	faceClient   *faceclient.FaceClient
 }
 
 func NewFraudService(
 	fraudRepo repositories.FraudRepository,
 	categoryRepo repositories.CategoryRepository,
+	faceClient *faceclient.FaceClient,
 ) services.FraudService {
 	return &fraudServiceImpl{
 		fraudRepo:    fraudRepo,
 		categoryRepo: categoryRepo,
+		faceClient:   faceClient,
 	}
 }
 
@@ -353,6 +360,11 @@ func (s *fraudServiceImpl) CreateReport(ctx context.Context, req *dto.CreateRepo
 
 	logger.InfoContext(ctx, "Fraud report created", "report_id", report.ID, "fraud_id", *fraudID)
 
+	// Auto face ingest (fire-and-forget)
+	if s.faceClient != nil && req.EvidenceURL != "" {
+		go s.autoIngestFaces(report.ID.String(), *fraudID, req.EvidenceURL)
+	}
+
 	var fraudIDStr *string
 	if fraudID != nil {
 		s := fraudID.String()
@@ -372,4 +384,50 @@ func (s *fraudServiceImpl) SearchByMultipleFields(ctx context.Context, idCard, p
 		return nil, err
 	}
 	return mappers.FraudsToResponses(frauds), nil
+}
+
+func (s *fraudServiceImpl) autoIngestFaces(reportID string, fraudID uuid.UUID, evidenceURL string) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("Auto face ingest panic", "error", r, "report_id", reportID)
+		}
+	}()
+
+	// Parse JSON array of URLs
+	var urls []string
+	if err := json.Unmarshal([]byte(evidenceURL), &urls); err != nil {
+		// อาจเป็น single URL
+		if strings.HasPrefix(evidenceURL, "http") {
+			urls = []string{evidenceURL}
+		} else {
+			return
+		}
+	}
+
+	ctx := context.Background()
+	for _, url := range urls {
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("User-Agent", "face-service/1.0")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			continue
+		}
+		imgBytes, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			continue
+		}
+
+		result, err := s.faceClient.Ingest(ctx, imgBytes, "fraud_report", fraudID.String())
+		if err != nil {
+			logger.Warn("Auto face ingest failed", "url", url, "error", err)
+			continue
+		}
+		if result.Count > 0 {
+			logger.Info("Auto face ingested", "report_id", reportID, "faces", result.Count)
+		}
+	}
 }

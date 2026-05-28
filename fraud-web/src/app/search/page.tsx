@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useSearchStore } from '@/lib/stores/search'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useSubscription } from '@/lib/hooks/useSubscription'
-import { useSearch } from '@/features/search'
+import { useSearch, useUnifiedSearch } from '@/features/search'
 import { FraudDetailDrawer } from '@/features/fraud-detail'
 import { canGuestSearch, incrementGuestSearch } from '@/lib/utils/guest-quota'
 import { LoginModal } from '@/features/auth'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { SearchResults } from '@/features/search/components/SearchResults'
+import { UnifiedResults } from '@/features/search/components/UnifiedResults'
 import { ScanModal } from '@/features/search/components/ScanModal'
 import { ShieldCheck, Lock, RefreshCcw } from 'lucide-react'
 import type { FraudResponse, SearchParams } from '@/features/search/types'
@@ -44,20 +45,29 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useState<SearchParams | null>(null)
   const [selectedFraud, setSelectedFraud] = useState<FraudResponse | null>(null)
 
-  const { data, isLoading, error } = useSearch(searchParams)
+  // ใช้ unified search เมื่อ type เป็น "all", ใช้ search เดิมเมื่อเลือก type เฉพาะ
+  const isUnified = !searchParams?.type || searchParams.type === 'all'
+  const legacyParams = isUnified ? null : searchParams
+  const unifiedQuery = isUnified && searchParams ? searchParams.q : null
+
+  const { data, isLoading, error } = useSearch(legacyParams)
+  const { data: unifiedData, isLoading: unifiedLoading, error: unifiedError } = useUnifiedSearch(unifiedQuery)
+
+  const activeLoading = isUnified ? unifiedLoading : isLoading
+  const activeError = isUnified ? unifiedError : error
   const [quotaError, setQuotaError] = useState('')
 
   // Handle 429 quota exceeded
   useEffect(() => {
-    if (error) {
-      const msg = (error as any)?.response?.data?.error?.message
-      if ((error as any)?.response?.status === 429 || msg) {
+    if (activeError) {
+      const msg = (activeError as any)?.response?.data?.error?.message
+      if ((activeError as any)?.response?.status === 429 || msg) {
         setQuotaError(msg || 'ค้นหาครบแล้ววันนี้ สมัคร Member เพื่อค้นหาไม่จำกัด')
       }
     } else {
       setQuotaError('')
     }
-  }, [error])
+  }, [activeError])
 
   // ไม่มี query → กลับหน้าแรก
   useEffect(() => {
@@ -140,7 +150,7 @@ export default function SearchPage() {
                 AI ตรวจพบข้อมูลที่ตรงกับคำค้นหาของคุณ
               </p>
               <div className="search-gate-count">
-                พบ <span>{data?.meta?.total ?? 0}</span> รายการ
+                พบ <span>{isUnified ? (unifiedData?.totalResults ?? 0) : (data?.meta?.total ?? 0)}</span> รายการ
               </div>
               <button
                 className="search-gate-btn"
@@ -158,17 +168,28 @@ export default function SearchPage() {
           ) : (
             /* ผู้ใช้ login แล้ว — แสดงผลลัพธ์ */
             <>
-              <SearchResults
-                query={searchParams.q}
-                frauds={data?.data || []}
-                meta={data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false }}
-                onSelect={setSelectedFraud}
-                onPageChange={handlePageChange}
-                loading={isLoading}
-                isMember={isMember}
-              />
+              {isUnified ? (
+                <UnifiedResults
+                  query={searchParams.q}
+                  sections={unifiedData?.sections || []}
+                  totalResults={unifiedData?.totalResults ?? 0}
+                  onSelectFraud={setSelectedFraud}
+                  loading={unifiedLoading}
+                  isMember={isMember}
+                />
+              ) : (
+                <SearchResults
+                  query={searchParams.q}
+                  frauds={data?.data || []}
+                  meta={data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false }}
+                  onSelect={setSelectedFraud}
+                  onPageChange={handlePageChange}
+                  loading={isLoading}
+                  isMember={isMember}
+                />
+              )}
 
-              {!isMember && (data?.data?.length ?? 0) > 0 && (
+              {!isMember && ((isUnified ? (unifiedData?.totalResults ?? 0) : (data?.data?.length ?? 0)) > 0) && (
                 <div className="card p-4 mt-6 text-center">
                   <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--accent)' }} />
                   <p className="text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>

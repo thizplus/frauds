@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { searchService } from './service'
-import type { SearchParams } from './types'
+import type { SearchParams, UnifiedSearchResponse } from './types'
 
 export const searchKeys = {
   all: ['search'] as const,
@@ -13,6 +13,14 @@ export function useSearch(params: SearchParams | null) {
     queryKey: searchKeys.list(params!),
     queryFn: () => searchService.search(params!),
     enabled: !!params?.q && params.q.length >= 2,
+  })
+}
+
+export function useUnifiedSearch(query: string | null) {
+  return useQuery({
+    queryKey: [...searchKeys.all, 'unified', query] as const,
+    queryFn: () => searchService.searchUnified(query!),
+    enabled: !!query && query.length >= 2,
   })
 }
 
