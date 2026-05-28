@@ -88,9 +88,9 @@ export default function HomePage() {
             </p>
           )}
         </div>
-      </section>
 
-      <SocialLinks />
+        <SocialLinks />
+      </section>
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
 
