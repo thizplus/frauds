@@ -50,7 +50,7 @@ frauds (master)          1:N → fraud_reports (user reports)
 | Fraud Status | Unified Search | Debtor Check | Face Search | Badge สี |
 |-------------|---------------|--------------|-------------|----------|
 | **ไม่มี record** | ❌ ไม่เจอ | ❌ ไม่เจอ | ❌ ไม่เจอ | — |
-| **pending** | ❌ ไม่เจอ | ✅ เจอ | ✅ เจอ (ถ้ามี face) | เหลือง "รอตรวจสอบ" |
+| **pending** | ❌ ไม่เจอ | ✅ เจอ | ❌ ไม่ ingest (ป้องกันกลั่นแกล้ง) | เหลือง "รอตรวจสอบ" |
 | **verified** | ✅ เจอ | ✅ เจอ | ✅ เจอ | แดง "ยืนยันแล้ว" |
 | **settled** | ✅ เจอ | ✅ เจอ | ✅ เจอ | เขียว "ชำระหนี้แล้ว" |
 
@@ -73,21 +73,24 @@ Steps:
   1. User POST /reports — ชื่อ "ทดสอบ E2E", phone "0999000111", bank "1112223334", แนบรูป
   2. ตรวจ: fraud สร้างแล้ว status=pending, report_count=1
   3. ตรวจ: fraud_report สร้างแล้ว มี evidence_url
-  4. ตรวจ: auto face ingest ทำงาน (ถ้ามีรูปหน้าคน)
+  4. ตรวจ: face ไม่ถูก ingest (pending ต้องไม่ ingest — ป้องกันกลั่นแกล้ง)
 Expected:
   - Unified Search q="0999000111" → ❌ ไม่เจอ (pending)
   - Debtor Check (ถ้ามี debtor phone ตรง) → ✅ เจอ (pending)
-  - Face Search (ถ้า ingest ได้) → ✅ เจอ (pending)
+  - Face Search → ❌ ไม่เจอ (ไม่ ingest pending)
 ```
 
-#### SC-02: Admin verify → ค้นเจอ
+#### SC-02: Admin verify → face ingest + ค้นเจอ
 ```
 Steps:
   1. Admin PATCH /admin/frauds/:id/verify
   2. ตรวจ: status เปลี่ยนเป็น verified
+  3. ตรวจ: face ingest trigger (download evidence รูป → ingest)
+  4. ตรวจ: face_embeddings มี record source_type="fraud_report"
 Expected:
   - Unified Search q="0999000111" → ✅ เจอ! badge "ยืนยันแล้ว"
   - Debtor Check → ✅ เจอ verified=true
+  - Face Search → ✅ เจอ! (หลัง verify แล้ว ingest)
 ```
 
 #### SC-03: แจ้งซ้ำคนเดิม (report_count เพิ่ม)
@@ -194,15 +197,17 @@ Expected:
 
 ### FLOW C: Face Search ตลอด Lifecycle
 
-#### SC-12: แจ้งโกงพร้อมรูป → face ingest → face search เจอ
+#### SC-12: แจ้งโกงพร้อมรูป → verify → face ingest → face search เจอ
 ```
 Steps:
-  1. User แจ้งโกง + แนบรูปที่มีใบหน้า → auto face ingest
-  2. ตรวจ: face_embeddings มี record source_type="fraud_report"
-  3. Member ค้น face search ด้วยรูปเดียวกัน
+  1. User แจ้งโกง + แนบรูปที่มีใบหน้า
+  2. ตรวจ: face_embeddings ยังไม่เพิ่ม (pending ไม่ ingest)
+  3. Admin verify fraud
+  4. ตรวจ: face_embeddings มี record source_type="fraud_report"
+  5. Member ค้น face search ด้วยรูปเดียวกัน
 Expected:
-  - Face Search → match! sourceType="fraud_report"
-  - similarity สูง (> 0.75)
+  - ก่อน verify: Face Search → ❌ ไม่เจอ
+  - หลัง verify: Face Search → ✅ match! sourceType="fraud_report"
 ```
 
 #### SC-13: Face search เจอ social → ไม่เจอ fraud (คนละแหล่ง)

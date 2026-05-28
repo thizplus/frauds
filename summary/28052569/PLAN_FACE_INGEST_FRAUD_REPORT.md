@@ -188,16 +188,83 @@ verified → ค้นเจอ (unified search)
 settled  → ค้นเจอ (unified search)
 ```
 
-**สำคัญ**: Face ingest ควรทำทุก status (รวม pending) เพราะ face vector ไม่เกี่ยวกับ status — แค่เก็บ vector ไว้ match ตอนค้นหา ส่วน match result จะแสดงหรือไม่ขึ้นกับ fraud status ตอน search
+~~**สำคัญ**: Face ingest ควรทำทุก status (รวม pending)~~
+
+**แก้ไข**: วิเคราะห์ใหม่ — **ห้าม ingest pending** เพราะมีความเสี่ยงถูกกลั่นแกล้ง (ดู Section 6)
 
 ---
 
-## 6. สรุปสิ่งที่ต้องทำ
+## 6. ปัญหาด้านความปลอดภัย — การกลั่นแกล้ง
+
+### ปัญหาที่พบ (Critical)
+
+```
+ปัจจุบัน: face search ไม่ filter status
+  1. ใครก็แจ้งโกงได้ + แนบรูปหน้าคน
+  2. Auto face ingest ทำงานทันที (goroutine) ← อันตราย!
+  3. Face search → fraudService.GetByID(fraudID) → ดึง fraud ทุก status
+  4. = คนบริสุทธิ์ถูกค้นเจอทันที ก่อน admin verify ❌
+
+ตัวอย่างการกลั่นแกล้ง:
+  1. คนร้ายแจ้งโกงใส่ "นาย ก" (คนบริสุทธิ์) + แนบรูปหน้า
+  2. Fraud สร้าง status=pending + face ingest ทันที
+  3. ใครก็ตามค้น face search ด้วยรูป "นาย ก" → เจอ! แม้ยังไม่ verify
+  4. "นาย ก" เสียชื่อเสียงทันที
+```
+
+### Code ที่เป็นปัญหา
+
+```go
+// fraud_service_impl.go:364 — ingest ทันทีไม่รอ verify
+if s.faceClient != nil && req.EvidenceURL != "" {
+    go s.autoIngestFaces(report.ID.String(), *fraudID, req.EvidenceURL)
+    // ↑ ingest ทันที ไม่ว่า fraud status จะเป็นอะไร!
+}
+
+// face_search_service_impl.go:67 — ดึง fraud ทุก status
+detail, err := s.fraudService.GetByID(ctx, fraudID)
+// ↑ GetByID ไม่ filter status → pending ก็ return!
+```
+
+### แนวทางแก้ไข
+
+| แนวทาง | วิธี | ข้อดี | ข้อเสีย |
+|---------|------|-------|--------|
+| **A. ไม่ ingest pending (แนะนำ)** | Ingest เฉพาะเมื่อ fraud ถูก verify → trigger ingest ตอน admin verify | ปลอดภัยที่สุด, ไม่มี face ของคนบริสุทธิ์ใน DB | ต้องเพิ่ม logic ตอน verify |
+| **B. Ingest แต่ filter ตอน search** | Ingest ทุก status แต่ face search filter เฉพาะ verified/settled | ง่ายกว่า, face พร้อมใช้ทันทีเมื่อ verify | face vector ของคนบริสุทธิ์อยู่ใน DB (privacy) |
+| **C. Ingest + filter + cleanup** | เหมือน B แต่ถ้า admin reject → ลบ face vector | สมดุล | ซับซ้อน |
+
+### แนะนำ: แนวทาง A — ไม่ ingest pending
+
+```
+แก้ไข:
+1. ลบ auto face ingest จาก CreateReport
+2. เพิ่ม face ingest ตอน Admin Verify:
+   - Admin PATCH /admin/frauds/:id/verify
+   - → ดึง fraud_reports ที่มี evidence_url
+   - → download + ingest แต่ละรูป
+   - → face-service เก็บ vector source_type="fraud_report"
+
+3. Face search filter:
+   - เพิ่ม check: ถ้า fraud.Status == "pending" → skip match
+   - แสดงเฉพาะ verified/settled
+
+Flow ใหม่:
+  User แจ้งโกง + รูป → fraud pending (ไม่ ingest face)
+  Admin verify → ingest face + status=verified → face search เจอ!
+  Admin reject → ไม่มีอะไรใน face DB → ปลอดภัย
+```
+
+---
+
+## 7. สรุปสิ่งที่ต้องทำ (อัพเดท)
 
 | # | งาน | Priority | ผลกระทบ |
 |---|------|----------|---------|
-| 1 | **ตรวจ faceClient injection** ใน DI container | สูงสุด | root cause |
-| 2 | **แก้ DI** ถ้า faceClient ไม่ได้ inject | สูงสุด | fix auto ingest |
-| 3 | **Backfill** รูปจาก 4 reports เก่า | สูง | เพิ่ม face data จาก fraud |
-| 4 | **ทดสอบ** สร้าง report ใหม่ + ตรวจ auto ingest | สูง | verify fix |
-| 5 | **Face search** ค้นรูปคนโกง → ต้องเจอ fraud match | สูง | E2E validation |
+| 1 | **ตรวจ faceClient injection** ใน DI container | สูงสุด | root cause ที่ ingest ไม่ทำงาน |
+| 2 | **ลบ auto ingest จาก CreateReport** | สูงสุด | ป้องกันกลั่นแกล้ง |
+| 3 | **เพิ่ม face ingest ตอน Admin Verify** | สูงสุด | ingest เฉพาะ verified |
+| 4 | **เพิ่ม filter ใน face search** | สูง | skip pending match |
+| 5 | **Backfill** verified reports ที่มีรูป | สูง | เพิ่ม face data |
+| 6 | **ทดสอบ E2E** | สูง | verify ทั้ง flow |
+| 7 | **Lender flag** ตรวจสอบว่า auto ingest ไหม | ปานกลาง | flag=verified ทันที → ควร ingest ได้ |
