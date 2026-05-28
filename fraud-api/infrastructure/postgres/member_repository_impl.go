@@ -177,6 +177,17 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 	return results, total, nil
 }
 
+func (r *memberRepositoryImpl) GetReportFraudID(ctx context.Context, reportID, userID uuid.UUID) (*uuid.UUID, error) {
+	var report models.FraudReport
+	err := r.db.WithContext(ctx).
+		Where("id = ? AND user_id = ?", reportID, userID).
+		First(&report).Error
+	if err != nil {
+		return nil, err
+	}
+	return report.FraudID, nil
+}
+
 func (r *memberRepositoryImpl) UpdateServicePaymentStatus(ctx context.Context, paymentID, userID uuid.UUID, fromStatus, toStatus models.ServicePaymentStatus) (int64, error) {
 	result := r.db.WithContext(ctx).Model(&models.ServicePayment{}).
 		Where("id = ? AND user_id = ? AND status = ?", paymentID, userID, fromStatus).

@@ -166,7 +166,7 @@ func (c *Container) Initialize() error {
 	)
 	c.LenderService = serviceimpl.NewLenderService(c.LenderRepo, c.FraudService, c.Notifier)
 	c.ServicePaymentService = serviceimpl.NewServicePaymentService(c.ServicePaymentRepo, c.ServiceRepo, c.SettingsRepo)
-	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo)
+	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
 
 	// FaceSearchService ต้องการ FaceClient (HTTP) ไม่ใช่ repo

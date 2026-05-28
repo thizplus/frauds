@@ -16,4 +16,5 @@ type MemberService interface {
 	PauseServicePayment(ctx context.Context, userID, paymentID uuid.UUID) error
 	ResumeServicePayment(ctx context.Context, userID, paymentID uuid.UUID) error
 	CancelServicePayment(ctx context.Context, userID, paymentID uuid.UUID) error
+	SettleReport(ctx context.Context, userID uuid.UUID, reportID uuid.UUID, note string) error
 }

@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { BadgeCheck, Clock, CheckCircle, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { BadgeCheck, Clock, CheckCircle, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X, Loader2, HandCoins } from 'lucide-react'
 import { Drawer } from '@/components/ui/Drawer'
 import { formatDateLong } from '@/lib/utils/format-date'
+import { apiClient } from '@/lib/api/client'
+import { useQueryClient } from '@tanstack/react-query'
 import type { MyReport } from '../types'
 
 interface ReportDetailSheetProps {
@@ -130,6 +132,9 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
             </div>
           </div>
 
+          {/* ปุ่มชำระหนี้ — แสดงเฉพาะ verified */}
+          {r.status === 'verified' && <SettleButton reportId={r.id} onClose={onClose} />}
+
           {/* บริการ AI — Robot button */}
           {robotButton && (
             <div>
@@ -218,6 +223,73 @@ function DetailRow({ icon: Icon, label, value, mono, accent }: {
       >
         {value}
       </span>
+    </div>
+  )
+}
+
+function SettleButton({ reportId, onClose }: { reportId: string; onClose: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [note, setNote] = useState('')
+  const qc = useQueryClient()
+
+  const handleSettle = async () => {
+    setLoading(true)
+    try {
+      await apiClient.patch(`/me/reports/${reportId}/settle`, { note })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      onClose()
+    } catch {
+      alert('เกิดข้อผิดพลาด')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <button
+        className="btn btn-lg w-full"
+        style={{ background: 'var(--accent)', color: '#000' }}
+        onClick={() => setConfirming(true)}
+      >
+        <HandCoins className="w-5 h-5" /> ชำระหนี้แล้ว
+      </button>
+    )
+  }
+
+  return (
+    <div className="card p-4 space-y-3" style={{ border: '1px solid var(--accent)' }}>
+      <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>
+        ยืนยันว่าได้รับชำระหนี้แล้ว?
+      </p>
+      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        สถานะจะเปลี่ยนเป็น "ชำระหนี้แล้ว" ในระบบค้นหา
+      </p>
+      <textarea
+        className="textarea"
+        rows={2}
+        placeholder="หมายเหตุ เช่น ชำระเงินครบแล้ว"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <button
+          className="btn btn-lg flex-1"
+          style={{ background: 'var(--accent)', color: '#000' }}
+          onClick={handleSettle}
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+          ยืนยัน
+        </button>
+        <button
+          className="btn btn-secondary btn-lg flex-1"
+          onClick={() => setConfirming(false)}
+        >
+          ยกเลิก
+        </button>
+      </div>
     </div>
   )
 }

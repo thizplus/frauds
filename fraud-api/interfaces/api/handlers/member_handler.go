@@ -152,3 +152,28 @@ func (h *MemberHandler) CancelServicePayment(c *fiber.Ctx) error {
 
 	return utils.SuccessResponse(c, fiber.Map{"status": "cancelled"})
 }
+
+// SettleReport PATCH /me/reports/:id/settle
+func (h *MemberHandler) SettleReport(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid ID")
+	}
+
+	var req struct {
+		Note string `json:"note"`
+	}
+	c.BodyParser(&req)
+
+	if err := h.memberService.SettleReport(ctx, user.ID, id, req.Note); err != nil {
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{"status": "settled"})
+}

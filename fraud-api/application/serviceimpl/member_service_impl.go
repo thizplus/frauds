@@ -21,6 +21,7 @@ type memberServiceImpl struct {
 	searchLogRepo  repositories.SearchLogRepository
 	membershipRepo repositories.MembershipRepository
 	settingsRepo   repositories.SettingsRepository
+	fraudService   services.FraudService
 }
 
 func NewMemberService(
@@ -28,12 +29,14 @@ func NewMemberService(
 	searchLogRepo repositories.SearchLogRepository,
 	membershipRepo repositories.MembershipRepository,
 	settingsRepo repositories.SettingsRepository,
+	fraudService services.FraudService,
 ) services.MemberService {
 	return &memberServiceImpl{
 		memberRepo:     memberRepo,
 		searchLogRepo:  searchLogRepo,
 		membershipRepo: membershipRepo,
 		settingsRepo:   settingsRepo,
+		fraudService:   fraudService,
 	}
 }
 
@@ -205,5 +208,24 @@ func (s *memberServiceImpl) CancelServicePayment(ctx context.Context, userID, pa
 		}
 	}
 	logger.InfoContext(ctx, "Service payment cancelled", "payment_id", paymentID, "user_id", userID)
+	return nil
+}
+
+func (s *memberServiceImpl) SettleReport(ctx context.Context, userID uuid.UUID, reportID uuid.UUID, note string) error {
+	// เช็คว่า report นี้เป็นของ user นี้
+	fraudID, err := s.memberRepo.GetReportFraudID(ctx, reportID, userID)
+	if err != nil {
+		return errors.New("ไม่พบรายงาน")
+	}
+	if fraudID == nil {
+		return errors.New("ไม่พบข้อมูล fraud ที่เชื่อมกับรายงาน")
+	}
+
+	// เปลี่ยน fraud status เป็น settled (ผ่าน FraudService — cross module)
+	if err := s.fraudService.Unverify(ctx, *fraudID); err != nil {
+		return errors.New("ไม่สามารถเปลี่ยนสถานะได้")
+	}
+
+	logger.InfoContext(ctx, "Report settled by reporter", "report_id", reportID, "fraud_id", *fraudID, "user_id", userID)
 	return nil
 }
