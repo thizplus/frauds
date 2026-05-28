@@ -207,13 +207,13 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                 <div className="flex items-center justify-between mb-1.5">
                   <SectionTitle>
                     ผลตรวจสอบประวัติ
-                    <span className="text-[10px] font-normal normal-case" style={{ color: 'var(--text-dim)' }}>
+                    <span className="text-xs font-normal" style={{ color: 'var(--text-dim)' }}>
                       {' '}({new Date(debtor.checkedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})
                     </span>
                   </SectionTitle>
                   {debtor.status !== 'archived' && (
                     <button
-                      className="text-[11px] flex items-center gap-1"
+                      className="text-xs flex items-center gap-1"
                       style={{ color: 'var(--text-dim)' }}
                       onClick={() => {
                         if (confirm('ซ่อนรายชื่อนี้? (กู้คืนได้จากถังขยะ)')) {
@@ -222,7 +222,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                       }}
                       disabled={archiveMutation.isPending}
                     >
-                      <Archive className="w-3 h-3" /> ซ่อนรายชื่อนี้
+                      <Archive className="w-3.5 h-3.5" /> ซ่อนรายชื่อนี้
                     </button>
                   )}
                 </div>
@@ -312,7 +312,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-dim)' }}>
+    <div className="flex items-center gap-1.5 text-sm font-bold mb-1.5" style={{ color: 'var(--text-muted)' }}>
       {children}
     </div>
   )
