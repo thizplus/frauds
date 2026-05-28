@@ -171,8 +171,8 @@ func (c *Container) Initialize() error {
 	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
 
-	// FaceSearchService ต้องการ FaceClient (HTTP) ไม่ใช่ repo
-	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService)
+	// FaceSearchService ต้องการ FaceClient + FraudService + SocialSearchRepo (resolve social_post)
+	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService, c.SocialSearchRepo)
 	logger.Info("Face service client initialized", "url", cfg.FaceService.URL)
 
 	logger.Info("Container initialized", "app", cfg.App.Name, "env", cfg.App.Env)

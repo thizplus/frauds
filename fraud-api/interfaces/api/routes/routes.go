@@ -96,6 +96,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	bot.Get("/frauds/check", h.FraudHandler.CheckExists)
 	bot.Get("/frauds/incomplete", h.FraudHandler.GetIncomplete)
 	bot.Patch("/frauds/:id/enrich", h.FraudHandler.Enrich)
+	bot.Post("/face-ingest", h.FaceSearchHandler.IngestFace)
 
 	// === Admin (JWT auth) ===
 	admin := api.Group("/admin")
