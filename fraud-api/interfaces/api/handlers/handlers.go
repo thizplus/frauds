@@ -59,6 +59,6 @@ func NewHandlers(
 		AdminHandler:           NewAdminHandler(adminService),
 		LenderHandler:          NewLenderHandler(lenderService),
 		SocialSearchHandler:    NewSocialSearchHandler(socialSearchService),
-		FaceSearchHandler:      NewFaceSearchHandler(faceSearchService),
+		FaceSearchHandler:      NewFaceSearchHandler(faceSearchService, searchService),
 	}
 }

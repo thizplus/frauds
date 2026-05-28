@@ -192,6 +192,19 @@ func (s *searchServiceImpl) CheckQuota(ctx context.Context, userID *uuid.UUID, i
 	return userID, nil
 }
 
+func (s *searchServiceImpl) LogSearch(ctx context.Context, userID *uuid.UUID, query, searchType, ip string, resultsCount int) {
+	go func() {
+		logEntry := &models.SearchLog{
+			UserID:       userID,
+			Query:        query,
+			SearchType:   searchType,
+			ResultsCount: resultsCount,
+			IPAddress:    ip,
+		}
+		_ = s.searchLogRepo.Create(context.Background(), logEntry)
+	}()
+}
+
 func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string, userID *uuid.UUID, ip string) (*dto.UnifiedSearchResponse, error) {
 	var (
 		frauds         []models.Fraud

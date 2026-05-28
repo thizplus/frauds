@@ -16,5 +16,6 @@ type SearchService interface {
 	SearchByName(ctx context.Context, name string, page, limit int) ([]dto.FraudResponse, int64, error)
 	UnifiedSearch(ctx context.Context, query string, userID *uuid.UUID, ip string) (*dto.UnifiedSearchResponse, error)
 	CheckQuota(ctx context.Context, userID *uuid.UUID, ip string) (*uuid.UUID, error)
+	LogSearch(ctx context.Context, userID *uuid.UUID, query, searchType, ip string, resultsCount int)
 	GetStats(ctx context.Context) (*dto.StatsResponse, error)
 }

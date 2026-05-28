@@ -4,16 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"fraud-api/domain/services"
+	"fraud-api/interfaces/api/middleware"
 	"fraud-api/pkg/logger"
 	"fraud-api/pkg/utils"
 )
 
+
 type FaceSearchHandler struct {
 	faceSearchService services.FaceSearchService
+	searchService     services.SearchService
 }
 
-func NewFaceSearchHandler(faceSearchService services.FaceSearchService) *FaceSearchHandler {
-	return &FaceSearchHandler{faceSearchService: faceSearchService}
+func NewFaceSearchHandler(faceSearchService services.FaceSearchService, searchService services.SearchService) *FaceSearchHandler {
+	return &FaceSearchHandler{faceSearchService: faceSearchService, searchService: searchService}
 }
 
 // IngestFace POST /bot/face-ingest
@@ -92,6 +95,13 @@ func (h *FaceSearchHandler) SearchByFace(c *fiber.Ctx) error {
 	if err != nil {
 		logger.ErrorContext(ctx, "Face search error", "error", err)
 		return utils.InternalServerErrorResponse(c)
+	}
+
+	// Log face search
+	user, _ := middleware.GetAuthUser(c)
+	if user != nil {
+		ip := c.Get("CF-Connecting-IP", c.IP())
+		h.searchService.LogSearch(ctx, &user.ID, "face_search", "face", ip, result.Count)
 	}
 
 	return utils.SuccessResponse(c, result)
