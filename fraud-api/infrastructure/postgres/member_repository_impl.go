@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -80,7 +81,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		ReporterNote   string  `gorm:"column:reporter_note"`
 		EvidenceURL    string  `gorm:"column:evidence_url"`
 		Verified       bool    `gorm:"column:verified"`
-		CreatedAt      string  `gorm:"column:created_at"`
+		CreatedAt      time.Time `gorm:"column:created_at"`
 	}
 
 	dataQ := r.db.WithContext(ctx).
@@ -156,6 +157,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 			ReporterNote:   r.ReporterNote,
 			EvidenceURL:    r.EvidenceURL,
 			Verified:       r.Verified,
+			CreatedAt:      r.CreatedAt,
 		}
 		if r.FraudID != nil {
 			if sp, ok := spMap[*r.FraudID]; ok {
