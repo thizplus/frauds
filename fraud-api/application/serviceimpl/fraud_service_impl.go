@@ -444,13 +444,21 @@ func (s *fraudServiceImpl) autoIngestFaces(reportID string, fraudID uuid.UUID, e
 		req.Header.Set("User-Agent", "face-service/1.0")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
+			logger.Warn("Download failed", "url", url[:min(len(url), 80)], "error", err)
+			continue
+		}
+		if resp.StatusCode != 200 {
+			logger.Warn("Download non-200", "url", url[:min(len(url), 80)], "status", resp.StatusCode)
+			resp.Body.Close()
 			continue
 		}
 		imgBytes, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
+			logger.Warn("Read body failed", "url", url[:min(len(url), 80)], "error", err)
 			continue
 		}
+		logger.Info("Image downloaded", "url", url[:min(len(url), 80)], "size", len(imgBytes))
 
 		result, err := s.faceClient.Ingest(ctx, imgBytes, "fraud_report", fraudID.String())
 		if err != nil {
