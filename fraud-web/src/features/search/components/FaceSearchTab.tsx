@@ -176,19 +176,54 @@ export function FaceSearchTab({ onSelectFraud, isMember = false }: FaceSearchTab
 
         {/* Results */}
         {state === 'results' && result && (
-          <div className="space-y-3">
-            {result.matches.map((match, idx) =>
-              match.fraud ? (
-                <FraudRow
-                  key={match.fraud.id || idx}
-                  fraud={match.fraud}
-                  onClick={() => onSelectFraud(match.fraud!)}
-                  isMember={isMember}
-                />
-              ) : match.socialPost ? (
-                <FaceSocialResultCard key={`social-${idx}`} match={match} />
-              ) : null,
-            )}
+          <div className="space-y-4">
+            {(() => {
+              const fraudMatches = result.matches.filter((m) => m.fraud)
+              const socialMatches = result.matches.filter((m) => m.socialPost && !m.fraud)
+              return (
+                <>
+                  {fraudMatches.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>รายงานในระบบ</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}>
+                          {fraudMatches.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {fraudMatches.map((match, idx) => (
+                          <FraudRow
+                            key={match.fraud!.id || idx}
+                            fraud={match.fraud!}
+                            onClick={() => onSelectFraud(match.fraud!)}
+                            isMember={isMember}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {socialMatches.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>ข้อมูลจากโซเชียล</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                          {socialMatches.length}
+                        </span>
+                      </div>
+                      <p className="text-xs mb-2" style={{ color: 'var(--text-dim)' }}>
+                        ข้อมูลจากโซเชียลมีเดีย กรุณาตรวจสอบ URL ต้นทางประกอบ
+                      </p>
+                      <div className="space-y-2">
+                        {socialMatches.map((match, idx) => (
+                          <FaceSocialResultCard key={`social-${idx}`} match={match} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
             <button
               className="flex items-center gap-4 w-full p-2.5 rounded-xl transition-opacity hover:opacity-85"
               style={{ background: 'var(--accent)', color: '#000' }}
