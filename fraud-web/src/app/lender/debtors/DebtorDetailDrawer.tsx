@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive } from 'lucide-react'
+import { CategoryPicker } from '@/components/shared/CategoryPicker'
 import { Drawer } from '@/components/ui/Drawer'
 import { useDebtor, useCheckDebtor, useFlagDebtor, useClearDebtor, useDeleteDebtor } from '@/features/lender'
 import type { DebtorDetail, CheckResultItem } from '@/features/lender'
@@ -386,34 +387,13 @@ function FlagDialog({ name, onClose, onSubmit, loading }: {
   const [reason, setReason] = useState('')
   const [amount, setAmount] = useState('')
   const [detail, setDetail] = useState('')
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
-
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-    fetch(`${apiUrl}/categories`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && Array.isArray(d.data)) {
-          setCategories(d.data)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   return (
     <Drawer open={true} onClose={onClose} title={
       <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>แจ้งเตือน "{name}"</h3>
     }>
       <div className="space-y-4">
-        <div>
-          <label className="report-label">หมวดหมู่ <span style={{ color: 'var(--danger)' }}>*</span></label>
-          <select className="input" value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="">เลือกหมวดหมู่</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.name}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+        <CategoryPicker value={reason} onChange={setReason} label="หมวดหมู่" />
         <div>
           <label className="report-label">จำนวนเงิน (บาท)</label>
           <input type="number" className="input font-mono" placeholder="เช่น 20000" value={amount} onChange={(e) => setAmount(e.target.value)} />
