@@ -450,3 +450,112 @@ DELETE FROM face_embeddings WHERE source_type = 'fraud_report'
 
 > แผนนี้ไม่ได้ทดสอบ field-level detail (มีแผนอื่นแล้ว)
 > แต่ทดสอบ **flow + status + visibility** ข้าม channel ทั้งระบบ
+
+---
+
+## 10. Security Review — ป้องกันการกลั่นแกล้ง (GPT Review Score: 5/10)
+
+### ช่องโหว่ที่พบ + แนวทางแก้ไข
+
+#### ช่องโหว่ 1: Lender flag = verified ทันที (Critical)
+```
+ปัญหา:
+  Lender สามารถ flag debtor → สร้าง fraud verified ทันที
+  → ค้นเจอทุก channel ทันที ไม่ต้องรอ admin
+  → Lender กลั่นแกล้ง debtor ได้
+
+แนวทางแก้:
+  A. Lender flag → status=pending (ไม่ใช่ verified) → รอ admin verify เหมือน user report
+  B. Lender flag → status=verified แต่เห็นเฉพาะใน debtor check ของ lender คนนั้น
+     (ไม่แสดงใน unified search จนกว่า admin verify)
+  C. เก็บ flag เป็น debtor-level status เท่านั้น ไม่สร้าง fraud record
+     → เห็นเฉพาะ lender ของตัวเอง ไม่กระทบ public search
+
+แนะนำ: แนวทาง C — flag เป็น debtor status ไม่สร้าง fraud
+  เหตุผล: Lender ไม่ควรมีอำนาจสร้าง public fraud record โดยไม่ผ่าน admin
+```
+
+#### ช่องโหว่ 2: Debtor Check เห็น pending (Medium)
+```
+ปัญหา:
+  Lender เห็นว่า debtor ถูกแจ้งโกง (pending) ก่อน admin verify
+  → อาจตัดสินใจผิดพลาดจาก false positive
+  → คนบริสุทธิ์ถูก stigma ก่อน verify
+
+แนวทางแก้:
+  A. ไม่แสดง pending ใน debtor check → แสดงเฉพาะ verified/settled
+  B. แสดง pending แต่มี warning ชัดเจน "ยังไม่ได้รับการยืนยัน อาจไม่ถูกต้อง"
+  C. แสดงแค่จำนวน reports (ไม่แสดงรายละเอียด) จนกว่า verify
+
+แนะนำ: แนวทาง B — แสดงแต่มี warning
+  เหตุผล: Lender ควรรู้ข้อมูลเพื่อระวัง แต่ต้องเห็นว่ายังไม่ verified
+```
+
+#### ช่องโหว่ 3: Report ไม่ต้อง login (High)
+```
+ปัญหา:
+  ใครก็แจ้งโกงได้ไม่ต้อง login → spam reports ง่าย
+  → กลั่นแกล้งคนบริสุทธิ์ด้วย pending reports จำนวนมาก
+  → ทำให้ report_count สูงเกินจริง
+
+แนวทางแก้:
+  A. บังคับ login ก่อนแจ้งโกง → ติดตามย้อนกลับได้
+  B. ไม่บังคับ login แต่ต้องมี rate limit + captcha
+  C. Guest แจ้งได้แต่ จำกัด 1 report/IP/day + captcha
+
+แนะนำ: แนวทาง A — บังคับ login
+  เหตุผล: ต้องรับผิดชอบต่อการแจ้ง + ป้องกัน spam + ติดตามได้ถ้าแจ้งเท็จ
+```
+
+#### ช่องโหว่ 4: ข้อมูลส่วนบุคคลเมื่อ reject (Medium)
+```
+ปัญหา:
+  Admin reject fraud → แต่ข้อมูล (เบอร์, บัญชี, เลขบัตร) ยังอยู่ใน DB
+  → ข้อมูลคนบริสุทธิ์ถูกเก็บโดยไม่จำเป็น
+
+แนวทางแก้:
+  A. Soft delete: mark as rejected + ไม่แสดงที่ใดเลย
+  B. Hard delete: ลบ fraud + fraud_reports ทั้งหมด
+  C. Anonymize: เก็บ statistics แต่ลบข้อมูลส่วนบุคคล
+
+แนะนำ: แนวทาง B — Hard delete เมื่อ reject
+  เหตุผล: ไม่มีเหตุผลเก็บข้อมูลคนบริสุทธิ์
+```
+
+#### ช่องโหว่ 5: Settled แล้วโดนแจ้งอีก (Low)
+```
+ปัญหา:
+  คนที่ชำระหนี้แล้ว (settled) ถูกแจ้งอีก → status เปลี่ยนยังไง?
+  → ถ้ากลับเป็น pending → เหมือนเริ่มใหม่ (ยุติธรรม)
+  → ถ้ายังเป็น settled → ไม่สนใจแจ้งใหม่ (อาจไม่ยุติธรรม)
+
+แนวทาง:
+  - report_count + 1 + สร้าง fraud_report ใหม่
+  - status ยังเป็น settled จนกว่า admin จะเปลี่ยน
+  - Admin เห็น new reports แล้วตัดสินใจ
+
+แนะนำ: เก็บ report ใหม่แต่ไม่เปลี่ยน status อัตโนมัติ → admin ตัดสิน
+```
+
+### Scenarios ที่ควรเพิ่ม
+
+| SC ID | Description | ครอบคลุม |
+|-------|-------------|---------|
+| SC-25 | Lender flag debtor → ตรวจว่า **ไม่** สร้าง public fraud (ถ้าแก้ช่องโหว่ 1) | Lender abuse |
+| SC-26 | Guest spam reports (3+ reports/day จาก IP เดียว) → rate limit | Spam prevention |
+| SC-27 | Admin reject → ตรวจว่าข้อมูลถูกลบ (ถ้าแก้ช่องโหว่ 4) | Data cleanup |
+| SC-28 | Debtor check แสดง pending + warning message | False positive prevention |
+| SC-29 | User แจ้งเท็จ → Admin ตรวจ → reject → user ถูก flag/ban | False reporter tracking |
+| SC-30 | คนเดียวกันถูกแจ้ง 10+ ครั้งจากคนละคน → ควร auto-escalate? | Mass reporting |
+| SC-31 | Lender A flag → Lender B เห็นไหม? (cross-lender visibility) | Data isolation |
+
+### สรุป Priority แก้ไข
+
+| Priority | ช่องโหว่ | Impact | แก้ไข |
+|----------|---------|--------|-------|
+| **P0 (Critical)** | Lender flag = verified ทันที | Lender กลั่นแกล้งได้ | แยก flag ออกจาก fraud / ต้องรอ admin |
+| **P0 (Critical)** | Face ingest pending | คนบริสุทธิ์ถูก face search เจอ | Ingest เฉพาะ verified (แก้แล้วในแผน) |
+| **P1 (High)** | Report ไม่ต้อง login | Spam + กลั่นแกล้ง | บังคับ login / rate limit + captcha |
+| **P2 (Medium)** | Pending เจอใน debtor check | False positive | เพิ่ม warning message |
+| **P2 (Medium)** | ข้อมูลไม่ลบเมื่อ reject | Privacy | Hard delete เมื่อ reject |
+| **P3 (Low)** | Settled + แจ้งอีก | UX confusion | เก็บ report + admin ตัดสิน |
