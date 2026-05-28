@@ -62,17 +62,17 @@ export function UnifiedResults({
     <>
       {/* Result header */}
       <div className="mb-4 flex items-center justify-between gap-3 px-1">
-        <div className="flex items-center gap-2.5 text-sm">
+        <div className="flex items-center gap-2.5 text-base">
           <span className="result-bot-badge">
-            <Bot className="w-4 h-4" />
+            <Bot className="w-5 h-5" />
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
             AI พบ <span className="text-accent font-semibold">{totalResults} รายการ</span> ที่ตรงกับ{' '}
             <span className="font-mono" style={{ color: 'var(--text)' }}>{query}</span>
           </span>
         </div>
-        <span className="hidden sm:inline-flex live-pill text-xs">
-          <Sparkles className="w-3 h-3" />
+        <span className="hidden sm:inline-flex live-pill text-sm">
+          <Sparkles className="w-3.5 h-3.5" />
           AI scored
         </span>
       </div>
@@ -82,15 +82,15 @@ export function UnifiedResults({
           {/* Section header */}
           <div className="flex items-center gap-2 mb-3 px-1">
             {section.source === 'frauds' ? (
-              <Database className="w-4 h-4 text-accent" />
+              <Database className="w-5 h-5 text-accent" />
             ) : (
-              <Globe className="w-4 h-4 text-accent" />
+              <Globe className="w-5 h-5 text-accent" />
             )}
-            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            <span className="text-base font-semibold" style={{ color: 'var(--text)' }}>
               {section.label}
             </span>
             <span
-              className="text-xs px-2 py-0.5 rounded-full"
+              className="text-sm px-2 py-0.5 rounded-full font-bold"
               style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
             >
               {section.count}
