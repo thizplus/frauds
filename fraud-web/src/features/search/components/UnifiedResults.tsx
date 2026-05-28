@@ -1,6 +1,6 @@
 'use client'
 
-import { Bot, Database, Globe, Sparkles, BadgeCheck, Clock, ExternalLink } from 'lucide-react'
+import { Bot, Database, Globe, Sparkles, BadgeCheck, Clock, ExternalLink, Phone, CreditCard, IdCard, User } from 'lucide-react'
 import { formatPhone } from '@/lib/utils/format-phone'
 import type { FraudResponse, UnifiedSection, SocialResult } from '../types'
 import { FraudRow } from './FraudRow'
@@ -137,21 +137,24 @@ function SocialCard({ item }: { item: SocialResult }) {
             <BadgeCheck className="w-4 h-4 text-accent shrink-0" />
           )}
         </div>
-        <div className="flex items-center gap-2 text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          <span className="font-mono">{item.entityType === 'phone' ? formatPhone(item.matchedValue) : item.matchedValue}</span>
-          <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
-            {item.entityType}
+        <div className="flex items-center gap-3 text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1 font-mono">
+            {item.entityType === 'phone' ? <Phone className="w-3.5 h-3.5" /> :
+             item.entityType === 'bank_account' ? <CreditCard className="w-3.5 h-3.5" /> :
+             item.entityType === 'id_card' ? <IdCard className="w-3.5 h-3.5" /> :
+             <User className="w-3.5 h-3.5" />}
+            {item.entityType === 'phone' ? formatPhone(item.matchedValue) : item.matchedValue}
           </span>
           {item.permalinkUrl && (
             <a
               href={item.permalinkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:underline text-xs"
+              className="flex items-center gap-1 hover:underline text-sm"
               style={{ color: 'var(--accent)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-4 h-4" />
               ดูต้นทาง
             </a>
           )}
