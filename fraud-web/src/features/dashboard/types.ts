@@ -37,6 +37,7 @@ export interface SearchHistoryItem {
   id: string
   query: string
   searchType: string
+  searchSource?: string
   resultCount: number
   createdAt: string
 }

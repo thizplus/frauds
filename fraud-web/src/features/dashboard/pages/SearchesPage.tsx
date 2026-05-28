@@ -2,30 +2,43 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Search, Clock, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Search, Clock, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Phone, CreditCard, IdCard, User, ScanFace, Copy, Check, ShieldAlert, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { formatDatetime } from '@/lib/utils/format-date'
 import { useMySearches } from '../hooks'
 
-const TYPE_LABELS: Record<string, string> = {
-  all: 'ทั้งหมด',
-  phone: 'เบอร์โทร',
-  bank: 'เลขบัญชี',
-  idcard: 'บัตร ปชช.',
-  name: 'ชื่อ',
+const TYPE_CONFIG: Record<string, { label: string; icon: typeof Search; color: string }> = {
+  all: { label: 'ค้นทั้งหมด', icon: Search, color: 'var(--accent)' },
+  phone: { label: 'เบอร์โทร', icon: Phone, color: 'var(--accent)' },
+  bank: { label: 'เลขบัญชี', icon: CreditCard, color: 'var(--accent)' },
+  idcard: { label: 'บัตร ปชช.', icon: IdCard, color: 'var(--accent)' },
+  name: { label: 'ชื่อ', icon: User, color: 'var(--accent)' },
+  unified: { label: 'Unified Search', icon: Search, color: 'var(--accent)' },
+  face: { label: 'ค้นด้วยใบหน้า', icon: ScanFace, color: 'var(--accent)' },
 }
 
 export function SearchesPage() {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [page, setPage] = useState(1)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
 
   useEffect(() => { setMounted(true) }, [])
 
-  const { data, isLoading } = useMySearches(page)
+  const handleCopy = (query: string, id: string) => {
+    navigator.clipboard.writeText(query)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const handleResearch = (query: string) => {
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+  }
 
   if (!mounted) return null
 
@@ -45,6 +58,7 @@ export function SearchesPage() {
     )
   }
 
+  const { data, isLoading } = useMySearches(page)
   const searches = data?.data || []
   const meta = data?.meta
 
@@ -72,36 +86,94 @@ export function SearchesPage() {
         </div>
       ) : (
         <>
-          <div className="space-y-2">
-            {searches.map((s) => (
-              <div key={s.id} className="card p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-base" style={{ color: 'var(--text)' }}>
-                    {s.query}
-                  </span>
-                  <span className="text-sm font-mono" style={{ color: 'var(--accent)' }}>
-                    {s.resultCount} ผล
-                  </span>
+          <div className="space-y-2.5">
+            {searches.map((s) => {
+              const typeKey = s.searchSource || s.searchType || 'all'
+              const config = TYPE_CONFIG[typeKey] || TYPE_CONFIG.all
+              const TypeIcon = config.icon
+              const hasResults = s.resultCount > 0
+              const isFace = typeKey === 'face'
+
+              return (
+                <div key={s.id} className="card overflow-hidden">
+                  <div className="flex">
+                    {/* Left: content */}
+                    <div className="flex-1 p-4 min-w-0">
+                      {/* Query */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>
+                          {isFace ? 'ค้นด้วยใบหน้า' : s.query}
+                        </span>
+                        {!isFace && (
+                          <button
+                            className="shrink-0 p-1 rounded transition-colors hover:bg-white/5"
+                            onClick={() => handleCopy(s.query, s.id)}
+                            title="คัดลอก"
+                          >
+                            {copiedId === s.id
+                              ? <Check className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                              : <Copy className="w-3.5 h-3.5" style={{ color: 'var(--text-dim)' }} />
+                            }
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Result count badge */}
+                      <div className="flex items-center gap-2 mb-2">
+                        {hasResults ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(239,68,68,.12)', color: 'var(--danger)' }}
+                          >
+                            <ShieldAlert className="w-3 h-3" />
+                            พบ {s.resultCount} รายการ
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            ไม่พบประวัติ
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Meta: type + time */}
+                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-dim)' }}>
+                        <span className="flex items-center gap-1">
+                          <TypeIcon className="w-3.5 h-3.5" />
+                          {config.label}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatDatetime(s.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: re-search button */}
+                    {!isFace && (
+                      <button
+                        className="flex flex-col items-center justify-center gap-1 px-4 shrink-0 transition-opacity hover:opacity-80"
+                        style={{ background: 'var(--accent-dim)', color: 'var(--accent)', minWidth: 72 }}
+                        onClick={() => handleResearch(s.query)}
+                      >
+                        <Search className="w-5 h-5" />
+                        <span className="text-xs font-bold">ค้นอีกครั้ง</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-dim)' }}>
-                  <span className="flex items-center gap-1">
-                    <Search className="w-3.5 h-3.5" />
-                    {TYPE_LABELS[s.searchType] || s.searchType || 'ทั้งหมด'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatDatetime(s.createdAt)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-3">
+            <div className="flex items-center justify-center gap-4 mt-4">
               <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{page} / {meta.totalPages}</span>
+              <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>{page} / {meta.totalPages}</span>
               <button className="btn btn-secondary btn-sm" disabled={page >= meta.totalPages} onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}>
                 <ChevronRight className="w-4 h-4" />
               </button>
