@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { User, BadgeCheck, Phone, CreditCard, IdCard, ShieldAlert, Flag, Lock } from 'lucide-react'
+import { User, BadgeCheck, Phone, CreditCard, IdCard, ShieldAlert, Lock } from 'lucide-react'
 import { formatDateShort } from '@/lib/utils/format-date'
 import { Drawer } from '@/components/ui/Drawer'
 import { EvidenceGallery } from '@/components/ui/EvidenceGallery'
 import { useSubscription } from '@/lib/hooks/useSubscription'
 import { searchService } from '@/features/search/service'
 import type { FraudResponse, FraudPublicDetail } from '@/features/search/types'
-import Link from 'next/link'
 
 interface FraudDetailDrawerProps {
   fraud: FraudResponse | null
@@ -60,13 +59,7 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
         </>
       }
       footer={
-        <>
-          <button onClick={onClose} className="btn btn-secondary flex-1">ปิด</button>
-          <Link href="/report" className="btn btn-primary flex-1" onClick={onClose}>
-            <Flag className="w-4 h-4" />
-            รายงานเพิ่ม
-          </Link>
-        </>
+        <button onClick={onClose} className="btn btn-secondary flex-1 text-base py-3">ปิด</button>
       }
     >
       {/* Status banner */}
