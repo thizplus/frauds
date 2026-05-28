@@ -7,9 +7,12 @@ const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
 const THAI_MONTHS_LONG = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
 function toDate(dateStr: string): Date | null {
+  if (!dateStr) return null
   try {
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return null
+    // Go zero time = 0001-01-01 → ถือว่าไม่มีข้อมูล
+    if (d.getFullYear() < 1970) return null
     return d
   } catch {
     return null
@@ -19,7 +22,7 @@ function toDate(dateStr: string): Date | null {
 /** 25 พ.ค. 69 */
 export function formatDateShort(dateStr: string): string {
   const d = toDate(dateStr)
-  if (!d) return dateStr
+  if (!d) return '-'
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Asia/Bangkok' })
   const month = THAI_MONTHS_SHORT[d.getMonth()]
   const year = (d.getFullYear() + 543).toString().slice(-2)
@@ -29,7 +32,7 @@ export function formatDateShort(dateStr: string): string {
 /** 25 พฤษภาคม 2569 */
 export function formatDateLong(dateStr: string): string {
   const d = toDate(dateStr)
-  if (!d) return dateStr
+  if (!d) return '-'
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Asia/Bangkok' })
   const month = THAI_MONTHS_LONG[d.getMonth()]
   const year = d.getFullYear() + 543
@@ -39,7 +42,7 @@ export function formatDateLong(dateStr: string): string {
 /** 25 พ.ค. 14:30 */
 export function formatDatetime(dateStr: string): string {
   const d = toDate(dateStr)
-  if (!d) return dateStr
+  if (!d) return '-'
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Asia/Bangkok' })
   const month = THAI_MONTHS_SHORT[d.getMonth()]
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })
@@ -49,7 +52,7 @@ export function formatDatetime(dateStr: string): string {
 /** 25 พ.ค. */
 export function formatDateNoYear(dateStr: string): string {
   const d = toDate(dateStr)
-  if (!d) return dateStr
+  if (!d) return '-'
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Asia/Bangkok' })
   const month = THAI_MONTHS_SHORT[d.getMonth()]
   return `${day} ${month}`
