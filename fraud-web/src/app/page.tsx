@@ -55,11 +55,11 @@ export default function HomePage() {
             เช็คก่อน <span className="gradient-text">เชื่อใคร</span>
           </h1>
           <p className="mt-4 text-base sm:text-lg" style={{ color: 'var(--text-muted)' }}>
-            AI ตรวจสอบข้อมูลคนโกงจากฐานข้อมูล{' '}
+            AI ระบบตรวจสอบข้อมูลคนโกงจากฐานข้อมูลของเรา ที่มีมากกว่า{' '}
             <span className="font-bold" style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-              กว่าแสนรายชื่อ
+              แสนรายชื่อ
             </span>{' '}
-            ในไม่กี่วินาที
+            ภายในไม่กี่วินาที
           </p>
         </div>
 
