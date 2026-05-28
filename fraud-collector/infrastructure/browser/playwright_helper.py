@@ -491,6 +491,29 @@ class PlaywrightHelper:
                 f.write(html)
             logger.info("html_snapshot_saved", extra={"post_id": post_id, "size": len(html)})
 
+    # --- Image Download ---
+
+    async def download_image(self, url: str, save_path: str) -> dict:
+        """Download image ผ่าน browser context (มี FB cookies)
+        ใช้ page.goto() + response.body() — ทดสอบแล้วว่า work กับ FB CDN
+        """
+        try:
+            resp = await self.page.goto(url)
+            if not resp or resp.status != 200:
+                return {"ok": False, "error": f"http_{resp.status if resp else 'no_response'}"}
+
+            body = await resp.body()
+            if not body or len(body) < 1000:
+                return {"ok": False, "error": "empty_or_too_small"}
+
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, 'wb') as f:
+                f.write(body)
+
+            return {"ok": True, "size": len(body)}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:100]}
+
     # --- Private helpers ---
 
     async def _click_see_more(self):

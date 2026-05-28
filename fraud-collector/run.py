@@ -131,13 +131,16 @@ async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int 
             print(f"\n  [3/4] No posts with comments — skip")
 
         # === Phase 3: Extract ===
-        print(f"\n  [4/4] Extract (raw → extracted.json)...")
+        print(f"\n  [4/5] Extract (raw → extracted.json)...")
 
-    # Run extractor (outside browser context)
-    # extractor จะ merge GraphQL + HTML comments per-post อัตโนมัติ
-    report = extract_run(run_dir)
+        # Run extractor (ยังอยู่ใน browser context)
+        report = extract_run(run_dir)
 
-    # === Done ===
+        # === Phase 4: Download images ผ่าน browser (มี FB cookies) ===
+        print(f"\n  [5/5] Download images (ผ่าน browser session)...")
+        await _download_images_via_browser(pw, report)
+
+    # === Done (browser ปิดแล้ว) ===
     print(f"\n{'='*60}")
     print(f"  DONE!")
     print(f"{'='*60}")
@@ -145,6 +148,86 @@ async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int 
 
     # Generate verification report
     _generate_verify_report(report, group_id, run_dir)
+
+
+async def _download_images_via_browser(pw, report):
+    """Download images ผ่าน Playwright browser (มี FB cookies)
+    ใช้ page.goto(url) + resp.body() — ต้อง run ก่อน browser ปิด
+    """
+    import hashlib
+
+    output_dir = Path(report.get("output_dir", ""))
+    if not output_dir.exists():
+        print("  → No extracted data — skip")
+        return
+
+    # Collect image URLs from extracted.json
+    images = []
+    for post_path in sorted(output_dir.glob("post_*/extracted.json")):
+        with open(post_path, 'r', encoding='utf-8') as f:
+            post = json.load(f)
+        post_id = post["post_id"]
+        for i, img in enumerate(post.get("images", [])):
+            url = img.get("full_url") or img.get("thumbnail_url")
+            if url:
+                images.append({"post_id": post_id, "index": i, "url": url})
+
+    if not images:
+        print("  → No images found")
+        return
+
+    # Navigate กลับไป FB ก่อน download (ให้ browser อยู่ใน FB domain)
+    await pw.goto("https://www.facebook.com")
+    await pw.wait(2000)
+
+    manifest = []
+    ok_count = 0
+
+    for i, img in enumerate(images):
+        # sha256 จาก URL เพื่อ dedupe
+        url_hash = hashlib.sha256(img["url"].encode()).hexdigest()
+        save_path = f"images/{url_hash[:2]}/{url_hash}.jpg"
+
+        # Skip if already exists
+        if Path(save_path).exists():
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": save_path,
+                "download_status": "ok",
+            })
+            ok_count += 1
+            continue
+
+        result = await pw.download_image(img["url"], save_path)
+
+        if result["ok"]:
+            ok_count += 1
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": save_path,
+                "download_status": "ok", "file_size": result["size"],
+            })
+        else:
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": None,
+                "download_status": "failed", "error": result["error"],
+            })
+
+        # Rate limit — ไม่ download เร็วเกินไป
+        if (i + 1) % 5 == 0:
+            print(f"    [{i+1}/{len(images)}] downloaded: {ok_count}")
+            await pw.wait(1000)
+        else:
+            await pw.wait(300)
+
+    # Save manifest
+    Path("golden").mkdir(exist_ok=True)
+    with open("golden/image_manifest.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    failed = len(images) - ok_count
+    print(f"  → Downloaded: {ok_count}/{len(images)} | Failed: {failed}")
 
 
 def _quick_extract(run_dir: Path) -> list[dict]:
