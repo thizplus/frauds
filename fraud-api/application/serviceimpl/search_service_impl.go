@@ -258,6 +258,10 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 			if row.DisplayName != nil {
 				displayName = *row.DisplayName
 			}
+			permalinkURL := ""
+			if row.PermalinkURL != nil {
+				permalinkURL = *row.PermalinkURL
+			}
 			socialResults = append(socialResults, dto.UnifiedSocialResult{
 				MatchedValue:      row.RawValue,
 				DisplayName:       displayName,
@@ -265,6 +269,7 @@ func (s *searchServiceImpl) UnifiedSearch(ctx context.Context, query string) (*d
 				VerificationState: row.VerificationState,
 				Confidence:        row.ConfidenceScore,
 				Similarity:        row.Similarity,
+				PermalinkURL:      permalinkURL,
 			})
 		}
 

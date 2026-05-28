@@ -98,6 +98,11 @@ export function UnifiedResults({
           </div>
 
           {/* Section content */}
+          {section.source === 'social' && (
+            <p className="text-xs mb-2 px-1" style={{ color: 'var(--text-dim)' }}>
+              ข้อมูลนี้ไม่ใช่การยืนยันการโกง เป็นเพียงข้อมูลที่เก็บจาก Facebook กรุณาตรวจสอบ URL ต้นทางเพื่อประกอบการพิจารณา
+            </p>
+          )}
           <div className="row-ai-list">
             {section.source === 'frauds' ? (
               (section.results as FraudResponse[]).map((fraud) => (
@@ -145,9 +150,23 @@ function SocialCard({ item }: { item: SocialResult }) {
           <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'var(--bg-elevated)', color: 'var(--text-dim)' }}>
             {item.entityType}
           </span>
+          {item.permalinkUrl && (
+            <a
+              href={item.permalinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-0.5 hover:underline"
+              style={{ color: 'var(--accent)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-3 h-3" />
+              ดูต้นทาง
+            </a>
+          )}
         </div>
       </div>
       <div className="text-right shrink-0">
+        <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>ความเชื่อมั่น</div>
         <div
           className="text-sm font-bold"
           style={{ color: confidencePct >= 80 ? 'var(--accent)' : 'var(--text-dim)' }}

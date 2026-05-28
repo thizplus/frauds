@@ -22,4 +22,5 @@ type UnifiedSocialResult struct {
 	VerificationState string   `json:"verificationState"`
 	Confidence        float64  `json:"confidence"`
 	Similarity        *float64 `json:"similarity,omitempty"`
+	PermalinkURL      string   `json:"permalinkUrl,omitempty"`
 }

@@ -64,6 +64,7 @@ export interface SocialResult {
   verificationState: string
   confidence: number
   similarity?: number
+  permalinkUrl?: string
 }
 
 export interface FaceSearchResponse {
