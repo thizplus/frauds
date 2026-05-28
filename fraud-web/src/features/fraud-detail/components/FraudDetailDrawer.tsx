@@ -68,7 +68,7 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
       </div>
 
       {/* Contact details */}
-      <div className="text-xs uppercase tracking-wider text-slate-500 mb-1 px-1 font-mono">
+      <div className="text-xs uppercase tracking-wider mb-2 px-1 font-mono" style={{ color: 'var(--text-dim)' }}>
         ข้อมูลติดต่อ
       </div>
 
@@ -121,10 +121,15 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
       {/* Description */}
       {fraud.description && (
         <div className="mt-5">
-          <div className="text-xs uppercase tracking-wider text-slate-500 mb-2 px-1 font-mono">
+          <div className="text-xs uppercase tracking-wider mb-2 px-1 font-mono" style={{ color: 'var(--text-dim)' }}>
             รายละเอียด
           </div>
-          <p className="text-sm text-slate-300 leading-relaxed">{fraud.description}</p>
+          <div
+            className="rounded-lg text-sm leading-relaxed"
+            style={{ padding: '.75rem 1rem', background: 'rgba(255,255,255,.03)', color: 'var(--text-secondary)', lineHeight: 1.7 }}
+          >
+            {fraud.description}
+          </div>
         </div>
       )}
 
@@ -146,7 +151,7 @@ export function FraudDetailDrawer({ fraud, open, onClose }: FraudDetailDrawerPro
       )}
 
       {/* Created at */}
-      <div className="mt-5 text-xs text-slate-500 font-mono px-1">
+      <div className="mt-5 text-sm font-mono px-1" style={{ color: 'var(--text-dim)' }}>
         ลงข้อมูล: {formatDateShort(fraud.createdAt)}
       </div>
     </Drawer>
