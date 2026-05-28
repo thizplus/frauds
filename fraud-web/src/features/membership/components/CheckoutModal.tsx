@@ -48,7 +48,10 @@ export function CheckoutModal({ plan, open, onClose }: CheckoutModalProps) {
     setAutoApproved(false)
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-    fetch(`${apiUrl}/settings/public`)
+    const token = localStorage.getItem('accessToken')
+    fetch(`${apiUrl}/me/payment-settings`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then(r => r.json())
       .then(d => {
         if (d.success) {

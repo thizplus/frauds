@@ -23,11 +23,27 @@ func (h *SettingsHandler) GetPublic(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	publicKeys := []string{
 		"quota.guest_search_limit", "quota.free_search_limit", "quota.member_search_limit",
-		"payment.promptpay_type", "payment.promptpay_number", "payment.promptpay_name", "payment.bank_account", "payment.bank_name",
 		"social.links",
 	}
 	result := make(map[string]any)
 	for _, key := range publicKeys {
+		setting, err := h.settingsService.GetByKey(ctx, key)
+		if err == nil {
+			result[key] = setting.Value
+		}
+	}
+	return utils.SuccessResponse(c, result)
+}
+
+// GetPayment GET /me/payment-settings — ข้อมูลชำระเงิน (ต้อง login)
+func (h *SettingsHandler) GetPayment(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	paymentKeys := []string{
+		"payment.promptpay_type", "payment.promptpay_number", "payment.promptpay_name",
+		"payment.bank_account", "payment.bank_name",
+	}
+	result := make(map[string]any)
+	for _, key := range paymentKeys {
 		setting, err := h.settingsService.GetByKey(ctx, key)
 		if err == nil {
 			result[key] = setting.Value

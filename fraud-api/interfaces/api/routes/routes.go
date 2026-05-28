@@ -58,6 +58,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	user := api.Group("/me")
 	user.Use(middleware.JWTMiddleware(jwtSecret))
 	user.Get("/profile", h.AuthHandler.Profile)
+	user.Get("/payment-settings", h.SettingsHandler.GetPayment)
 	user.Get("/dashboard", h.MemberDashboardHandler.Dashboard)
 	user.Get("/reports", h.MemberDashboardHandler.MyReports)
 	user.Patch("/reports/:id/settle", h.MemberDashboardHandler.SettleReport)
