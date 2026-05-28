@@ -283,7 +283,7 @@ function RobotButton({ sp, reportStatus, confirmCancel, actionPending, onOpenSer
         <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ border: '2px solid var(--accent)' }}>
           <Bot className="w-7 h-7" style={{ color: 'var(--accent)' }} />
         </div>
-        <span className="text-[10px] font-medium leading-tight text-center" style={{ color: 'var(--accent)' }}>ได้เงินคืนแล้ว</span>
+        <span className="text-xs font-medium leading-tight text-center" style={{ color: 'var(--accent)' }}>ได้เงินคืนแล้ว</span>
       </div>
     )
   }
