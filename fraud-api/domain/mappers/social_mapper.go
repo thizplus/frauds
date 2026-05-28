@@ -2,6 +2,7 @@ package mappers
 
 import (
 	"encoding/json"
+	"math"
 	"time"
 
 	"fraud-api/domain/dto"
@@ -14,7 +15,7 @@ func EntityToUnifiedSocialResult(entity *models.SearchableEntity) dto.UnifiedSoc
 		MatchedValue:      entity.RawValue,
 		EntityType:        entity.EntityType,
 		VerificationState: entity.VerificationState,
-		Confidence:        entity.ConfidenceScore,
+		Confidence:        math.Round(entity.ConfidenceScore*100) / 100,
 		Similarity:        entity.Similarity,
 		SourceType:        DerefStr(entity.SourceType),
 	}
@@ -87,7 +88,7 @@ func EntityToSocialEvidence(entity *models.SearchableEntity) dto.SocialEvidence 
 		NormalizedValue: DerefStr(entity.NormalizedValue),
 		SourceType:      DerefStr(entity.SourceType),
 		SourceID:        DerefStr(entity.SourceID),
-		Confidence:      entity.ConfidenceScore,
+		Confidence:      math.Round(entity.ConfidenceScore*100) / 100,
 		PostID:          entity.PostID,
 	}
 
