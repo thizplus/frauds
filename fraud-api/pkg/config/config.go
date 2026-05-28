@@ -29,6 +29,8 @@ type LINEConfig struct {
 	ChannelAccessToken string // สำหรับ Messaging API push message
 	CallbackURL        string
 	LiffID             string
+	RichMenuFree       string // Rich Menu ID สำหรับ Free user
+	RichMenuMember     string // Rich Menu ID สำหรับ Member
 }
 
 type StorageConfig struct {
@@ -142,6 +144,8 @@ func LoadConfig() (*Config, error) {
 			ChannelAccessToken: getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
 			CallbackURL:        getEnv("LINE_CALLBACK_URL", "http://localhost:3001/auth/line/callback"),
 			LiffID:             getEnv("LINE_LIFF_ID", ""),
+			RichMenuFree:       getEnv("LINE_RICH_MENU_FREE", ""),
+			RichMenuMember:     getEnv("LINE_RICH_MENU_MEMBER", ""),
 		},
 	}
 

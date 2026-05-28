@@ -16,11 +16,13 @@ import (
 )
 
 type lineBotServiceImpl struct {
-	lineMessaging ports.LineMessagingPort
-	searchService services.SearchService
-	userRepo      repositories.UserRepository
-	memberRepo    repositories.MembershipRepository
-	sessionStore  ports.SessionStore
+	lineMessaging  ports.LineMessagingPort
+	searchService  services.SearchService
+	userRepo       repositories.UserRepository
+	memberRepo     repositories.MembershipRepository
+	sessionStore   ports.SessionStore
+	richMenuFree   string
+	richMenuMember string
 }
 
 func NewLineBotService(
@@ -29,13 +31,16 @@ func NewLineBotService(
 	userRepo repositories.UserRepository,
 	memberRepo repositories.MembershipRepository,
 	sessionStore ports.SessionStore,
+	richMenuFree, richMenuMember string,
 ) services.LineBotService {
 	return &lineBotServiceImpl{
-		lineMessaging: lineMessaging,
-		searchService: searchService,
-		userRepo:      userRepo,
-		memberRepo:    memberRepo,
-		sessionStore:  sessionStore,
+		lineMessaging:  lineMessaging,
+		searchService:  searchService,
+		userRepo:       userRepo,
+		memberRepo:     memberRepo,
+		sessionStore:   sessionStore,
+		richMenuFree:   richMenuFree,
+		richMenuMember: richMenuMember,
 	}
 }
 
@@ -63,6 +68,21 @@ func (s *lineBotServiceImpl) HandleFollow(ctx context.Context, lineUserID, reply
 			logger.ErrorContext(ctx, "Auto-register LINE user failed", "error", err)
 		} else {
 			logger.InfoContext(ctx, "LINE user auto-registered", "user_id", user.ID, "name", profile.DisplayName)
+		}
+	}
+
+	// Link Rich Menu
+	if s.richMenuFree != "" {
+		hasSub := false
+		if existingUser != nil {
+			hasSub, _ = s.memberRepo.HasActiveSubscription(ctx, existingUser.ID)
+		}
+		menuID := s.richMenuFree
+		if hasSub {
+			menuID = s.richMenuMember
+		}
+		if menuID != "" {
+			_ = s.lineMessaging.LinkRichMenu(ctx, lineUserID, menuID)
 		}
 	}
 

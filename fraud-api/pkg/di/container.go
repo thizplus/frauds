@@ -187,6 +187,7 @@ func (c *Container) Initialize() error {
 		c.SessionStore = session.NewMemoryStore()
 		c.LineBotService = serviceimpl.NewLineBotService(
 			c.LineMessaging, c.SearchService, c.UserRepo, c.MembershipRepo, c.SessionStore,
+			cfg.LINE.RichMenuFree, cfg.LINE.RichMenuMember,
 		)
 		logger.Info("LINE Bot service initialized")
 	}
