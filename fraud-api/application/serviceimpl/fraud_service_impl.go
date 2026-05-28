@@ -283,10 +283,13 @@ func (s *fraudServiceImpl) ingestFacesFromReports(fraudID uuid.UUID) {
 		return
 	}
 
+	logger.Info("Face ingest from reports started", "fraud_id", fraudID, "report_count", len(reports))
 	for _, report := range reports {
 		if report.EvidenceURL == "" {
+			logger.Info("Skip report no evidence", "report_id", report.ID)
 			continue
 		}
+		logger.Info("Ingesting faces from report", "report_id", report.ID, "evidence_url_len", len(report.EvidenceURL))
 		s.autoIngestFaces(report.ID.String(), fraudID, report.EvidenceURL)
 	}
 }
@@ -432,8 +435,10 @@ func (s *fraudServiceImpl) autoIngestFaces(reportID string, fraudID uuid.UUID, e
 
 	ctx := context.Background()
 	for _, url := range urls {
+		logger.Info("Downloading image for face ingest", "url", url[:min(len(url), 80)])
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
+			logger.Warn("Failed to create request", "error", err)
 			continue
 		}
 		req.Header.Set("User-Agent", "face-service/1.0")

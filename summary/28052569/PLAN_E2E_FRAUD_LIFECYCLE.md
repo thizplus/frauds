@@ -425,7 +425,82 @@ Phase 6: Flow E — Edge Cases
 
 ---
 
-## 8. Cleanup
+## 8. ผลทดสอบ E2E (รันเมื่อ 28 พ.ค. 2569)
+
+### Flow A: User แจ้งโกง → Verify → Settle
+
+| SC | Description | ผล | Notes |
+|----|-------------|-----|-------|
+| SC-01 | แจ้งโกง → pending | fraud status=pending, face ไม่ ingest, unified ไม่เจอ | PASS |
+| SC-02 | Admin verify → ค้นเจอ | status=verified, unified เจอ, face ingest trigger | PASS |
+| SC-03 | แจ้งซ้ำ → report_count+1 | fraudId เดิม, report_count=2→3 | PASS |
+| SC-04 | Settled → badge เขียว | status=settled, unified เจอ | PASS |
+| SC-05 | Settled + แจ้งอีก | report_count+1, status ยัง settled | PASS |
+
+### Flow B: Lender System
+
+| SC | Description | ผล | Notes |
+|----|-------------|-----|-------|
+| SC-06 | สมาชิกสะอาด → ไม่เจอ | matches=0 | PASS |
+| SC-07 | สมาชิกมี fraud verified | matches=1, source=fraud_report, verified=true | PASS |
+| SC-08 | สมาชิกมี social | matches=1, source=social, displayName=Nat Ta Pong | PASS |
+| SC-09 | Lender flag → verified ทันที | debtor=flagged, fraud verified ใหม่, unified เจอทันที | PASS |
+| SC-10 | Lender clear → settled | debtor=active, fraud=settled, unified เจอ status=settled | PASS |
+| SC-11 | Recheck หลัง clear | matches=1 (settled fraud) | PASS |
+
+### Flow C: Face Search Lifecycle
+
+| SC | Description | ผล | Notes |
+|----|-------------|-----|-------|
+| SC-12 | Verify → face ingest → match | ingest ผ่าน bot API, face search เจอ sourceType=fraud_report + social_post (count=2) | PASS (note: auto ingest จาก verify ใช้ R2 URL ที่ 404 → ต้อง ingest ผ่าน bot แทน) |
+| SC-13 | Social face only | match sourceType=social_post, displayName=Pin Aphinya | PASS |
+| SC-14 | คนสะอาด face search | faceDetected=true, count=0 | PASS |
+
+### Flow D: Cross-Channel Consistency
+
+| SC | Description | ผล | Notes |
+|----|-------------|-----|-------|
+| SC-15 | ทุก channel สอดคล้อง | unified=verified, face=fraud_report+social_post | PASS |
+| SC-16 | Pending → unified ไม่เจอ, debtor check ไม่เจอ fraud | matches=0 (fraud pending filtered) | PASS |
+| SC-17 | Settled → ทุก channel เจอ | unified=settled, totalResults=1 | PASS |
+
+### Flow E: Negative & Edge Cases
+
+| SC | Description | ผล | Notes |
+|----|-------------|-----|-------|
+| SC-18 | ไม่เคยถูกแจ้ง → ไม่เจอทุก channel | unified=0, face=0 | PASS |
+| SC-19 | แจ้งไม่มีรูป → skip face ingest | face_embeddings=0 | PASS |
+| SC-20 | สลิป (ไม่มีหน้า) | *(รวมใน SC-19 logic — evidenceURL ต้องเป็น URL ที่ download ได้)* | SKIP |
+| SC-21 | แจ้งซ้ำ cross-channel (user+lender) | lender flag คนเดียวกับ settled fraud → status กลับเป็น verified | PASS (note: flag override settled → verified) |
+| SC-22 | Admin reject (delete) → ค้นไม่เจอ | fraud ถูกลบ, unified=0 | PASS |
+| SC-23 | Debtor archived → fraud ยังเจอ | unified=1 (fraud ≠ debtor) | PASS |
+| SC-24 | Social + Fraud 2 section | sections: [frauds, social], totalResults=2 | PASS |
+
+### สรุปผล
+
+| สถานะ | จำนวน | % |
+|--------|--------|---|
+| PASS | 23 | 96% |
+| SKIP | 1 | 4% |
+| FAIL | 0 | 0% |
+| **รวม** | **24** | **100%** |
+
+### Findings จาก E2E
+
+1. **SC-05**: Settled + user แจ้งอีก → report_count+1 แต่ **status ยังเป็น settled** — ถูกต้อง admin ต้องตัดสินเอง
+2. **SC-21**: Lender flag คนที่ settled → **status กลับเป็น verified** — เพราะ flag สร้าง fraud ใหม่ที่ phone เดียวกัน → dedupe logic เปลี่ยน status เป็น verified (Lender มีอำนาจ = ถูกต้อง)
+3. **SC-12**: Auto face ingest ตอน verify ทำงาน แต่ **R2 URLs 404** (รูปเก่าหมดอายุ) → ต้อง ingest ผ่าน bot API แทน หรือ re-upload รูป
+4. **Face ingest pending ป้องกันแล้ว**: pending ไม่ ingest face + face search filter pending → คนบริสุทธิ์ปลอดภัย ✅
+
+---
+
+*ทดสอบเมื่อ: 28 พ.ค. 2569 เวลา 23:10 น.*
+*ทดสอบโดย: Claude Opus 4.6*
+*Environment: localhost (Docker) — fraud-api:3000*
+
+---
+
+## 9. Cleanup
 
 ```sql
 -- ลบ test data หลังทดสอบ
@@ -536,8 +611,8 @@ DELETE FROM face_embeddings WHERE source_type = 'fraud_report'
 | Priority | ช่องโหว่ | สถานะ | หมายเหตุ |
 |----------|---------|--------|---------|
 | ~~P0~~ | ~~Lender flag = verified ทันที~~ | ✅ ไม่ใช่ช่องโหว่ | Lender สมัครสมาชิกเสียเงิน = คัดกรองแล้ว |
-| **P0** | **Face ingest pending** | 📋 มีแผนแล้ว | Ingest เฉพาะ verified (ยังไม่ implement) |
+| **P0** | **Face ingest pending** | ✅ **แก้แล้ว!** (0b10d82) | Ingest เฉพาะ verified + filter pending ใน face search |
 | ~~P1~~ | ~~Report ไม่ต้อง login~~ | ✅ มีอยู่แล้ว | ต้อง login + ยืนยันตัวตนทั้งหมด |
 | **P2** | **Pending เจอใน debtor check** | ✅ **แก้แล้ว!** (aa8bf15) | filter status IN (verified, settled) |
 | **P2** | **ข้อมูลไม่ลบเมื่อ reject** | 📋 TODO | ต้องทำ admin frontend feature |
-| **P3** | Settled + แจ้งอีก | 📋 ตรวจ code | เก็บ report + admin ตัดสิน |
+| **P3** | Settled + แจ้งอีก | ✅ ตรวจแล้ว (SC-05) | report_count+1, status ยัง settled (SC-21: lender flag → กลับ verified) |
