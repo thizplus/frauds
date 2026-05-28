@@ -3,16 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { DollarSign, Monitor, MessageSquare, CreditCard, Wrench, AlertTriangle, Search, UserCheck, Crown, FileText } from 'lucide-react'
+import { DollarSign, Monitor, CreditCard, Wrench, AlertTriangle, Search, UserCheck, Crown, FileText, Share2, Plus, Trash2, GripVertical } from 'lucide-react'
 import { useSettingsByCategory } from '../hooks'
 import { SettingItem } from '../components/SettingItem'
+import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import type { LucideIcon } from 'lucide-react'
 
 const SECTIONS = [
   { id: 'quota', label: 'โควต้า/ลิมิต', icon: DollarSign, description: 'ตั้งค่าจำนวนการค้นหาและรายงานต่อวัน' },
   { id: 'display', label: 'การแสดงผล', icon: Monitor, description: 'ตั้งค่า mask ข้อมูล + จำนวนผลค้นหา' },
-  { id: 'line', label: 'LINE', icon: MessageSquare, description: 'ตั้งค่า LINE Login + OA + LIFF' },
   { id: 'payment', label: 'ชำระเงิน', icon: CreditCard, description: 'ตั้งค่า PromptPay + SlipOK' },
+  { id: 'social', label: 'Social Media', icon: Share2, description: 'ตั้งค่าลิงก์โซเชียลมีเดีย แสดงหน้าแรก' },
   { id: 'system', label: 'ระบบ', icon: Wrench, description: 'ตั้งค่าทั่วไป + maintenance mode' },
 ]
 
@@ -145,6 +146,8 @@ export function SettingsPage() {
               <AlertTriangle className="h-4 w-4" />
               <span>ไม่สามารถโหลดข้อมูลได้</span>
             </div>
+          ) : currentSection.id === 'social' ? (
+            <SocialLinksEditor />
           ) : settings && settings.length > 0 ? (
             <div className="space-y-6">
               {Object.entries(grouped).map(([group, items], gi) => (
