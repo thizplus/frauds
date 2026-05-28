@@ -58,9 +58,11 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		countQ = countQ.Where("(fr.first_name ILIKE ? OR fr.last_name ILIKE ? OR fr.phone ILIKE ? OR fr.bank_account ILIKE ?)", like, like, like, like)
 	}
 	if status == "verified" {
-		countQ = countQ.Where("f.verified = true")
-	} else if status == "unverified" {
-		countQ = countQ.Where("(f.verified = false OR f.verified IS NULL)")
+		countQ = countQ.Where("f.status = ?", models.FraudVerified)
+	} else if status == "unverified" || status == "pending" {
+		countQ = countQ.Where("(f.status = ? OR f.status IS NULL)", models.FraudPending)
+	} else if status == "settled" {
+		countQ = countQ.Where("f.status = ?", models.FraudSettled)
 	}
 
 	var total int64
@@ -80,7 +82,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		SocialAccounts string  `gorm:"column:social_accounts"`
 		ReporterNote   string  `gorm:"column:reporter_note"`
 		EvidenceURL    string  `gorm:"column:evidence_url"`
-		Verified       bool    `gorm:"column:verified"`
+		FraudStatus    string  `gorm:"column:fraud_status"`
 		CreatedAt      time.Time `gorm:"column:created_at"`
 	}
 
@@ -89,7 +91,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		Select(`fr.id, fr.ref_code, fr.fraud_id, fr.first_name, fr.last_name, fr.phone,
 			fr.bank_account, fr.bank_name, fr.id_card, fr.social_accounts, fr.reporter_note, fr.evidence_url,
 			COALESCE(fc.name, '') as category_name,
-			COALESCE(f.verified, false) as verified, fr.created_at`).
+			COALESCE(f.status, 'pending') as fraud_status, fr.created_at`).
 		Joins("LEFT JOIN frauds f ON f.id = fr.fraud_id").
 		Joins("LEFT JOIN fraud_categories fc ON fc.id = f.category_id").
 		Where("fr.user_id = ?", userID)
@@ -99,9 +101,11 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 		dataQ = dataQ.Where("(fr.first_name ILIKE ? OR fr.last_name ILIKE ? OR fr.phone ILIKE ? OR fr.bank_account ILIKE ?)", like, like, like, like)
 	}
 	if status == "verified" {
-		dataQ = dataQ.Where("f.verified = true")
-	} else if status == "unverified" {
-		dataQ = dataQ.Where("(f.verified = false OR f.verified IS NULL)")
+		dataQ = dataQ.Where("f.status = ?", models.FraudVerified)
+	} else if status == "unverified" || status == "pending" {
+		dataQ = dataQ.Where("(f.status = ? OR f.status IS NULL)", models.FraudPending)
+	} else if status == "settled" {
+		dataQ = dataQ.Where("f.status = ?", models.FraudSettled)
 	}
 
 	var rows []row
@@ -156,7 +160,7 @@ func (r *memberRepositoryImpl) ListReportsByUser(ctx context.Context, userID uui
 			SocialAccounts: r.SocialAccounts,
 			ReporterNote:   r.ReporterNote,
 			EvidenceURL:    r.EvidenceURL,
-			Verified:       r.Verified,
+			FraudStatus:    r.FraudStatus,
 			CreatedAt:      r.CreatedAt,
 		}
 		if r.FraudID != nil {

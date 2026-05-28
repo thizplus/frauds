@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Phone, CreditCard, BadgeCheck, Clock, ChevronRight, Sparkles, AlertOctagon, AlertTriangle, Circle } from 'lucide-react'
+import { User, Phone, CreditCard, BadgeCheck, CheckCircle, Clock, ChevronRight, Sparkles, AlertOctagon, AlertTriangle, Circle } from 'lucide-react'
 import type { FraudResponse } from '../types'
 
 function maskPhone(phone: string): string {
@@ -16,7 +16,8 @@ function maskBank(account: string): string {
 // คำนวณ AI match score จาก reportCount (mock - อนาคตมาจาก API)
 function getAiScore(fraud: FraudResponse): number {
   const base = Math.min(fraud.reportCount * 15, 80)
-  const verified = fraud.verified ? 15 : 0
+  const isVerified = fraud.status === 'verified' || (!fraud.status && fraud.verified)
+  const verified = isVerified ? 15 : 0
   return Math.min(base + verified + Math.floor(Math.random() * 10), 99)
 }
 
@@ -45,8 +46,10 @@ export function FraudRow({ fraud, onClick, isMember = false }: FraudRowProps) {
       <div className="row-ai-info">
         <div className="row-ai-name">
           {fraud.name || 'ไม่ทราบชื่อ'}
-          {fraud.verified ? (
+          {(fraud.status === 'verified' || (!fraud.status && fraud.verified)) ? (
             <BadgeCheck className="w-4 h-4 text-accent" />
+          ) : fraud.status === 'settled' ? (
+            <CheckCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           ) : (
             <Clock className="w-4 h-4 text-slate-500" />
           )}

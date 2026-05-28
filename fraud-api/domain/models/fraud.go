@@ -8,6 +8,14 @@ import (
 	"gorm.io/datatypes"
 )
 
+type FraudStatus string
+
+const (
+	FraudPending  FraudStatus = "pending"
+	FraudVerified FraudStatus = "verified"
+	FraudSettled  FraudStatus = "settled"
+)
+
 type Fraud struct {
 	ID             uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	CategoryID     string         `gorm:"size:50;not null;index"`
@@ -28,6 +36,7 @@ type Fraud struct {
 	RawText        string         `gorm:"type:text"`
 	ReportCount    int            `gorm:"default:1"`
 	Verified       bool           `gorm:"default:false"`
+	Status         FraudStatus    `gorm:"size:20;default:'pending'"`
 	IsComplete     bool           `gorm:"default:false"`
 	EnrichedAt     *time.Time
 	CreatedAt      time.Time

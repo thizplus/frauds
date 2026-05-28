@@ -13,6 +13,7 @@ export interface FraudResponse {
   extraData?: Record<string, unknown>
   reportCount: number
   verified: boolean
+  status?: 'pending' | 'verified' | 'settled'
   createdAt: string
 }
 

@@ -138,7 +138,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                     className="btn btn-secondary btn-lg flex-1"
                     onClick={() => setClearDialog(true)}
                   >
-                    <CheckCircle className="w-5 h-5" /> ปลดแจ้งเตือน
+                    <CheckCircle className="w-5 h-5" /> ชำระหนี้แล้ว
                   </button>
                 )}
               </div>
@@ -299,7 +299,7 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                     <div className="flex items-start gap-2 pt-1" style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.06))' }}>
                       <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
                       <div className="text-sm">
-                        <span style={{ color: 'var(--accent)' }}>ปลดแจ้งเตือนเมื่อ </span>
+                        <span style={{ color: 'var(--accent)' }}>ชำระหนี้เมื่อ </span>
                         <span style={{ color: 'var(--text)' }}>
                           {formatDateShort(debtor.clearedAt)}
                         </span>
@@ -430,16 +430,16 @@ function ClearDialog({ name, onClose, onSubmit, loading }: {
 
   return (
     <Drawer open={true} onClose={onClose} title={
-      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ปลดแจ้งเตือน "{name}"</h3>
+      <h3 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ยืนยันชำระหนี้ "{name}"</h3>
     }>
       <div className="space-y-4">
         <div>
           <label className="report-label">หมายเหตุ</label>
-          <textarea className="textarea" rows={3} placeholder="เช่น ชดใช้ครบแล้ว" value={note} onChange={(e) => setNote(e.target.value)} />
+          <textarea className="textarea" rows={3} placeholder="เช่น ชำระเงินครบแล้ว" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
         <button className="btn btn-primary btn-lg w-full" disabled={loading} onClick={() => onSubmit(note)}>
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-          ยืนยันปลดแจ้งเตือน
+          ยืนยันชำระหนี้
         </button>
       </div>
     </Drawer>

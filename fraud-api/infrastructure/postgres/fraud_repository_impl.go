@@ -73,10 +73,12 @@ func (r *fraudRepository) ListFiltered(ctx context.Context, categoryID, verified
 	if categoryID != "" {
 		query = query.Where("category_id = ?", categoryID)
 	}
-	if verified == "true" {
-		query = query.Where("verified = ?", true)
-	} else if verified == "false" {
-		query = query.Where("verified = ?", false)
+	if verified == "true" || verified == "verified" {
+		query = query.Where("status = ?", models.FraudVerified)
+	} else if verified == "false" || verified == "pending" {
+		query = query.Where("status = ?", models.FraudPending)
+	} else if verified == "settled" {
+		query = query.Where("status = ?", models.FraudSettled)
 	}
 	if search != "" {
 		searchPattern := "%" + search + "%"
@@ -143,7 +145,7 @@ func (r *fraudRepository) SearchAll(ctx context.Context, query string, categoryI
 
 	like := "%" + query + "%"
 	q := r.db.WithContext(ctx).Model(&models.Fraud{}).
-		Where("verified = ?", true).
+		Where("status IN ?", []models.FraudStatus{models.FraudVerified, models.FraudSettled}).
 		Where("name ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ? OR phone ILIKE ? OR bank_account ILIKE ? OR id_card ILIKE ? OR description ILIKE ?",
 			like, like, like, like, like, like, like)
 	if categoryID != "" {
@@ -160,7 +162,7 @@ func (r *fraudRepository) SearchByPhone(ctx context.Context, phone string, page,
 	var frauds []models.Fraud
 	var total int64
 
-	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("verified = ? AND phone LIKE ?", true, "%"+phone+"%")
+	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("status IN ? AND phone LIKE ?", []models.FraudStatus{models.FraudVerified, models.FraudSettled}, "%"+phone+"%")
 	q.Count(&total)
 
 	offset := (page - 1) * limit
@@ -172,7 +174,7 @@ func (r *fraudRepository) SearchByBankAccount(ctx context.Context, account strin
 	var frauds []models.Fraud
 	var total int64
 
-	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("verified = ? AND bank_account LIKE ?", true, "%"+account+"%")
+	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("status IN ? AND bank_account LIKE ?", []models.FraudStatus{models.FraudVerified, models.FraudSettled}, "%"+account+"%")
 	q.Count(&total)
 
 	offset := (page - 1) * limit
@@ -184,7 +186,7 @@ func (r *fraudRepository) SearchByIDCard(ctx context.Context, idCard string, pag
 	var frauds []models.Fraud
 	var total int64
 
-	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("verified = ? AND id_card = ?", true, idCard)
+	q := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("status IN ? AND id_card = ?", []models.FraudStatus{models.FraudVerified, models.FraudSettled}, idCard)
 	q.Count(&total)
 
 	offset := (page - 1) * limit
@@ -197,7 +199,7 @@ func (r *fraudRepository) SearchByName(ctx context.Context, name string, page, l
 	var total int64
 
 	q := r.db.WithContext(ctx).Model(&models.Fraud{}).
-		Where("verified = ?", true).
+		Where("status IN ?", []models.FraudStatus{models.FraudVerified, models.FraudSettled}).
 		Where("name % ? OR name ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?", name, "%"+name+"%", "%"+name+"%", "%"+name+"%")
 	q.Count(&total)
 
@@ -273,7 +275,7 @@ func (r *fraudRepository) CountAll(ctx context.Context) (int64, error) {
 
 func (r *fraudRepository) CountVerified(ctx context.Context) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("verified = ?", true).Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&models.Fraud{}).Where("status = ?", models.FraudVerified).Count(&count).Error
 	return count, err
 }
 

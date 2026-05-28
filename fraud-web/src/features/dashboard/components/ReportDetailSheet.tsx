@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BadgeCheck, Clock, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { BadgeCheck, Clock, CheckCircle, User, Phone, CreditCard, Building2, IdCard, MessageSquare, Image, Calendar, Hash, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Drawer } from '@/components/ui/Drawer'
 import { formatDateLong } from '@/lib/utils/format-date'
 import type { MyReport } from '../types'
@@ -31,7 +31,13 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
   if (!report) return null
 
   const r = report
-  const isVerified = r.status === 'verified'
+  const statusConfig: Record<string, { label: string; color: string; bg: string; icon: typeof BadgeCheck }> = {
+    pending: { label: 'รอตรวจสอบ', color: 'var(--warning, #facc15)', bg: 'rgba(250,204,21,0.1)', icon: Clock },
+    verified: { label: 'ยืนยันแล้ว', color: 'var(--danger)', bg: 'rgba(248,113,113,0.1)', icon: BadgeCheck },
+    settled: { label: 'ชำระหนี้แล้ว', color: 'var(--accent)', bg: 'rgba(34,197,94,0.1)', icon: CheckCircle },
+  }
+  const sc = statusConfig[r.status] || statusConfig.pending
+  const StatusIcon = sc.icon
   const fullName = [r.firstName, r.lastName].filter(Boolean).join(' ') || 'ไม่ระบุชื่อ'
   const evidenceUrls = parseEvidenceUrls(r.evidenceUrl)
 
@@ -54,12 +60,12 @@ export function ReportDetailSheet({ report, open, onClose, robotButton }: Report
             <span
               className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
               style={{
-                background: isVerified ? 'rgba(34,197,94,0.1)' : 'rgba(250,204,21,0.1)',
-                color: isVerified ? 'var(--accent)' : 'var(--warning, #facc15)',
+                background: sc.bg,
+                color: sc.color,
               }}
             >
-              {isVerified ? <BadgeCheck className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-              {isVerified ? 'ยืนยันแล้ว' : 'รอตรวจสอบ'}
+              <StatusIcon className="w-3.5 h-3.5" />
+              {sc.label}
             </span>
             {r.categoryName && (
               <span

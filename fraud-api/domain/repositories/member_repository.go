@@ -37,7 +37,7 @@ type MemberReportRow struct {
 	SocialAccounts string
 	ReporterNote   string
 	EvidenceURL    string
-	Verified       bool
+	FraudStatus    string
 	CreatedAt      time.Time
 	// Service payment ที่ผูกกับ fraud นี้
 	ServicePaymentID      *string

@@ -75,9 +75,9 @@ func (s *memberServiceImpl) MyReports(ctx context.Context, userID uuid.UUID, sea
 
 	items := make([]dto.MemberReportItem, len(rows))
 	for i, r := range rows {
-		status := "unverified"
-		if r.Verified {
-			status = "verified"
+		status := r.FraudStatus
+		if status == "" {
+			status = "pending"
 		}
 
 		items[i] = dto.MemberReportItem{

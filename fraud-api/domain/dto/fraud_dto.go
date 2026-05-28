@@ -95,6 +95,7 @@ type FraudResponse struct {
 	ExtraData      map[string]any `json:"extraData,omitempty"`
 	ReportCount    int            `json:"reportCount"`
 	Verified       bool           `json:"verified"`
+	Status         string         `json:"status,omitempty"`
 	CreatedAt      string         `json:"createdAt"`
 }
 

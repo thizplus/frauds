@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Clock, BadgeCheck, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
+import { ArrowLeft, FileText, Clock, BadgeCheck, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
@@ -14,8 +14,9 @@ import { formatDateShort } from '@/lib/utils/format-date'
 import { ReportDetailSheet } from '../components/ReportDetailSheet'
 
 const REPORT_STATUS: Record<string, { label: string; color: string }> = {
-  unverified: { label: 'รอตรวจสอบ', color: 'var(--warning, #facc15)' },
-  verified: { label: 'ยืนยันแล้ว', color: 'var(--accent)' },
+  pending: { label: 'รอตรวจสอบ', color: 'var(--warning, #facc15)' },
+  verified: { label: 'ยืนยันแล้ว', color: 'var(--danger)' },
+  settled: { label: 'ชำระหนี้แล้ว', color: 'var(--accent)' },
 }
 
 export function ReportsPage() {
@@ -105,7 +106,8 @@ export function ReportsPage() {
         {[
           { value: '', label: 'ทั้งหมด' },
           { value: 'verified', label: 'ยืนยันแล้ว' },
-          { value: 'unverified', label: 'รอตรวจสอบ' },
+          { value: 'settled', label: 'ชำระหนี้แล้ว' },
+          { value: 'pending', label: 'รอตรวจสอบ' },
         ].map((f) => (
           <button
             key={f.value}
@@ -222,7 +224,7 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
   onDismissCancel: () => void
 }) {
   const r = report
-  const rs = REPORT_STATUS[r.status] || REPORT_STATUS.unverified
+  const rs = REPORT_STATUS[r.status] || REPORT_STATUS.pending
   const sp = r.servicePayment
 
   return (
@@ -239,7 +241,7 @@ function ReportCard({ report, confirmCancel, actionPending, onOpenDetail, onOpen
           <div className="flex items-center gap-2 text-sm mt-1" style={{ color: 'var(--text-dim)' }}>
             <span>{formatDateShort(r.createdAt)}</span>
             <span className="flex items-center gap-1">
-              {r.status === 'verified' ? <BadgeCheck className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+              {r.status === 'verified' ? <BadgeCheck className="w-3.5 h-3.5" /> : r.status === 'settled' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
               {rs.label}
             </span>
           </div>

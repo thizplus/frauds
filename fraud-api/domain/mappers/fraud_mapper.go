@@ -40,6 +40,7 @@ func FraudToResponse(fraud *models.Fraud) *dto.FraudResponse {
 		ExtraData:      extraData,
 		ReportCount:    fraud.ReportCount,
 		Verified:       fraud.Verified,
+		Status:         string(fraud.Status),
 		CreatedAt:      fraud.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }

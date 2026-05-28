@@ -68,6 +68,7 @@ func (s *fraudServiceImpl) Create(ctx context.Context, req *dto.CreateFraudReque
 		SourceURL:   req.SourceURL,
 		SourceType:  req.SourceType,
 		RawText:     req.RawText,
+		Status:      models.FraudPending,
 		IsComplete:  req.Name != "" && (req.Phone != "" || req.BankAccount != ""),
 	}
 
@@ -247,6 +248,7 @@ func (s *fraudServiceImpl) Verify(ctx context.Context, id uuid.UUID) (*dto.Fraud
 		return nil, errors.New("fraud not found")
 	}
 	fraud.Verified = true
+	fraud.Status = models.FraudVerified
 	if err := s.fraudRepo.Update(ctx, id, fraud); err != nil {
 		return nil, err
 	}
@@ -260,10 +262,11 @@ func (s *fraudServiceImpl) Unverify(ctx context.Context, id uuid.UUID) error {
 		return errors.New("fraud not found")
 	}
 	fraud.Verified = false
+	fraud.Status = models.FraudSettled
 	if err := s.fraudRepo.Update(ctx, id, fraud); err != nil {
 		return err
 	}
-	logger.InfoContext(ctx, "Fraud unverified", "fraud_id", id)
+	logger.InfoContext(ctx, "Fraud settled", "fraud_id", id)
 	return nil
 }
 
@@ -305,6 +308,7 @@ func (s *fraudServiceImpl) CreateReport(ctx context.Context, req *dto.CreateRepo
 			SourceType:     "user_report",
 			ReportCount:    1,
 			Verified:       false,
+			Status:         models.FraudPending,
 			IsComplete:     req.FirstName != "" && (req.Phone != "" || req.BankAccount != ""),
 		}
 		if err := s.fraudRepo.Create(ctx, fraud); err != nil {
