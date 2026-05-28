@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -134,7 +133,7 @@ func (s *lineBotServiceImpl) HandleTextMessage(ctx context.Context, lineUserID, 
 	}
 
 	if _, err := s.searchService.CheckQuota(ctx, userID, ""); err != nil {
-		msg := "⚠️ ค้นหาครบแล้ววันนี้\n━━━━━━━━━━━━━\n👑 สมัครสมาชิกเพื่อค้นหาไม่จำกัด\nhttps://xn--12cainl6g3mua5b.com/pricing"
+		msg := "⚠️ ค้นหาครบแล้ววันนี้\n━━━━━━━━━━━━━\n👑 สมัครสมาชิกเพื่อค้นหาไม่จำกัด\nhttps://liff.line.me/2010174410-8ZWlb9uS"
 		return s.lineMessaging.ReplyText(ctx, replyToken, msg)
 	}
 
@@ -295,10 +294,10 @@ func buildSearchResultText(query string, result *dto.UnifiedSearchResponse, isMe
 	}
 
 	if !isMember {
-		sb.WriteString("\n🔒 สมัครสมาชิกเพื่อดูข้อมูลเต็ม\nhttps://xn--12cainl6g3mua5b.com/pricing")
+		sb.WriteString("\n🔒 สมัครสมาชิกเพื่อดูข้อมูลเต็ม\nhttps://liff.line.me/2010174410-8ZWlb9uS")
 	}
 
-	sb.WriteString(fmt.Sprintf("\n\n🔗 ดูเพิ่มเติม:\nhttps://xn--12cainl6g3mua5b.com/search?q=%s", url.QueryEscape(query)))
+	sb.WriteString("\n\n📌 ดูเพิ่มเติมที่เว็บ:\nhttps://liff.line.me/2010174410-8ZWlb9uS")
 
 	return sb.String()
 }
