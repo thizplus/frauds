@@ -131,31 +131,67 @@ SearchService.CheckQuota(userID, ip) ← ตัวเดิมจาก DB
 ## 6. Dynamic Rich Menu
 
 ### ทำไมต้อง Dynamic?
-- Free user เห็นปุ่ม "สมัครสมาชิก"
-- Member เห็นปุ่ม "Dashboard" แทน
+- Free user เห็นปุ่ม "อัพเกรด" → ชวนสมัคร
+- Member เห็นปุ่ม "ระบบเก็บข้อมูล" → ฟีเจอร์ lender
 
-### Rich Menu 2 ชุด
+### Rich Menu Layout (2 ส่วน — ด้านบนใหญ่ + ด้านล่าง 3 ปุ่ม)
 
-**Rich Menu A (Free)**
+**Rich Menu A (Free — ยังไม่ subscribe)**
 ```
-┌──────────┬──────────┬──────────┐
-│          │          │          │
-│  🔍      │  👑      │  ❓      │
-│  ค้นหา   │  สมัคร   │ ช่วยเหลือ │
-│          │ สมาชิก   │          │
+┌─────────────────────────────────┐
+│                                 │
+│        🛡️ เช็กคนโกง.com          │  ← กดเปิด LIFF (เว็บหลัก)
+│        เข้าสู่ระบบ / หน้าแรก      │     URI: LIFF URL
+│                                 │
+├──────────┬──────────┬──────────┤
+│  🔍      │  👑      │  📖      │
+│  ค้นหา   │ อัพเกรด  │ วิธีใช้งาน │  ← 3 ปุ่มด้านล่าง
+│ postback │   URI    │ postback │
 └──────────┴──────────┴──────────┘
-Postback:  search    pricing     help
+
+Actions:
+  ด้านบน:  type=uri  → LIFF URL (เว็บหลัก)
+  ค้นหา:   type=postback  data=action=search
+  อัพเกรด: type=uri  → https://เช็กคนโกง.com/pricing
+  วิธีใช้:  type=postback  data=action=help
 ```
 
-**Rich Menu B (Member)**
+**Rich Menu B (Member — subscribe แล้ว)**
 ```
-┌──────────┬──────────┬──────────┐
-│          │          │          │
-│  🔍      │  📊      │  ❓      │
-│  ค้นหา   │ Dashboard│ ช่วยเหลือ │
-│          │          │          │
+┌─────────────────────────────────┐
+│                                 │
+│        🛡️ เช็กคนโกง.com          │  ← กดเปิด LIFF (เว็บหลัก)
+│        Dashboard / หน้าแรก       │     URI: LIFF URL
+│                                 │
+├──────────┬──────────┬──────────┤
+│  🔍      │  📋      │  ❓      │
+│  ค้นหา   │ ระบบเก็บ  │ ช่วยเหลือ │  ← 3 ปุ่มด้านล่าง
+│ postback │ ข้อมูล   │ postback │
+│          │   URI    │          │
 └──────────┴──────────┴──────────┘
-Postback:  search    dashboard   help
+
+Actions:
+  ด้านบน:     type=uri  → LIFF URL (เว็บหลัก)
+  ค้นหา:      type=postback  data=action=search
+  ระบบเก็บข้อมูล: type=uri  → https://เช็กคนโกง.com/lender
+  ช่วยเหลือ:   type=postback  data=action=help
+```
+
+### Rich Menu Areas (4 zones)
+```
+┌─────────────────────────────────┐
+│           Zone 1 (LIFF)         │  y: 0-600
+│          (full width)           │
+├──────────┬──────────┬──────────┤
+│  Zone 2  │  Zone 3  │  Zone 4  │  y: 600-900
+│  ค้นหา   │ อัพเกรด/ │ วิธีใช้/  │
+│          │ ระบบเก็บ  │ ช่วยเหลือ │
+└──────────┴──────────┴──────────┘
+Size: 2500 x 900 pixels (compact)
+Zone 1: {x:0, y:0, w:2500, h:600}
+Zone 2: {x:0, y:600, w:833, h:300}
+Zone 3: {x:833, y:600, w:834, h:300}
+Zone 4: {x:1667, y:600, w:833, h:300}
 ```
 
 ### Link Rich Menu ตาม userId
@@ -165,9 +201,16 @@ Authorization: Bearer {channelAccessToken}
 ```
 
 ### เมื่อไหร่เปลี่ยน Rich Menu?
-- Follow event → link Rich Menu A (free)
-- สมัคร subscription สำเร็จ → link Rich Menu B (member)
-- Subscription หมดอายุ → link Rich Menu A (free)
+| Event | Rich Menu |
+|-------|-----------|
+| Follow (แอดเพื่อน) | Link Menu A (Free) |
+| สมัคร subscription สำเร็จ | Link Menu B (Member) |
+| Subscription หมดอายุ | Link Menu A (Free) |
+
+### Rich Menu Image
+- ต้องสร้างรูป 2500x900px (2 รูป — Free + Member)
+- ด้านบน: banner เช็กคนโกง + CTA
+- ด้านล่าง: 3 icon + text
 
 ---
 
