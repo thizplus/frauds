@@ -191,7 +191,8 @@ func (c *Container) Initialize() error {
 			logger.Info("Session store: Memory (Redis not configured)")
 		}
 		c.LineBotService = serviceimpl.NewLineBotService(
-			c.LineMessaging, c.SearchService, c.UserRepo, c.MembershipRepo, c.SessionStore,
+			c.LineMessaging, c.SearchService, c.UserRepo, c.MembershipRepo,
+			c.SettingsRepo, c.SearchLogRepo, c.SessionStore,
 			cfg.LINE.RichMenuFree, cfg.LINE.RichMenuMember,
 		)
 		logger.Info("LINE Bot service initialized")

@@ -2,6 +2,7 @@ package serviceimpl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,8 @@ type lineBotServiceImpl struct {
 	searchService  services.SearchService
 	userRepo       repositories.UserRepository
 	memberRepo     repositories.MembershipRepository
+	settingsRepo   repositories.SettingsRepository
+	searchLogRepo  repositories.SearchLogRepository
 	sessionStore   ports.SessionStore
 	richMenuFree   string
 	richMenuMember string
@@ -30,6 +33,8 @@ func NewLineBotService(
 	searchService services.SearchService,
 	userRepo repositories.UserRepository,
 	memberRepo repositories.MembershipRepository,
+	settingsRepo repositories.SettingsRepository,
+	searchLogRepo repositories.SearchLogRepository,
 	sessionStore ports.SessionStore,
 	richMenuFree, richMenuMember string,
 ) services.LineBotService {
@@ -38,6 +43,8 @@ func NewLineBotService(
 		searchService:  searchService,
 		userRepo:       userRepo,
 		memberRepo:     memberRepo,
+		settingsRepo:   settingsRepo,
+		searchLogRepo:  searchLogRepo,
 		sessionStore:   sessionStore,
 		richMenuFree:   richMenuFree,
 		richMenuMember: richMenuMember,
@@ -100,7 +107,12 @@ func (s *lineBotServiceImpl) HandlePostback(ctx context.Context, lineUserID, rep
 	case "search":
 		// เข้าโหมดค้นหา
 		s.sessionStore.Set(ctx, "line:mode:"+lineUserID, "search", 60)
-		prompt := buildSearchPromptMessage()
+
+		// ดึง quota เหลือ
+		user, _ := s.userRepo.GetByLineUserID(ctx, lineUserID)
+		quotaUsed, quotaTotal := s.getQuotaInfo(ctx, user)
+
+		prompt := buildSearchPromptMessage(quotaUsed, quotaTotal)
 		return s.lineMessaging.Reply(ctx, replyToken, prompt)
 
 	case "help":
@@ -184,6 +196,35 @@ func (s *lineBotServiceImpl) HandleImageMessage(ctx context.Context, lineUserID,
 	return s.lineMessaging.Reply(ctx, replyToken, msg)
 }
 
+// getQuotaInfo — ดึงจำนวน quota จาก settings + นับจริงจาก search_logs
+func (s *lineBotServiceImpl) getQuotaInfo(ctx context.Context, user *models.User) (used int, total int) {
+	if user == nil {
+		return 0, 5
+	}
+
+	// Member → ไม่จำกัด
+	hasSub, _ := s.memberRepo.HasActiveSubscription(ctx, user.ID)
+	if hasSub {
+		return 0, -1 // -1 = ไม่จำกัด
+	}
+
+	// ดึง quota จาก settings
+	total = 5
+	setting, _ := s.settingsRepo.GetByKey(ctx, "quota.free_search_limit")
+	if setting != nil {
+		var v float64
+		if json.Unmarshal(setting.Value, &v) == nil && v > 0 {
+			total = int(v)
+		}
+	}
+
+	// นับจำนวนที่ใช้ไปวันนี้จาก search_logs
+	count, _ := s.searchLogRepo.CountByUserToday(ctx, user.ID)
+	used = int(count)
+
+	return used, total
+}
+
 // === Helper functions ===
 
 func parsePostbackData(data string) map[string]string {
@@ -236,8 +277,39 @@ func buildWelcomeMessage() []ports.FlexContainer {
 	}}
 }
 
-func buildSearchPromptMessage() []ports.FlexContainer {
-	return buildTextReply("🔍 พิมพ์ข้อมูลที่ต้องการค้นหา\n\n📱 เบอร์โทร เช่น 0891234567\n🏦 เลขบัญชี เช่น 1234567890\n🪪 เลขบัตร 13 หลัก\n👤 ชื่อ เช่น สมศักดิ์\n\n⏱️ หมดเวลาใน 60 วินาที")
+func buildSearchPromptMessage(quotaUsed, quotaTotal int) []ports.FlexContainer {
+	quotaText := ""
+	if quotaTotal == -1 {
+		quotaText = "👑 สมาชิก — ค้นหาไม่จำกัด"
+	} else {
+		remaining := quotaTotal - quotaUsed
+		if remaining < 0 {
+			remaining = 0
+		}
+		quotaText = fmt.Sprintf("📊 เหลือ %d/%d ครั้งวันนี้", remaining, quotaTotal)
+	}
+
+	return []ports.FlexContainer{{
+		Type:    "flex",
+		AltText: "🔍 /AI-SEARCH — โหมดค้นหา",
+		Contents: map[string]any{
+			"type": "bubble",
+			"body": map[string]any{
+				"type":   "box",
+				"layout": "vertical",
+				"contents": []map[string]any{
+					{"type": "text", "text": "🔍 /AI-SEARCH", "weight": "bold", "size": "lg", "color": "#00d492"},
+					{"type": "text", "text": "คุณกำลังเข้าสู่โหมดค้นหา", "size": "md", "weight": "bold", "margin": "md"},
+					{"type": "separator", "margin": "lg"},
+					{"type": "text", "text": "กรุณาพิมพ์ข้อมูลที่ต้องการค้นหา:", "size": "sm", "color": "#aaaaaa", "margin": "lg"},
+					{"type": "text", "text": "📱 เบอร์โทร เช่น 0891234567\n🏦 เลขบัญชี เช่น 1234567890\n🪪 เลขบัตรประชาชน 13 หลัก\n👤 ชื่อ-นามสกุล เช่น สมศักดิ์", "size": "sm", "color": "#aaaaaa", "margin": "md", "wrap": true},
+					{"type": "separator", "margin": "lg"},
+					{"type": "text", "text": quotaText, "size": "sm", "weight": "bold", "margin": "lg", "color": "#00d492"},
+					{"type": "text", "text": "⏱️ หมดเวลาใน 60 วินาที", "size": "xs", "color": "#888888", "margin": "sm"},
+				},
+			},
+		},
+	}}
 }
 
 func buildHelpMessage() []ports.FlexContainer {
