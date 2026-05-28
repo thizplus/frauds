@@ -23,7 +23,7 @@ export function FaceSearchDrawer({ open, onClose, onSelectFraud }: FaceSearchDra
         </div>
       }
     >
-      <FaceSearchTab onSelectFraud={(fraud) => { onClose(); onSelectFraud(fraud) }} />
+      <FaceSearchTab onSelectFraud={onSelectFraud} />
     </Drawer>
   )
 }
