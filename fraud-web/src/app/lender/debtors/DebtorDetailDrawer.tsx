@@ -92,8 +92,17 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
         ) : (
           <div className="space-y-5">
 
-            {/* Action buttons */}
-            <div className="space-y-2">
+            {/* Primary action */}
+            {!debtor.checkedAt ? (
+              <button
+                className="btn btn-primary btn-lg w-full"
+                onClick={handleCheck}
+                disabled={checkMutation.isPending || scanning}
+              >
+                {(checkMutation.isPending || scanning) ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                ตรวจสอบประวัติ
+              </button>
+            ) : (
               <div className="flex gap-2">
                 <button
                   className="btn btn-secondary btn-lg flex-1"
@@ -101,9 +110,9 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                   disabled={checkMutation.isPending || scanning}
                 >
                   {(checkMutation.isPending || scanning) ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                  ตรวจสอบประวัติ
+                  ตรวจซ้ำ
                 </button>
-                {debtor.checkedAt && debtor.status === 'active' && (
+                {debtor.status === 'active' && (
                   <button
                     className="btn btn-lg flex-1"
                     style={{ background: 'var(--danger)', color: '#fff' }}
@@ -121,22 +130,23 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
                   </button>
                 )}
               </div>
-              {/* ซ่อน (archive) */}
-              {debtor.status !== 'archived' && (
-                <button
-                  className="btn btn-secondary w-full text-sm"
-                  style={{ color: 'var(--text-dim)' }}
-                  onClick={() => {
-                    if (confirm('ซ่อนสมาชิกคนนี้? (สามารถกู้คืนได้จากถังขยะ)')) {
-                      archiveMutation.mutate(debtorId!, { onSuccess: onClose })
-                    }
-                  }}
-                  disabled={archiveMutation.isPending}
-                >
-                  <Archive className="w-4 h-4" /> ซ่อนเข้าถังขยะ
-                </button>
-              )}
-            </div>
+            )}
+
+            {/* Secondary: archive — เล็กๆ ไม่เด่น */}
+            {debtor.status !== 'archived' && (
+              <button
+                className="w-full text-xs py-2 flex items-center justify-center gap-1"
+                style={{ color: 'var(--text-dim)' }}
+                onClick={() => {
+                  if (confirm('ซ่อนสมาชิกคนนี้? (กู้คืนได้จากถังขยะ)')) {
+                    archiveMutation.mutate(debtorId!, { onSuccess: onClose })
+                  }
+                }}
+                disabled={archiveMutation.isPending}
+              >
+                <Archive className="w-3.5 h-3.5" /> ซ่อน
+              </button>
+            )}
 
             {/* Scan Animation */}
             {scanning && (
