@@ -24,13 +24,20 @@ type FaceServiceConfig struct {
 }
 
 type LINEConfig struct {
-	ChannelID          string
-	ChannelSecret      string
-	ChannelAccessToken string // สำหรับ Messaging API push message
-	CallbackURL        string
-	LiffID             string
-	RichMenuFree       string // Rich Menu ID สำหรับ Free user
-	RichMenuMember     string // Rich Menu ID สำหรับ Member
+	// LINE Login channel
+	ChannelID     string
+	ChannelSecret string
+	CallbackURL   string
+	LiffID        string
+
+	// LINE Messaging API channel
+	MessagingChannelID     string
+	MessagingChannelSecret string
+	ChannelAccessToken     string // Messaging API access token
+
+	// Rich Menu
+	RichMenuFree   string
+	RichMenuMember string
 }
 
 type StorageConfig struct {
@@ -139,9 +146,11 @@ func LoadConfig() (*Config, error) {
 			URL: getEnv("FACE_SERVICE_URL", "http://face-service:3002"),
 		},
 		LINE: LINEConfig{
-			ChannelID:          getEnv("LINE_CHANNEL_ID", ""),
-			ChannelSecret:      getEnv("LINE_CHANNEL_SECRET", ""),
-			ChannelAccessToken: getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
+			ChannelID:              getEnv("LINE_CHANNEL_ID", ""),
+			ChannelSecret:          getEnv("LINE_CHANNEL_SECRET", ""),
+			MessagingChannelID:     getEnv("LINE_MESSAGING_CHANNEL_ID", ""),
+			MessagingChannelSecret: getEnv("LINE_MESSAGING_CHANNEL_SECRET", ""),
+			ChannelAccessToken:     getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
 			CallbackURL:        getEnv("LINE_CALLBACK_URL", "http://localhost:3001/auth/line/callback"),
 			LiffID:             getEnv("LINE_LIFF_ID", ""),
 			RichMenuFree:       getEnv("LINE_RICH_MENU_FREE", ""),

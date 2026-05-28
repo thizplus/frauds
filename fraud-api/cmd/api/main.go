@@ -74,7 +74,7 @@ func main() {
 	if container.LineBotService != nil {
 		h.LineWebhookHandler = handlers.NewLineWebhookHandler(
 			container.LineBotService,
-			container.Config.LINE.ChannelSecret,
+			container.Config.LINE.MessagingChannelSecret,
 		)
 	}
 
