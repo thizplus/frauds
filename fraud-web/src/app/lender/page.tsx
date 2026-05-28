@@ -241,15 +241,15 @@ function FieldSettingsDrawer({ open, onClose, formFields }: {
           <button className="btn-ghost btn-icon" onClick={onClose}><X className="w-5 h-5" /></button>
         </div>
         <div className="payment-drawer-body">
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-base mb-4" style={{ color: 'var(--text-muted)' }}>
             เลือกข้อมูลที่ต้องการเก็บจากสมาชิก (ชื่อเป็นค่าบังคับเสมอ)
           </p>
 
           {/* ชื่อ — บังคับ */}
           <div className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
-              <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>ชื่อ</div>
-              <div className="text-xs" style={{ color: 'var(--text-dim)' }}>บังคับเสมอ</div>
+              <div className="text-base font-medium" style={{ color: 'var(--text)' }}>ชื่อ</div>
+              <div className="text-sm" style={{ color: 'var(--text-dim)' }}>บังคับเสมอ</div>
             </div>
             <div className="w-11 h-6 rounded-full" style={{ background: 'var(--accent)', opacity: 0.5 }} />
           </div>
@@ -258,8 +258,8 @@ function FieldSettingsDrawer({ open, onClose, formFields }: {
           {FIELD_LABELS.map((f) => (
             <div key={f.key} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
-                <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>{f.label}</div>
-                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>{f.description}</div>
+                <div className="text-base font-medium" style={{ color: 'var(--text)' }}>{f.label}</div>
+                <div className="text-sm" style={{ color: 'var(--text-dim)' }}>{f.description}</div>
               </div>
               <button
                 className="w-11 h-6 rounded-full relative transition-colors"
