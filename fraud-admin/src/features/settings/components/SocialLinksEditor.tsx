@@ -34,8 +34,8 @@ export function SocialLinksEditor() {
 
   useEffect(() => {
     apiClient.get('/admin/settings/social.links')
-      .then((res) => {
-        const val = res.data?.data?.value
+      .then((res: any) => {
+        const val = res?.value
         if (Array.isArray(val)) setLinks(val)
       })
       .catch(() => {})
