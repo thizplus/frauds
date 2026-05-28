@@ -78,11 +78,22 @@ func (s *faceSearchServiceImpl) SearchByFace(ctx context.Context, imageBytes []b
 			if s.socialSearchRepo != nil {
 				post, err := s.socialSearchRepo.GetPostByID(ctx, m.SourceID)
 				if err == nil && post != nil {
+					postInfo := &dto.SocialPostInfo{
+						AuthorName:    post.AuthorName,
+						Message:       post.Message,
+						ReactionCount: post.ReactionCount,
+						CommentCount:  post.CommentCount,
+						ImageCount:    post.ImageCount,
+					}
+					if post.CreationTime != nil {
+						postInfo.PostDate = post.CreationTime.Format("2006-01-02T15:04:05Z")
+					}
 					match.SocialPost = &dto.FaceMatchSocialPost{
 						PostID:       post.ID,
 						DisplayName:  post.AuthorName,
 						PermalinkURL: post.PermalinkURL,
 						GroupID:      post.GroupID,
+						PostInfo:     postInfo,
 					}
 				}
 			}

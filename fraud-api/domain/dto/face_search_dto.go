@@ -18,10 +18,11 @@ type FaceMatchResult struct {
 }
 
 type FaceMatchSocialPost struct {
-	PostID       string `json:"postId"`
-	DisplayName  string `json:"displayName,omitempty"`
-	PermalinkURL string `json:"permalinkUrl,omitempty"`
-	GroupID      string `json:"groupId,omitempty"`
+	PostID       string          `json:"postId"`
+	DisplayName  string          `json:"displayName,omitempty"`
+	PermalinkURL string          `json:"permalinkUrl,omitempty"`
+	GroupID      string          `json:"groupId,omitempty"`
+	PostInfo     *SocialPostInfo `json:"postInfo,omitempty"`
 }
 
 // === Face Ingest (Bot) ===

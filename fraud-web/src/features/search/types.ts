@@ -101,5 +101,6 @@ export interface FaceMatch {
     displayName?: string
     permalinkUrl?: string
     groupId?: string
+    postInfo?: PostInfo
   }
 }
