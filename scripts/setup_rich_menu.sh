@@ -14,30 +14,27 @@ if [ -z "$TOKEN" ]; then
 fi
 
 echo "===== Creating Rich Menu A (Free) ====="
+# Template: Large 2500x1686 — ซ้ายใหญ่ (A) + ขวาบน (B) + ขวาล่าง (C)
 MENU_A=$(curl -s -X POST "$API/richmenu" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-  "size": {"width": 2500, "height": 843},
+  "size": {"width": 2500, "height": 1686},
   "selected": true,
   "name": "Free User Menu",
   "chatBarText": "เมนู",
   "areas": [
     {
-      "bounds": {"x": 0, "y": 0, "width": 2500, "height": 543},
+      "bounds": {"x": 0, "y": 0, "width": 1666, "height": 1686},
       "action": {"type": "uri", "label": "เช็กคนโกง.com", "uri": "'"$LIFF_URL"'"}
     },
     {
-      "bounds": {"x": 0, "y": 543, "width": 833, "height": 300},
+      "bounds": {"x": 1666, "y": 0, "width": 834, "height": 843},
       "action": {"type": "postback", "label": "ค้นหา", "data": "action=search", "displayText": "🔍 ค้นหา"}
     },
     {
-      "bounds": {"x": 833, "y": 543, "width": 834, "height": 300},
+      "bounds": {"x": 1666, "y": 843, "width": 834, "height": 843},
       "action": {"type": "uri", "label": "อัพเกรด", "uri": "'"$SITE_URL"'/pricing"}
-    },
-    {
-      "bounds": {"x": 1667, "y": 543, "width": 833, "height": 300},
-      "action": {"type": "postback", "label": "วิธีใช้งาน", "data": "action=help", "displayText": "📖 วิธีใช้งาน"}
     }
   ]
 }')
@@ -57,26 +54,22 @@ MENU_B=$(curl -s -X POST "$API/richmenu" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-  "size": {"width": 2500, "height": 843},
+  "size": {"width": 2500, "height": 1686},
   "selected": true,
   "name": "Member Menu",
   "chatBarText": "เมนู",
   "areas": [
     {
-      "bounds": {"x": 0, "y": 0, "width": 2500, "height": 543},
+      "bounds": {"x": 0, "y": 0, "width": 1666, "height": 1686},
       "action": {"type": "uri", "label": "เช็กคนโกง.com", "uri": "'"$LIFF_URL"'"}
     },
     {
-      "bounds": {"x": 0, "y": 543, "width": 833, "height": 300},
+      "bounds": {"x": 1666, "y": 0, "width": 834, "height": 843},
       "action": {"type": "postback", "label": "ค้นหา", "data": "action=search", "displayText": "🔍 ค้นหา"}
     },
     {
-      "bounds": {"x": 833, "y": 543, "width": 834, "height": 300},
+      "bounds": {"x": 1666, "y": 843, "width": 834, "height": 843},
       "action": {"type": "uri", "label": "ระบบเก็บข้อมูล", "uri": "'"$SITE_URL"'/lender"}
-    },
-    {
-      "bounds": {"x": 1667, "y": 543, "width": 833, "height": 300},
-      "action": {"type": "postback", "label": "ช่วยเหลือ", "data": "action=help", "displayText": "❓ ช่วยเหลือ"}
     }
   ]
 }')
