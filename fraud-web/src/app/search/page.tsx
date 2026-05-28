@@ -12,10 +12,20 @@ import { LoginModal } from '@/features/auth'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { SearchResults } from '@/features/search/components/SearchResults'
 import { UnifiedResults } from '@/features/search/components/UnifiedResults'
-import { ScanModal } from '@/features/search/components/ScanModal'
+import { ScanAnimation } from '@/components/shared/ScanAnimation'
+import type { ScanStep } from '@/components/shared/ScanAnimation'
+import { TextSearch, Database, Bot, Brain, ListChecks } from 'lucide-react'
 import { FaceSearchDrawer } from '@/components/shared/FaceSearchDrawer'
 import { ShieldCheck, Lock, RefreshCcw } from 'lucide-react'
 import type { FraudResponse, SearchParams } from '@/features/search/types'
+
+const TEXT_SCAN_STEPS: ScanStep[] = [
+  { icon: TextSearch, label: 'วิเคราะห์รูปแบบคำค้น', duration: 1500, logs: ['parsing input...', 'detecting format...', 'pattern detected'] },
+  { icon: Database, label: 'ค้นหาในฐานข้อมูลกลาง', duration: 2000, logs: ['querying PostgreSQL...', 'scanning index B-tree...', 'matching variants...'] },
+  { icon: Bot, label: 'เช็คกับ Bot Collector', duration: 2200, logs: ['fetching from Bot Collector...', 'cross-ref Facebook Group #1', 'cross-ref Facebook Group #2'] },
+  { icon: Brain, label: 'AI ประเมินความน่าเชื่อถือ', duration: 2200, logs: ['running confidence model...', 'analyzing report patterns...'] },
+  { icon: ListChecks, label: 'จัดเรียงผลลัพธ์', duration: 1300, logs: ['sorting by relevance...', 'scan complete ✓'] },
+]
 
 export default function SearchPage() {
   const router = useRouter()
@@ -231,10 +241,13 @@ export default function SearchPage() {
         </section>
       )}
 
-      {/* Scan Modal */}
-      <ScanModal
+      {/* Scan Animation */}
+      <ScanAnimation
         open={scanning}
-        query={storeQuery}
+        title="AI กำลังวิเคราะห์"
+        subtitle={storeQuery}
+        steps={TEXT_SCAN_STEPS}
+        showStats
         onComplete={handleScanComplete}
         onCancel={handleScanCancel}
       />

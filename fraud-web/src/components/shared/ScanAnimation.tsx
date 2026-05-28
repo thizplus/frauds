@@ -11,22 +11,30 @@ export interface ScanStep {
   logs: string[]
 }
 
+export interface ScanStats {
+  records: number
+  sources: number
+  matches: number
+}
+
 interface ScanAnimationProps {
   open: boolean
   title: string
   subtitle?: string
   steps: ScanStep[]
+  showStats?: boolean
   onComplete: () => void
   onCancel: () => void
 }
 
-export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCancel }: ScanAnimationProps) {
+export function ScanAnimation({ open, title, subtitle, steps, showStats = false, onComplete, onCancel }: ScanAnimationProps) {
   const [currentStep, setCurrentStep] = useState(-1)
   const [stepStates, setStepStates] = useState<('idle' | 'active' | 'done')[]>(steps.map(() => 'idle'))
   const [progress, setProgress] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [statusText, setStatusText] = useState('กำลังเชื่อมต่อระบบ')
   const [logs, setLogs] = useState<string[]>([])
+  const [stats, setStats] = useState<ScanStats>({ records: 0, sources: 0, matches: 0 })
   const cancelledRef = useRef(false)
   const logRef = useRef<HTMLDivElement>(null)
 
@@ -37,6 +45,7 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
     setElapsed(0)
     setStatusText('กำลังเชื่อมต่อระบบ')
     setLogs([])
+    setStats({ records: 0, sources: 0, matches: 0 })
     cancelledRef.current = false
   }, [steps])
 
@@ -77,6 +86,21 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
       await delay(400)
       if (cancelled) return
       setLogs(l => [...l, '> handshake complete OK'])
+      // Animate stats counter
+      let statsId: ReturnType<typeof setInterval> | null = null
+      if (showStats) {
+        let frame = 0
+        statsId = setInterval(() => {
+          frame++
+          setStats({
+            records: Math.min(Math.round(frame * 20), 1247),
+            sources: Math.min(Math.round(frame * 0.08), 5),
+            matches: 0,
+          })
+          if (frame >= 65) { if (statsId) clearInterval(statsId) }
+        }, 100)
+      }
+
       await delay(500)
 
       for (let i = 0; i < steps.length; i++) {
@@ -101,7 +125,10 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
         setStepStates(prev => prev.map((s, idx) => idx === i ? 'done' : s))
       }
 
+      if (statsId) clearInterval(statsId)
+
       if (!cancelled && !cancelledRef.current) {
+        if (showStats) setStats(s => ({ ...s, matches: 6 }))
         setStatusText('เสร็จสิ้น ✓')
         await delay(600)
       }
@@ -175,6 +202,23 @@ export function ScanAnimation({ open, title, subtitle, steps, onComplete, onCanc
             )
           })}
         </ul>
+
+        {showStats && (
+          <div className="ai-stats">
+            <div className="ai-stat">
+              <div className="ai-stat-value">{stats.records.toLocaleString()}</div>
+              <div className="ai-stat-label">records</div>
+            </div>
+            <div className="ai-stat">
+              <div className="ai-stat-value">{stats.sources}</div>
+              <div className="ai-stat-label">แหล่งข้อมูล</div>
+            </div>
+            <div className="ai-stat">
+              <div className="ai-stat-value">{stats.matches}</div>
+              <div className="ai-stat-label">รายการตรง</div>
+            </div>
+          </div>
+        )}
 
         <div className="scan-modal-footer">
           <button className="btn-abort" onClick={handleCancel}>
