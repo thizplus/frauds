@@ -66,13 +66,13 @@ export default function LenderPage() {
 
       {/* Invite link */}
       <div className="card p-4 mb-6">
-        <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>ลิงก์ลงทะเบียน</p>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>ส่งลิงก์นี้ให้สมาชิก/ลูกค้าเพื่อกรอกข้อมูล</p>
+        <p className="text-base font-medium mb-2" style={{ color: 'var(--text)' }}>ลิงก์ลงทะเบียน</p>
+        <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>ส่งลิงก์นี้ให้สมาชิก/ลูกค้าเพื่อกรอกข้อมูล</p>
         <div className="flex gap-2">
-          <input type="text" className="input flex-1 text-xs font-mono"
+          <input type="text" className="input flex-1 text-sm font-mono"
             value={profile.inviteUrl} readOnly onClick={(e) => (e.target as HTMLInputElement).select()} />
-          <button className="btn btn-primary px-3" onClick={handleCopy}>
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          <button className="btn btn-primary px-4" onClick={handleCopy}>
+            {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -80,14 +80,14 @@ export default function LenderPage() {
       {/* Menu */}
       <div className="space-y-2">
         <Link href="/lender/debtors" className="card p-4 flex items-center gap-3">
-          <Users className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-          <span className="flex-1 font-medium text-sm" style={{ color: 'var(--text)' }}>รายชื่อสมาชิก</span>
-          <span className="text-sm" style={{ color: 'var(--text-dim)' }}>→</span>
+          <Users className="w-6 h-6 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+          <span className="flex-1 font-medium text-base" style={{ color: 'var(--text)' }}>รายชื่อสมาชิก</span>
+          <span className="text-base" style={{ color: 'var(--text-dim)' }}>→</span>
         </Link>
         <button className="card p-4 flex items-center gap-3 w-full text-left" onClick={() => setSettingsOpen(true)}>
-          <Settings className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-          <span className="flex-1 font-medium text-sm" style={{ color: 'var(--text)' }}>ตั้งค่าฟอร์มลงทะเบียน</span>
-          <span className="text-sm" style={{ color: 'var(--text-dim)' }}>→</span>
+          <Settings className="w-6 h-6 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <span className="flex-1 font-medium text-base" style={{ color: 'var(--text)' }}>ตั้งค่าฟอร์มลงทะเบียน</span>
+          <span className="text-base" style={{ color: 'var(--text-dim)' }}>→</span>
         </button>
       </div>
 
@@ -137,8 +137,8 @@ function SetupForm() {
             <Database className="w-5 h-5" style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>เก็บข้อมูลง่าย</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ส่งลิงก์ให้สมาชิกกรอกข้อมูลเอง ไม่ต้องพิมพ์เอง</div>
+            <div className="font-bold text-base" style={{ color: 'var(--text)' }}>เก็บข้อมูลง่าย</div>
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>ส่งลิงก์ให้สมาชิกกรอกข้อมูลเอง ไม่ต้องพิมพ์เอง</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-4">
@@ -146,8 +146,8 @@ function SetupForm() {
             <Zap className="w-5 h-5" style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>แจ้งโกงได้ทันใจ</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>กดแจ้งโกงได้ทันที ข้อมูลเข้าระบบค้นหาอัตโนมัติ</div>
+            <div className="font-bold text-base" style={{ color: 'var(--text)' }}>แจ้งเตือนได้ทันใจ</div>
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>กดแจ้งเตือนได้ทันที ข้อมูลเข้าระบบค้นหาอัตโนมัติ</div>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-4">
@@ -155,8 +155,8 @@ function SetupForm() {
             <Bot className="w-5 h-5" style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>ตรวจสอบอัตโนมัติ</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>เช็คประวัติสมาชิกกับฐานข้อมูลและ AI Bot อัตโนมัติ</div>
+            <div className="font-bold text-base" style={{ color: 'var(--text)' }}>ตรวจสอบอัตโนมัติ</div>
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>เช็คประวัติสมาชิกกับฐานข้อมูลและ AI Bot อัตโนมัติ</div>
           </div>
         </div>
       </div>
