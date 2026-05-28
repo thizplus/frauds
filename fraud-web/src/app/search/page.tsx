@@ -13,9 +13,8 @@ import { SearchBar } from '@/features/search/components/SearchBar'
 import { SearchResults } from '@/features/search/components/SearchResults'
 import { UnifiedResults } from '@/features/search/components/UnifiedResults'
 import { ScanModal } from '@/features/search/components/ScanModal'
-import { FaceSearchTab } from '@/features/search/components/FaceSearchTab'
-import { Drawer } from '@/components/ui/Drawer'
-import { ShieldCheck, Lock, RefreshCcw, Camera } from 'lucide-react'
+import { FaceSearchDrawer } from '@/components/shared/FaceSearchDrawer'
+import { ShieldCheck, Lock, RefreshCcw } from 'lucide-react'
 import type { FraudResponse, SearchParams } from '@/features/search/types'
 
 export default function SearchPage() {
@@ -248,19 +247,11 @@ export default function SearchPage() {
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
 
-      {/* Face Search Drawer */}
-      <Drawer
+      <FaceSearchDrawer
         open={faceSearchOpen}
         onClose={() => setFaceSearchOpen(false)}
-        title={
-          <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ค้นหาด้วยใบหน้า</h2>
-          </div>
-        }
-      >
-        <FaceSearchTab onSelectFraud={(fraud) => { setFaceSearchOpen(false); setSelectedFraud(fraud) }} />
-      </Drawer>
+        onSelectFraud={setSelectedFraud}
+      />
     </>
   )
 }

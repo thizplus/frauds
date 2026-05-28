@@ -6,11 +6,9 @@ import { useSearchStore } from '@/lib/stores/search'
 import { useAuthStore } from '@/lib/stores/auth'
 import { SearchBar } from '@/features/search/components/SearchBar'
 import { LiveTicker } from '@/features/search/components/LiveTicker'
-import { FaceSearchTab } from '@/features/search/components/FaceSearchTab'
 import { FraudDetailDrawer } from '@/features/fraud-detail'
-import { Drawer } from '@/components/ui/Drawer'
+import { FaceSearchDrawer } from '@/components/shared/FaceSearchDrawer'
 import { LoginModal } from '@/features/auth'
-import { Camera } from 'lucide-react'
 import type { FraudResponse } from '@/features/search/types'
 import { canGuestSearch, incrementGuestSearch, getGuestSearchRemaining, fetchGuestQuota } from '@/lib/utils/guest-quota'
 
@@ -92,18 +90,11 @@ export default function HomePage() {
       </section>
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
 
-      <Drawer
+      <FaceSearchDrawer
         open={faceSearchOpen}
         onClose={() => setFaceSearchOpen(false)}
-        title={
-          <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>ค้นหาด้วยใบหน้า</h2>
-          </div>
-        }
-      >
-        <FaceSearchTab onSelectFraud={(fraud) => { setFaceSearchOpen(false); setSelectedFraud(fraud) }} />
-      </Drawer>
+        onSelectFraud={setSelectedFraud}
+      />
 
       <FraudDetailDrawer
         fraud={selectedFraud}
