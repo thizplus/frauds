@@ -371,9 +371,9 @@ func (s *lenderServiceImpl) ClearDebtor(ctx context.Context, userID, debtorID uu
 		s.fraudService.Unverify(ctx, *debtor.FraudID)
 	}
 
-	// Update debtor
+	// Update debtor — กลับเป็น active (เก็บประวัติ clearedAt + clearedNote ไว้)
 	now := time.Now()
-	debtor.Status = models.DebtorCleared
+	debtor.Status = models.DebtorActive
 	debtor.ClearedAt = &now
 	debtor.ClearedNote = req.Note
 	s.lenderRepo.UpdateDebtor(ctx, debtor)

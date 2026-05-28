@@ -264,14 +264,39 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
               </div>
             )}
 
-            {/* Flag info — แสดงเฉพาะเมื่อ flagged + มีข้อมูล */}
-            {debtor.status === 'flagged' && (debtor.flaggedReason || debtor.flaggedAmount || debtor.flaggedDetail) && (
+            {/* ประวัติการแจ้งเตือน — แสดงเมื่อเคย flagged (มี flaggedAt) */}
+            {debtor.flaggedAt && (
               <div>
-                <SectionTitle>ข้อมูลการแจ้งเตือน</SectionTitle>
-                <div className="card p-3 space-y-1" style={{ borderColor: 'var(--danger)' }}>
-                  {debtor.flaggedReason && <p className="text-sm" style={{ color: 'var(--text)' }}>เหตุผล: {debtor.flaggedReason}</p>}
-                  {debtor.flaggedAmount ? <p className="text-sm" style={{ color: 'var(--text)' }}>จำนวน: {(debtor.flaggedAmount / 100).toLocaleString()} บาท</p> : null}
-                  {debtor.flaggedDetail && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{debtor.flaggedDetail}</p>}
+                <SectionTitle>ประวัติการแจ้งเตือน</SectionTitle>
+                <div className="card p-3 space-y-2">
+                  {/* ข้อมูลตอนแจ้ง */}
+                  <div className="flex items-start gap-2">
+                    <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--danger)' }} />
+                    <div className="text-sm">
+                      <span style={{ color: 'var(--danger)' }}>แจ้งเตือนเมื่อ </span>
+                      <span style={{ color: 'var(--text)' }}>
+                        {new Date(debtor.flaggedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      </span>
+                      {debtor.flaggedReason && <span style={{ color: 'var(--text-muted)' }}> • {debtor.flaggedReason}</span>}
+                      {debtor.flaggedAmount ? <span style={{ color: 'var(--text-muted)' }}> • {(debtor.flaggedAmount / 100).toLocaleString()} บาท</span> : null}
+                    </div>
+                  </div>
+                  {debtor.flaggedDetail && (
+                    <p className="text-sm pl-6" style={{ color: 'var(--text-muted)' }}>{debtor.flaggedDetail}</p>
+                  )}
+                  {/* ข้อมูลตอนปลด (ถ้ามี) */}
+                  {debtor.clearedAt && (
+                    <div className="flex items-start gap-2 pt-1" style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.06))' }}>
+                      <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
+                      <div className="text-sm">
+                        <span style={{ color: 'var(--accent)' }}>ปลดแจ้งเตือนเมื่อ </span>
+                        <span style={{ color: 'var(--text)' }}>
+                          {new Date(debtor.clearedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        </span>
+                        {debtor.clearedNote && <span style={{ color: 'var(--text-muted)' }}> • {debtor.clearedNote}</span>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
