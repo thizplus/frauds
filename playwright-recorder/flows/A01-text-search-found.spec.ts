@@ -1,5 +1,5 @@
 import { test } from '@playwright/test'
-import { typeSlowly, waitForScanComplete, SubtitleTracker, MEMBER_TOKEN, SITE_URL } from './helpers'
+import { typeSlowly, waitForScanComplete, MEMBER_TOKEN, SITE_URL } from './helpers'
 import path from 'path'
 import fs from 'fs'
 
@@ -29,32 +29,14 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   })
   const page = await recordCtx.newPage()
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(3000) // รอหน้านิ่ง
-
-  // === สร้าง SubtitleTracker ตรงนี้ — ตรงกับ video frame ที่หน้านิ่งแล้ว ===
-  const sub = new SubtitleTracker('A01-text-search-found')
-
-  sub.mark('สวัสดีครับ ยินดีต้อนรับเข้าสู่ระบบ เช็กคนโกง ครับ')
-  await page.waitForTimeout(4000)
-
-  sub.mark('วันนี้ผมจะพามาดูการใช้งานฟีเจอร์ค้นหาด้วยข้อความครับ')
-  await page.waitForTimeout(3000)
-
-  sub.mark('ให้เราพิมพ์เบอร์โทรศัพท์ที่ต้องการตรวจสอบลงไปครับ')
-  await page.waitForTimeout(2000)
-  await typeSlowly(page, '.input-hero', '0812345678', 80)
-  await page.waitForTimeout(1500)
-
-  sub.mark('จากนั้นกดปุ่ม ค้นหาด้วย AI เพื่อเริ่มการค้นหาครับ')
-  await page.waitForTimeout(2000)
-  await page.click('.btn-ai')
-
-  sub.mark('ระบบ AI กำลังสแกนข้อมูล รอสักครู่นะครับ')
-  await waitForScanComplete(page)
-
-  sub.mark('ผลลัพธ์ออกมาแล้วครับ พบข้อมูลของคุณธนากร สุขใจ ถูกแจ้งมา 3 ครั้ง ยืนยันแล้วครับ')
   await page.waitForTimeout(5000)
 
-  sub.save()
+  // ค้นหา
+  await typeSlowly(page, '.input-hero', '0812345678', 80)
+  await page.waitForTimeout(1500)
+  await page.click('.btn-ai')
+  await waitForScanComplete(page)
+  await page.waitForTimeout(5000)
+
   await recordCtx.close()
 })
