@@ -33,8 +33,10 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
 
   // === เริ่มอัดจากตรงนี้ (หน้าโหลดเสร็จแล้ว ไม่เห็นจังหวะเปิดเว็บ) ===
 
-  sub.mark('หน้าเว็บไซต์ เช็กคนโกง พร้อมใช้งานแล้ว')
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2000) // รอหน้านิ่ง ก่อนเริ่ม subtitle
+
+  sub.mark('หน้าเว็บไซต์ เช็กคนโกง พร้อมใช้งานแล้ว')
   await page.waitForTimeout(3000)
 
   sub.mark('ลองพิมพ์เบอร์โทรลงในช่องค้นหากันเลย')
