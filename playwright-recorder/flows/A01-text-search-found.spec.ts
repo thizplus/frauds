@@ -1,24 +1,25 @@
 import { test } from '@playwright/test'
-import { openApp, loginWithToken, typeSlowly, waitForScanComplete, MEMBER_ACCOUNT, ADMIN_TOKEN } from './helpers'
+import { openAppWithLogin, typeSlowly, waitForScanComplete, SubtitleTracker, MEMBER_TOKEN } from './helpers'
 
 test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)', async ({ page }) => {
-  // Scene 0: เปิดระบบ
-  await openApp(page)
-  await page.waitForTimeout(5000)
+  const sub = new SubtitleTracker('A01-text-search-found')
 
-  // Login (member — เห็นข้อมูลครบ)
-  await loginWithToken(page, ADMIN_TOKEN)
+  sub.mark('เปิดระบบ เช็กคนโกง.com')
+  await openAppWithLogin(page, MEMBER_TOKEN)
+  await page.waitForTimeout(3000)
 
-  // พิมพ์ค้นหา
+  sub.mark('พิมพ์เบอร์โทรที่ต้องการค้นหา')
   await typeSlowly(page, '.input-hero', '0812345678', 80)
   await page.waitForTimeout(1000)
 
-  // กดปุ่ม AI Search
+  sub.mark('กดปุ่ม "ค้นหาด้วย AI"')
   await page.click('.btn-ai')
 
-  // รอ scan animation
+  sub.mark('AI กำลังวิเคราะห์ข้อมูล...')
   await waitForScanComplete(page)
 
-  // ดูผลลัพธ์ (fraud: ธนากร สุขใจ)
+  sub.mark('พบผลลัพธ์ — ธนากร สุขใจ (ยืนยันแล้ว, ถูกแจ้ง 3 ครั้ง)')
   await page.waitForTimeout(5000)
+
+  sub.save()
 })
