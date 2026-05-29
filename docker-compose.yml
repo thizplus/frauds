@@ -96,7 +96,7 @@ services:
   # PgBouncer (Connection Pooler)
   # ========================
   pgbouncer:
-    image: edoburu/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:latest
     # ports ไม่ expose — เข้าถึงได้แค่ใน Docker network
     environment:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
@@ -113,6 +113,28 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  # ========================
+  # Next.js Frontend
+  # ========================
+  web:
+    build: ./fraud-web
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
+      - NEXT_PUBLIC_LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+      - NEXT_PUBLIC_LIFF_ID=${LINE_LIFF_ID}
+    restart: unless-stopped
+
+  # ========================
+  # Admin Panel (Vite + React)
+  # ========================
+  admin:
+    build: ./fraud-admin
+    ports:
+      - "5173:5173"
     restart: unless-stopped
 
   # ========================
