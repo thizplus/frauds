@@ -33,36 +33,51 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   await preloadPage.waitForTimeout(5000) // รอหน้านิ่งจริงๆ 5 วิ
   await preloadCtx.close()
 
-  // Phase 3: สร้าง context ที่มี video → หน้าจะโหลดจาก cache นิ่งเลย
+  // Phase 3: สร้าง context ไม่มี video ก่อน → รอหน้านิ่ง → ค่อยเปิด video
   const recordCtx = await browser.newContext({
+    viewport: { width: 430, height: 932 },
+    isMobile: true,
+    storageState,
+  })
+  const page = await recordCtx.newPage()
+  await page.goto(SITE_URL, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(5000) // รอหน้านิ่ง 5 วิ จริงๆ
+
+  // Phase 4: เริ่มอัด video หลังหน้านิ่งแล้ว
+  await page.video()?.delete?.().catch(() => {}) // ลบ video เก่า (ถ้ามี)
+  await recordCtx.close()
+
+  // สร้าง context ใหม่ที่มี video + storageState → goto จะ instant จาก cache
+  const videoCtx = await browser.newContext({
     viewport: { width: 430, height: 932 },
     isMobile: true,
     storageState,
     recordVideo: { dir: recDir, size: { width: 430, height: 932 } },
   })
-  const page = await recordCtx.newPage()
-  await page.goto(SITE_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(2000) // รอนิ่ง 2 วิ ก่อนเริ่ม
+  const videoPage = await videoCtx.newPage()
+  // goto แต่หน้าโหลด instant จาก cache → frame แรกเป็นเว็บเลย
+  await videoPage.goto(SITE_URL, { waitUntil: 'networkidle' })
+  await videoPage.waitForTimeout(1000) // buffer เล็กน้อย
 
   sub.mark('สวัสดีครับ ยินดีต้อนรับเข้าสู่ระบบ เช็กคนโกง ครับ')
-  await page.waitForTimeout(4000)
+  await videoPage.waitForTimeout(4000)
 
   sub.mark('วันนี้ผมจะพามาดูการใช้งานฟีเจอร์ค้นหาด้วยข้อความครับ')
-  await page.waitForTimeout(3000)
+  await videoPage.waitForTimeout(3000)
 
   sub.mark('ให้เราพิมพ์เบอร์โทรศัพท์ที่ต้องการตรวจสอบลงไปครับ')
-  await typeSlowly(page, '.input-hero', '0812345678', 80)
-  await page.waitForTimeout(1000)
+  await typeSlowly(videoPage, '.input-hero', '0812345678', 80)
+  await videoPage.waitForTimeout(1000)
 
   sub.mark('จากนั้นกดปุ่ม ค้นหาด้วย AI เพื่อเริ่มการค้นหาครับ')
-  await page.click('.btn-ai')
+  await videoPage.click('.btn-ai')
 
   sub.mark('ระบบ AI กำลังสแกนข้อมูล รอสักครู่นะครับ')
-  await waitForScanComplete(page)
+  await waitForScanComplete(videoPage)
 
   sub.mark('ผลลัพธ์ออกมาแล้วครับ พบข้อมูลของคุณธนากร สุขใจ ถูกแจ้งมา 3 ครั้ง ยืนยันแล้วครับ')
-  await page.waitForTimeout(5000)
+  await videoPage.waitForTimeout(5000)
 
   sub.save()
-  await recordCtx.close()
+  await videoCtx.close()
 })
