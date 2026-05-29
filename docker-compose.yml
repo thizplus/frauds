@@ -63,20 +63,24 @@ services:
   # Next.js Frontend (เช็กคนโกง.com)
   # ========================
   web:
-    build: ./fraud-web
+    build:
+      context: ./fraud-web
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
+        - NEXT_PUBLIC_LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+        - NEXT_PUBLIC_LIFF_ID=${LINE_LIFF_ID}
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
-      - NEXT_PUBLIC_LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
-      - NEXT_PUBLIC_LIFF_ID=${LINE_LIFF_ID}
     restart: unless-stopped
 
   # ========================
   # Admin Panel (admin.เช็กคนโกง.com)
   # ========================
   admin:
-    build: ./fraud-admin
+    build:
+      context: ./fraud-admin
+      args:
+        - VITE_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
     ports:
       - "3001:3001"
     restart: unless-stopped
