@@ -18,7 +18,6 @@ export default defineConfig({
       name: 'mobile',
       use: {
         viewport: { width: 430, height: 932 },
-        deviceScaleFactor: 3, // Retina 3x → video 1290x2796
         isMobile: true,
       },
     },
