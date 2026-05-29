@@ -161,9 +161,16 @@
 
 ## Playwright Recording Strategy
 
-### Priority 1 — Demo หลัก (10 flows) ⭐ สำคัญที่สุด ทำก่อน
+### Priority 1 — Demo หลัก (11 flows) ⭐ สำคัญที่สุด ทำก่อน
 
 > flow เหล่านี้คือหัวใจของระบบ ต้อง record ให้เรียบร้อยก่อนทุกอย่าง
+> **ทุก flow เริ่มจาก Scene 0: เปิด LIFF URL ก่อนเสมอ**
+
+#### Scene 0: เปิดระบบ (ทุก flow เริ่มจากตรงนี้)
+```
+เปิด LIFF URL → หน้าแรก เช็กคนโกง.com โหลดขึ้นมา → รอ 10 วินาที
+(แสดงหน้าแรก: logo, search bar, social links, Rich Menu)
+```
 
 | ลำดับ | Flow ID | ชื่อ | หน้า |
 |-------|---------|------|------|
