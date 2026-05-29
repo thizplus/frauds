@@ -22,7 +22,7 @@ interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
-  const { mutate: logout } = useLogout()
+  const logout = useLogout()
 
   const initials = user.name
     .split(' ')

@@ -1,4 +1,4 @@
-import { ShieldAlert, BadgeCheck, Search, FolderOpen, Users, AlertTriangle, Banknote, Crown, Clock, Bot } from 'lucide-react'
+import { ShieldAlert, BadgeCheck, Search, FolderOpen, Users, AlertTriangle, Banknote, Crown, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardStats, useExtendedStats } from '../hooks'
