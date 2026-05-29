@@ -4,11 +4,10 @@ import path from 'path'
 import fs from 'fs'
 
 test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)', async ({ browser }) => {
-  const sub = new SubtitleTracker('A01-text-search-found')
   const recDir = path.resolve(__dirname, '../recordings/A01')
   if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true })
 
-  // Phase 1: Login + เก็บ storageState (ไม่อัด)
+  // Phase 1: Login (ไม่อัด)
   const setupCtx = await browser.newContext({ viewport: { width: 430, height: 932 }, isMobile: true })
   const setupPage = await setupCtx.newPage()
   await setupPage.goto(SITE_URL, { waitUntil: 'domcontentloaded' })
@@ -21,7 +20,7 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   const storageState = await setupCtx.storageState()
   await setupCtx.close()
 
-  // Phase 2: Context เดียว — recordVideo + goto + รอนิ่ง + record ต่อ
+  // Phase 2: Record
   const recordCtx = await browser.newContext({
     viewport: { width: 430, height: 932 },
     isMobile: true,
@@ -30,9 +29,10 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   })
   const page = await recordCtx.newPage()
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(5000) // รอหน้านิ่ง 5 วิ ก่อนเริ่ม subtitle
+  await page.waitForTimeout(3000) // รอหน้านิ่ง
 
-  // === เริ่ม subtitle (หน้านิ่งแล้ว) ===
+  // === สร้าง SubtitleTracker ตรงนี้ — ตรงกับ video frame ที่หน้านิ่งแล้ว ===
+  const sub = new SubtitleTracker('A01-text-search-found')
 
   sub.mark('สวัสดีครับ ยินดีต้อนรับเข้าสู่ระบบ เช็กคนโกง ครับ')
   await page.waitForTimeout(4000)
@@ -41,12 +41,12 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   await page.waitForTimeout(3000)
 
   sub.mark('ให้เราพิมพ์เบอร์โทรศัพท์ที่ต้องการตรวจสอบลงไปครับ')
-  await page.waitForTimeout(2000) // พูดก่อน 2 วิ แล้วค่อยพิมพ์
+  await page.waitForTimeout(2000)
   await typeSlowly(page, '.input-hero', '0812345678', 80)
   await page.waitForTimeout(1500)
 
   sub.mark('จากนั้นกดปุ่ม ค้นหาด้วย AI เพื่อเริ่มการค้นหาครับ')
-  await page.waitForTimeout(2000) // พูดก่อน 2 วิ แล้วค่อยกด
+  await page.waitForTimeout(2000)
   await page.click('.btn-ai')
 
   sub.mark('ระบบ AI กำลังสแกนข้อมูล รอสักครู่นะครับ')
