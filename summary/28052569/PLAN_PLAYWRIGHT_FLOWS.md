@@ -161,23 +161,26 @@
 
 ## Playwright Recording Strategy
 
-### Priority 1 — Demo หลัก (10 flows)
-```
-A-01  ค้นหาด้วยข้อความ (เจอ)
-A-03  ดู Fraud Detail + gallery
-A-04  ค้นด้วยใบหน้า (เจอ)
-C-01  แจ้งโกง
-E-02  สมัคร Member + ชำระเงิน
-G-01  เปิดระบบเก็บข้อมูล
-G-03  สมาชิกลงทะเบียน
-G-05  ตรวจสอบประวัติ
-G-06  แจ้งเตือน (Flag)
-G-07  ปลดแจ้ง (Clear)
-```
+### Priority 1 — Demo หลัก (10 flows) ⭐ สำคัญที่สุด ทำก่อน
+
+> flow เหล่านี้คือหัวใจของระบบ ต้อง record ให้เรียบร้อยก่อนทุกอย่าง
+
+| ลำดับ | Flow ID | ชื่อ | หน้า |
+|-------|---------|------|------|
+| 1 | **A-01** | ค้นหาด้วยข้อความ (เจอ fraud + social) | `/` → `/search` |
+| 2 | **A-03** | ดู Fraud Detail + evidence gallery | `/search` → drawer |
+| 3 | **A-04** | ค้นด้วยใบหน้า (เจอ fraud + social) | `/` → face drawer |
+| 4 | **C-01** | แจ้งโกง (กรอกข้อมูล + แนบรูป) | `/report` |
+| 5 | **E-02** | สมัคร Member + ชำระเงิน QR | `/pricing` → checkout |
+| 6 | **G-01** | เปิดระบบเก็บข้อมูล (Lender setup) | `/lender` |
+| 7 | **G-03** | สมาชิกลงทะเบียนผ่าน invite link | `/register/[code]` |
+| 8 | **G-05** | ตรวจสอบประวัติสมาชิก (debtor check) | `/lender/debtors` → drawer |
+| 9 | **G-06** | แจ้งเตือน/Flag สมาชิก | `/lender/debtors` → flag dialog |
+| 10 | **G-07** | ปลดแจ้ง/Clear สมาชิก (ชำระหนี้) | `/lender/debtors` → clear dialog |
 
 ### Priority 2 — ครบทุก flow (52 flows)
 ```
-ทุก flow ที่ list ด้านบน
+ทำหลังจาก Priority 1 เสร็จ
 ```
 
 ---
