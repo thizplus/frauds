@@ -30,7 +30,7 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   })
   const preloadPage = await preloadCtx.newPage()
   await preloadPage.goto(SITE_URL, { waitUntil: 'networkidle' })
-  await preloadPage.waitForTimeout(3000) // รอหน้านิ่งจริงๆ
+  await preloadPage.waitForTimeout(5000) // รอหน้านิ่งจริงๆ 5 วิ
   await preloadCtx.close()
 
   // Phase 3: สร้าง context ที่มี video → หน้าจะโหลดจาก cache นิ่งเลย
