@@ -44,20 +44,23 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })
   await page.waitForTimeout(2000) // รอนิ่ง 2 วิ ก่อนเริ่ม
 
-  sub.mark('หน้าเว็บไซต์ เช็กคนโกง พร้อมใช้งานแล้ว')
+  sub.mark('สวัสดีครับ ยินดีต้อนรับเข้าสู่ระบบ เช็กคนโกง ครับ')
+  await page.waitForTimeout(4000)
+
+  sub.mark('วันนี้ผมจะพามาดูการใช้งานฟีเจอร์ค้นหาด้วยข้อความครับ')
   await page.waitForTimeout(3000)
 
-  sub.mark('ลองพิมพ์เบอร์โทรลงในช่องค้นหากันเลย')
+  sub.mark('ให้เราพิมพ์เบอร์โทรศัพท์ที่ต้องการตรวจสอบลงไปครับ')
   await typeSlowly(page, '.input-hero', '0812345678', 80)
   await page.waitForTimeout(1000)
 
-  sub.mark('กดปุ่มค้นหาด้วย AI แค่คลิกเดียว')
+  sub.mark('จากนั้นกดปุ่ม ค้นหาด้วย AI เพื่อเริ่มการค้นหาครับ')
   await page.click('.btn-ai')
 
-  sub.mark('ระบบ AI กำลังวิเคราะห์ข้อมูล รอแป๊บนึงนะครับ')
+  sub.mark('ระบบ AI กำลังสแกนข้อมูล รอสักครู่นะครับ')
   await waitForScanComplete(page)
 
-  sub.mark('เจอแล้ว! ธนากร สุขใจ ถูกแจ้งมา 3 ครั้ง ยืนยันแล้ว ข้อมูลชัดเจนเลย')
+  sub.mark('ผลลัพธ์ออกมาแล้วครับ พบข้อมูลของคุณธนากร สุขใจ ถูกแจ้งมา 3 ครั้ง ยืนยันแล้วครับ')
   await page.waitForTimeout(5000)
 
   sub.save()
