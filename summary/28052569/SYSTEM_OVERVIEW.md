@@ -426,6 +426,75 @@ Frontend: 199 (baht, ไม่ต้องแปลง)
 | PLAN_EVIDENCE_GALLERY.md | Evidence gallery plan |
 | PLAN_SOCIAL_LINKS.md | Social links plan |
 | PLAN_SEARCH_HISTORY_REDESIGN.md | Search history redesign |
+| PLAN_LINE_SEARCH_BOT.md | LINE Bot search plan |
+| LINE_BOT_MESSAGE_DESIGN.md | LINE Bot message text design |
+
+---
+
+## 15. อัพเดท 29 พ.ค. 2569 — LINE Search Bot + UI Polish
+
+### 15.1 LINE Search Bot (ใหม่ทั้งหมด)
+
+User ค้นหาคนโกงผ่าน LINE@ ได้ — กดปุ่มค้นหา → พิมพ์เบอร์/ชื่อ → ได้ผลทันที
+
+**Architecture (Clean Architecture):**
+```
+interfaces/handlers/line_webhook_handler.go  → verify signature + parse events
+domain/services/line_bot_service.go          → HandleFollow/Postback/Text/Image
+domain/ports/line_messaging_port.go          → ReplyText + GetProfile + LinkRichMenu
+domain/ports/session_store.go                → Set/Get/Del (Redis-backed)
+application/serviceimpl/line_bot_service_impl.go → search + build text + reply
+infrastructure/line/line_messaging_adapter.go    → LINE Messaging API
+infrastructure/session/redis_store.go            → Redis adapter
+infrastructure/session/memory_store.go           → Fallback
+```
+
+**Features:**
+- Auto-register เมื่อแอดเพื่อน (follow event)
+- Stateful search mode (Redis session, TTL 60s)
+- Quota check จาก settings + search_logs (ไม่ hardcode)
+- Mask data สำหรับ free / เต็มสำหรับ member
+- Dynamic Rich Menu (Free: ค้นหา+อัพเกรด / Member: ค้นหา+ระบบเก็บข้อมูล)
+- Text + emoji reply (ไม่ใช่ flex message)
+- LIFF URL สำหรับดูเพิ่มเติม
+- HMAC-SHA256 webhook signature verify
+- แยก LINE Login + Messaging channel secrets
+
+**Dependencies เพิ่ม:**
+- Redis (redis:7-alpine) — session store
+- go-redis/v9
+
+**LINE Config:**
+```
+LINE_MESSAGING_CHANNEL_ID=2010174406
+LINE_MESSAGING_CHANNEL_SECRET=cca3293...
+LINE_CHANNEL_ACCESS_TOKEN=8CE3HyI...
+LINE_RICH_MENU_FREE=richmenu-f406857...
+LINE_RICH_MENU_MEMBER=richmenu-10a9ef...
+REDIS_URL=redis://redis:6379
+```
+
+### 15.2 UI Polish
+
+| ส่วน | สิ่งที่ทำ |
+|------|---------|
+| Social Links | Brand SVG icons + settings JSONB + admin editor |
+| Evidence Gallery | Public API + image grid + lightbox |
+| TrustBadges | Shared component (pricing + search) |
+| ScanAnimation | Merge ScanModal เป็น 1 component |
+| Section headers | CSS class shared ทุกหน้า |
+| FraudDetailDrawer | ลบปุ่มรายงานเพิ่ม + ขนาด text ใหญ่ขึ้น |
+| Face search drawer | ไม่ปิดเมื่อดู detail |
+| Search history | Compact card + badge + search logging ครบ |
+| Hero text | "กว่าแสนรายชื่อ" accent + underline |
+
+### 15.3 Security Fixes
+
+| Fix | ผลกระทบ |
+|-----|---------|
+| Payment settings ลบจาก public API | เลขบัตร ปชช. ไม่ expose |
+| เพิ่ม GET /me/payment-settings (JWT) | ต้อง login ถึงเห็น |
+| Unified + Face search logging | ประวัติค้นหาครบทุกช่อง |
 
 ---
 
