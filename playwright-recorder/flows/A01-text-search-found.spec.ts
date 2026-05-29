@@ -41,10 +41,12 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   await page.waitForTimeout(3000)
 
   sub.mark('ให้เราพิมพ์เบอร์โทรศัพท์ที่ต้องการตรวจสอบลงไปครับ')
+  await page.waitForTimeout(2000) // พูดก่อน 2 วิ แล้วค่อยพิมพ์
   await typeSlowly(page, '.input-hero', '0812345678', 80)
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(1500)
 
   sub.mark('จากนั้นกดปุ่ม ค้นหาด้วย AI เพื่อเริ่มการค้นหาครับ')
+  await page.waitForTimeout(2000) // พูดก่อน 2 วิ แล้วค่อยกด
   await page.click('.btn-ai')
 
   sub.mark('ระบบ AI กำลังสแกนข้อมูล รอสักครู่นะครับ')
