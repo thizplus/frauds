@@ -9,7 +9,11 @@
     "record:face": "npx playwright test flows/A04 --project=mobile",
     "record:check": "npx playwright test flows/G05 --project=mobile",
     "record:flag": "npx playwright test flows/G06 --project=mobile",
-    "record:clear": "npx playwright test flows/G07 --project=mobile"
+    "record:clear": "npx playwright test flows/G07 --project=mobile",
+    "record:report": "npx playwright test flows/C01 --project=mobile",
+    "record:subscribe": "npx playwright test flows/E02 --project=mobile",
+    "record:lender": "npx playwright test flows/G01 --project=mobile",
+    "record:register": "npx playwright test flows/G03 --project=mobile"
   },
   "dependencies": {
     "@playwright/test": "^1.60.0",

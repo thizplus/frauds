@@ -1,28 +1,29 @@
 import { test } from '@playwright/test'
-import { openApp, loginWithToken, ADMIN_TOKEN } from './helpers'
+import { openAppWithLogin, SubtitleTracker, MEMBER_TOKEN, SITE_URL } from './helpers'
 
 test('G-06: แจ้งเตือน/Flag สมาชิก', async ({ page }) => {
-  await openApp(page)
-  await loginWithToken(page, ADMIN_TOKEN)
+  const sub = new SubtitleTracker('G06-flag-debtor')
 
-  await page.goto('https://xn--12cainl6g3mua5b.com/lender/debtors')
+  sub.mark('ถ้าสมาชิกมีปัญหา เราสามารถแจ้งเตือนเข้าระบบได้เลย')
+  await openAppWithLogin(page, MEMBER_TOKEN)
+
+  sub.mark('เข้าหน้ารายชื่อสมาชิก')
+  await page.goto(`${SITE_URL}/lender/debtors`)
   await page.waitForTimeout(3000)
 
-  // กด debtor ธีระ (active — จะ flag)
+  sub.mark('เลือกสมาชิกที่ต้องการแจ้งเตือน')
   await page.click('.card:has-text("ธีระ")')
   await page.waitForTimeout(2000)
 
-  // กดแจ้งเตือน
+  sub.mark('กดปุ่มแจ้งเตือน')
   await page.click('button:has-text("แจ้งเตือน")')
   await page.waitForTimeout(2000)
 
-  // เลือกหมวดหมู่ + กรอกจำนวน + detail
-  await page.waitForTimeout(1000)
-  await page.fill('input[placeholder*="เช่น 20000"]', '25000')
-  await page.fill('textarea', 'ยืมเงินแล้วไม่ยอมคืน ติดต่อไม่ได้')
-  await page.waitForTimeout(2000)
+  sub.mark('เลือกหมวดหมู่ กรอกจำนวนเงิน และรายละเอียด')
+  await page.waitForTimeout(3000)
 
-  // ยืนยัน
-  await page.click('button:has-text("ยืนยันแจ้งเตือน")')
+  sub.mark('กดยืนยัน ข้อมูลจะเข้าระบบทันที ค้นหาเจอได้เลย')
   await page.waitForTimeout(5000)
+
+  sub.save()
 })
