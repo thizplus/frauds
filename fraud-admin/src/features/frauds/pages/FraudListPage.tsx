@@ -29,11 +29,11 @@ export function FraudListPage() {
   const { data, isLoading } = useFraudList(params)
 
   const handleSearch = () => {
-    setParams((p) => ({ ...p, q: searchInput || undefined, page: 1 }))
+    setParams((p: FraudListParams) => ({ ...p, q: searchInput || undefined, page: 1 }))
   }
 
   const handleFilter = (key: string, value: string) => {
-    setParams((p) => ({ ...p, [key]: value === 'all' ? undefined : value, page: 1 }))
+    setParams((p: FraudListParams) => ({ ...p, [key]: value === 'all' ? undefined : value, page: 1 }))
   }
 
   return (
@@ -152,14 +152,14 @@ export function FraudListPage() {
               <Button
                 variant="outline" size="icon"
                 disabled={!data.meta.hasPrev}
-                onClick={() => setParams((p) => ({ ...p, page: (p.page || 1) - 1 }))}
+                onClick={() => setParams((p: FraudListParams) => ({ ...p, page: (p.page || 1) - 1 }))}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline" size="icon"
                 disabled={!data.meta.hasNext}
-                onClick={() => setParams((p) => ({ ...p, page: (p.page || 1) + 1 }))}
+                onClick={() => setParams((p: FraudListParams) => ({ ...p, page: (p.page || 1) + 1 }))}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

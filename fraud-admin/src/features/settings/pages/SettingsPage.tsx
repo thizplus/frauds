@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { DollarSign, Monitor, CreditCard, Wrench, AlertTriangle, Search, UserCheck, Crown, FileText, Share2, Plus, Trash2, GripVertical } from 'lucide-react'
+import { DollarSign, Monitor, CreditCard, Wrench, AlertTriangle, Search, UserCheck, Crown, Share2 } from 'lucide-react'
 import { useSettingsByCategory } from '../hooks'
 import { SettingItem } from '../components/SettingItem'
 import { SocialLinksEditor } from '../components/SocialLinksEditor'

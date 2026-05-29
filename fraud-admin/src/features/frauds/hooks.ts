@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fraudsService, type FraudListParams } from './service'
+import { fraudsService } from './service'
+import type { FraudListParams } from './service'
+
+export type { FraudListParams }
 
 export const fraudKeys = {
   all: ['frauds'] as const,
