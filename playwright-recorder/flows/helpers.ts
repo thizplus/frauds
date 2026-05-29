@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test'
+import { Page, BrowserContext } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
 
@@ -68,9 +68,9 @@ export async function openApp(page: Page) {
   await page.waitForTimeout(3000)
 }
 
-/** Scene 0: เปิดระบบ + login (ครั้งเดียว ไม่ refresh ซ้ำ) */
+/** Scene 0: เปิดระบบ + login → รอหน้าโหลด → เริ่มอัด video */
 export async function openAppWithLogin(page: Page, token: string) {
-  // inject token ก่อน navigate (ไม่ต้อง reload)
+  // inject token + navigate (ไม่ refresh ซ้ำ)
   await page.goto(SITE_URL, { waitUntil: 'domcontentloaded' })
   await page.evaluate((t) => {
     localStorage.setItem('fraud-checker-auth', JSON.stringify({
@@ -85,6 +85,19 @@ export async function openAppWithLogin(page: Page, token: string) {
   }, token)
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForTimeout(2000)
+}
+
+/** เริ่มอัด video (เรียกหลังหน้าโหลดเสร็จแล้ว) */
+export async function startRecording(page: Page, name: string) {
+  const dir = path.resolve(__dirname, '../recordings')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  await (page.context() as any).tracing?.start({ screenshots: true, snapshots: true })
+  await page.video()?.saveAs?.(path.join(dir, `${name}.webm`)).catch(() => {})
+}
+
+/** หยุดอัด video */
+export async function stopRecording(page: Page) {
+  await (page.context() as any).tracing?.stop?.()
 }
 
 /** พิมพ์ช้าๆ */
