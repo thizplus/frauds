@@ -9,7 +9,7 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true })
 
   // Phase 1: Login + เก็บ storageState (ไม่อัด)
-  const setupCtx = await browser.newContext({ viewport: { width: 430, height: 932 }, isMobile: true })
+  const setupCtx = await browser.newContext({ viewport: { width: 720, height: 1560 }, isMobile: true })
   const setupPage = await setupCtx.newPage()
   await setupPage.goto(SITE_URL, { waitUntil: 'domcontentloaded' })
   await setupPage.evaluate((t) => {
@@ -23,10 +23,10 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
 
   // Phase 2: Context เดียว — recordVideo + goto + รอนิ่ง + record ต่อ
   const recordCtx = await browser.newContext({
-    viewport: { width: 430, height: 932 },
+    viewport: { width: 720, height: 1560 },
     isMobile: true,
     storageState,
-    recordVideo: { dir: recDir, size: { width: 430, height: 932 } },
+    recordVideo: { dir: recDir, size: { width: 720, height: 1560 } },
   })
   const page = await recordCtx.newPage()
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })

@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 120_000,
   use: {
     baseURL: 'https://xn--12cainl6g3mua5b.com',
-    viewport: { width: 430, height: 932 },
+    viewport: { width: 720, height: 1560 },
     // video ปิด — แต่ละ flow ควบคุมเอง ผ่าน helpers
     video: 'off',
     launchOptions: {
@@ -17,7 +17,7 @@ export default defineConfig({
     {
       name: 'mobile',
       use: {
-        viewport: { width: 430, height: 932 },
+        viewport: { width: 720, height: 1560 },
         isMobile: true,
       },
     },
