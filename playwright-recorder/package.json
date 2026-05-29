@@ -13,7 +13,9 @@
     "record:report": "npx playwright test flows/C01 --project=mobile",
     "record:subscribe": "npx playwright test flows/E02 --project=mobile",
     "record:lender": "npx playwright test flows/G01 --project=mobile",
-    "record:register": "npx playwright test flows/G03 --project=mobile"
+    "record:register": "npx playwright test flows/G03 --project=mobile",
+    "trim": "bash trim.sh 5",
+    "trim:3": "bash trim.sh 3"
   },
   "dependencies": {
     "@playwright/test": "^1.60.0",
