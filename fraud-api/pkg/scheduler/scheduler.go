@@ -20,16 +20,16 @@ func Start(db *gorm.DB, notifier ports.NotificationPort) *cron.Cron {
 
 	// ทุก 1 ชม. — expire subscriptions ที่หมดอายุ
 	c.AddFunc("@every 1h", func() {
-		expireSubscriptions(db, notifier)
+		safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier) })
 	})
 
 	// ทุกวัน 09:00 เวลาไทย — notify ก่อนหมดอายุ 3 วัน
 	c.AddFunc("0 9 * * *", func() {
-		notifyExpiringSubscriptions(db, notifier)
+		safeRun("notifyExpiringSubscriptions", func() { notifyExpiringSubscriptions(db, notifier) })
 	})
 
 	// รัน expire ทันทีตอน start
-	go expireSubscriptions(db, notifier)
+	go safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier) })
 
 	c.Start()
 	logger.Info("Scheduler started", "timezone", "Asia/Bangkok",
@@ -37,9 +37,20 @@ func Start(db *gorm.DB, notifier ports.NotificationPort) *cron.Cron {
 	return c
 }
 
+// safeRun ครอบ panic recovery + timeout ให้ทุก cron job
+func safeRun(name string, fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("Scheduler panic recovered", "job", name, "error", fmt.Sprintf("%v", r))
+		}
+	}()
+	fn()
+}
+
 // expireSubscriptions อัปเดต status เป็น expired สำหรับ subscription ที่หมดอายุ
 func expireSubscriptions(db *gorm.DB, notifier ports.NotificationPort) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
 	var expiring []models.Subscription
 	db.WithContext(ctx).Preload("User").Preload("Plan").
@@ -70,7 +81,8 @@ func expireSubscriptions(db *gorm.DB, notifier ports.NotificationPort) {
 
 // notifyExpiringSubscriptions แจ้งเตือน user ที่ subscription จะหมดอายุใน 3 วัน
 func notifyExpiringSubscriptions(db *gorm.DB, notifier ports.NotificationPort) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
 	loc, _ := time.LoadLocation("Asia/Bangkok")
 	now := time.Now().In(loc)

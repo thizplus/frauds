@@ -1,12 +1,24 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# --- Production ---
 FROM node:22-alpine
 
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci --omit=dev
 
-COPY . .
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
 
 EXPOSE 3001
 
-CMD ["npm", "run", "dev", "--", "-p", "3001"]
+CMD ["npm", "start", "--", "-p", "3001"]

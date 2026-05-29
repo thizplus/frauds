@@ -39,13 +39,23 @@ func main() {
 	app.Use(middleware.RequestIDMiddleware())
 	app.Use(middleware.LoggerMiddleware())
 	app.Use(recover.New())
-	app.Use(middleware.CorsMiddleware())
+	app.Use(middleware.CorsMiddleware(container.Config.App.CORSOrigins))
 
-	// Health check
+	// Health check — เช็ค DB connection
 	app.Get("/health", func(c *fiber.Ctx) error {
+		status := "ok"
+		dbStatus := "ok"
+
+		sqlDB, err := container.DB.DB()
+		if err != nil || sqlDB.Ping() != nil {
+			status = "degraded"
+			dbStatus = "error"
+		}
+
 		return c.JSON(fiber.Map{
-			"status": "ok",
+			"status": status,
 			"app":    container.Config.App.Name,
+			"db":     dbStatus,
 		})
 	})
 

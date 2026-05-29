@@ -7,8 +7,6 @@ import {
   UserCog,
   Settings,
   Sparkles,
-  Bot,
-  ArrowLeftRight,
   Database,
   type LucideIcon,
 } from 'lucide-react'
@@ -79,8 +77,8 @@ export const NAV_MAIN: NavItem[] = [
     items: [
       { title: 'โควต้า/ลิมิต', url: '/settings/quota' },
       { title: 'การแสดงผล', url: '/settings/display' },
-      { title: 'LINE', url: '/settings/line' },
       { title: 'ชำระเงิน', url: '/settings/payment' },
+      { title: 'Social Media', url: '/settings/social' },
       { title: 'ระบบ', url: '/settings/system' },
     ],
   },

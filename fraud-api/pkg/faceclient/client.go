@@ -16,15 +16,24 @@ import (
 // FaceClient — HTTP client สำหรับเรียก face-service (internal microservice)
 type FaceClient struct {
 	baseURL    string
+	apiKey     string
 	httpClient *http.Client
 }
 
-func New(baseURL string) *FaceClient {
+func New(baseURL, apiKey string) *FaceClient {
 	return &FaceClient{
 		baseURL: baseURL,
+		apiKey:  apiKey,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 15 * time.Second,
 		},
+	}
+}
+
+// setAuthHeader — แนบ API key ถ้ามี
+func (c *FaceClient) setAuthHeader(req *http.Request) {
+	if c.apiKey != "" {
+		req.Header.Set("X-API-Key", c.apiKey)
 	}
 }
 
@@ -73,6 +82,7 @@ func (c *FaceClient) Search(ctx context.Context, imageBytes []byte) (*SearchResu
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
+	c.setAuthHeader(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -111,6 +121,7 @@ func (c *FaceClient) Ingest(ctx context.Context, imageBytes []byte, sourceType, 
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
+	c.setAuthHeader(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -138,6 +149,7 @@ func (c *FaceClient) Health(ctx context.Context) (*HealthResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.setAuthHeader(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

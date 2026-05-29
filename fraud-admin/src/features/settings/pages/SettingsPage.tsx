@@ -77,6 +77,7 @@ const SETTING_META: Record<string, SettingMeta> = {
   'payment.bank_name': { type: 'text', label: 'ชื่อธนาคาร', hint: 'ชื่อธนาคารสำหรับโอนเงิน' },
   'payment.slipok_branch_id': { type: 'text', label: 'SlipOK Branch ID', hint: 'ได้จาก slipok.com' },
   'payment.slipok_api_key': { type: 'text', label: 'SlipOK API Key', hint: 'ได้จาก slipok.com' },
+  'payment.slipok_log': { type: 'boolean', label: 'ป้องกันสลิปซ้ำ', hint: 'เปิด = SlipOK บันทึกสลิปไว้ตรวจซ้ำ (แนะนำเปิดเสมอ)' },
   'payment.auto_verify_slip': { type: 'boolean', label: 'ตรวจสลิปอัตโนมัติ', hint: 'ใช้ SlipOK ตรวจสลิปแล้วอนุมัติอัตโนมัติ' },
   // System
   'system.maintenance_mode': { type: 'boolean', label: 'ปิดปรับปรุง', hint: 'เปิดโหมดปิดปรับปรุงระบบ' },

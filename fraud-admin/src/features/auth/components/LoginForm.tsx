@@ -19,13 +19,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   const handleLineLogin = () => {
     setIsLoading('line')
     // TODO: Implement LINE OAuth
-    console.log('LINE login clicked')
   }
 
   const handleGoogleLogin = () => {
     setIsLoading('google')
     // TODO: Implement Google OAuth
-    console.log('Google login clicked')
   }
 
   const isDisabled = isPending || isLoading !== null

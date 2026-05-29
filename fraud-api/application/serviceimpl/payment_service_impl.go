@@ -148,7 +148,8 @@ func (s *paymentServiceImpl) verifySlip(ctx context.Context, slipURL string, exp
 		return result
 	}
 
-	verifier := slip.NewSlipOKAdapter(branchID, apiKey)
+	slipokLog := s.getSettingBool(ctx, "payment.slipok_log")
+	verifier := slip.NewSlipOKAdapter(branchID, apiKey, slipokLog)
 	slipInfo, err := verifier.VerifySlip(ctx, slipURL)
 	if err != nil {
 		logger.ErrorContext(ctx, "Slip verification failed", "error", err)

@@ -31,6 +31,7 @@ func SeedSettings(db *gorm.DB) error {
 		{Key: "payment.bank_name", Value: datatypes.JSON(`""`), Description: "ชื่อธนาคาร", Category: "payment"},
 		{Key: "payment.slipok_branch_id", Value: datatypes.JSON(`""`), Description: "SlipOK Branch ID", Category: "payment"},
 		{Key: "payment.slipok_api_key", Value: datatypes.JSON(`""`), Description: "SlipOK API Key", Category: "payment"},
+		{Key: "payment.slipok_log", Value: datatypes.JSON(`true`), Description: "SlipOK บันทึกสลิป (true=ป้องกันสลิปซ้ำ)", Category: "payment"},
 		{Key: "payment.auto_verify_slip", Value: datatypes.JSON(`false`), Description: "ตรวจสลิปอัตโนมัติด้วย SlipOK", Category: "payment"},
 
 		// Social

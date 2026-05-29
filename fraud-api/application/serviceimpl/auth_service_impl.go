@@ -34,7 +34,7 @@ func NewAuthService(userRepo repositories.UserRepository, jwtSecret string, line
 func (s *authServiceImpl) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
 	existing, _ := s.userRepo.GetByEmail(ctx, req.Email)
 	if existing != nil {
-		logger.WarnContext(ctx, "Email already exists", "email", req.Email)
+		logger.WarnContext(ctx, "Email already exists")
 		return nil, errors.New("email already exists")
 	}
 
@@ -64,7 +64,7 @@ func (s *authServiceImpl) Register(ctx context.Context, req *dto.RegisterRequest
 		return nil, errors.New("failed to create account")
 	}
 
-	logger.InfoContext(ctx, "User registered", "user_id", user.ID, "email", user.Email)
+	logger.InfoContext(ctx, "User registered", "user_id", user.ID)
 
 	userResp := mappers.UserToResponse(user)
 	return &dto.AuthResponse{
@@ -77,17 +77,17 @@ func (s *authServiceImpl) Register(ctx context.Context, req *dto.RegisterRequest
 func (s *authServiceImpl) Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		logger.WarnContext(ctx, "Login failed: email not found", "email", req.Email)
+		logger.WarnContext(ctx, "Login failed: email not found")
 		return nil, errors.New("invalid email or password")
 	}
 
 	if !user.IsActive {
-		logger.WarnContext(ctx, "Login failed: account disabled", "email", req.Email)
+		logger.WarnContext(ctx, "Login failed: account disabled")
 		return nil, errors.New("account is disabled")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		logger.WarnContext(ctx, "Login failed: wrong password", "email", req.Email)
+		logger.WarnContext(ctx, "Login failed: wrong password")
 		return nil, errors.New("invalid email or password")
 	}
 
@@ -97,7 +97,7 @@ func (s *authServiceImpl) Login(ctx context.Context, req *dto.LoginRequest) (*dt
 		return nil, errors.New("login failed")
 	}
 
-	logger.InfoContext(ctx, "User logged in", "user_id", user.ID, "email", user.Email)
+	logger.InfoContext(ctx, "User logged in", "user_id", user.ID)
 
 	userResp := mappers.UserToResponse(user)
 	return &dto.AuthResponse{

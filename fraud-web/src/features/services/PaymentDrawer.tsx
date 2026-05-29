@@ -46,7 +46,7 @@ export function PaymentDrawer({ service, open, onClose, fraudId }: PaymentDrawer
     setResultMsg('')
     setAutoApproved(false)
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL!
     const token = useAuthStore.getState().accessToken
     fetch(`${apiUrl}/me/payment-settings`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

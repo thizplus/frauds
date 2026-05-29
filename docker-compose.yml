@@ -11,38 +11,52 @@ services:
     environment:
       - APP_NAME=fraud-api
       - APP_PORT=3000
-      - APP_ENV=development
+      - APP_ENV=production
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - DB_HOST=pgbouncer
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=fraud_checker
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
       - DB_SSL_MODE=disable
-      - JWT_SECRET=fraud-api-dev-secret-key-min-32-chars
-      - BOT_API_KEY=dev-bot-api-key-12345
-      - ADMIN_EMAIL=admin@fraudchecker.com
-      - ADMIN_PASSWORD=admin123
+      - JWT_SECRET=${JWT_SECRET}
+      - BOT_API_KEY=${BOT_API_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - LOG_LEVEL=info
       - LOG_FORMAT=json
       - LOG_OUTPUT=stdout
-      - LINE_CHANNEL_ID=2010174410
-      - LINE_CHANNEL_SECRET=680484ea448135330b685f5a2b4ddfa6
-      - LINE_CALLBACK_URL=https://xn--12cainl6g3mua5b.com/auth/line/callback
-      - LINE_MESSAGING_CHANNEL_ID=2010174406
-      - LINE_MESSAGING_CHANNEL_SECRET=cca3293965efc072dc5cebf70b05569b
-      - LINE_RICH_MENU_FREE=richmenu-f406857e5e2635c2514f2313dd6c018e
-      - LINE_RICH_MENU_MEMBER=richmenu-10a9ef26c46f6ffd1e7f44426901fd46
-      - REDIS_URL=redis://redis:6379
+      - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
+      - LINE_CALLBACK_URL=${LINE_CALLBACK_URL}
+      - LINE_MESSAGING_CHANNEL_ID=${LINE_MESSAGING_CHANNEL_ID}
+      - LINE_MESSAGING_CHANNEL_SECRET=${LINE_MESSAGING_CHANNEL_SECRET}
+      - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
+      - LINE_RICH_MENU_FREE=${LINE_RICH_MENU_FREE}
+      - LINE_RICH_MENU_MEMBER=${LINE_RICH_MENU_MEMBER}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - FACE_SERVICE_URL=http://face-service:3002
-      # Social Search — fuzzy name similarity threshold (0.0-1.0, ยิ่งสูงยิ่ง strict)
-      # - SEARCH_NAME_SIMILARITY=0.65
+      - FACE_API_KEY=${FACE_API_KEY}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER}
+      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - STORAGE_REGION=${STORAGE_REGION}
+      - STORAGE_PUBLIC_URL=${STORAGE_PUBLIC_URL}
     volumes:
       - ./fraud-api:/app
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   # ========================
@@ -50,24 +64,29 @@ services:
   # ========================
   redis:
     image: redis:7-alpine
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 64mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # ========================
   # PostgreSQL
   # ========================
   postgres:
-    image: pgvector/pgvector:pg16  # pgvector สำหรับ face search
-    ports:
-      - "5433:5432"
+    image: pgvector/pgvector:pg16
+    # ports ไม่ expose — เข้าถึงได้แค่ใน Docker network
+    # ถ้าต้อง debug จาก host: เปิด "127.0.0.1:5433:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=fraud_checker
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -77,11 +96,10 @@ services:
   # PgBouncer (Connection Pooler)
   # ========================
   pgbouncer:
-    image: edoburu/pgbouncer:latest
-    ports:
-      - "6432:5432"
+    image: edoburu/pgbouncer:1.23.1
+    # ports ไม่ expose — เข้าถึงได้แค่ใน Docker network
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/fraud_checker
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - AUTH_TYPE=scram-sha-256
       - POOL_MODE=transaction
       - DEFAULT_POOL_SIZE=20
@@ -91,48 +109,33 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   # ========================
-  # Next.js Frontend — รันนอก Docker (npm run dev -p 3001)
-  # ========================
-
-  # ========================
-  # Face Service (Internal Microservice — ไม่ expose port)
+  # Face Service (Internal — ไม่ expose port)
   # ========================
   face-service:
     build: ./face-service
-    # ไม่ expose port — เรียกได้แค่ใน Docker network
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@pgbouncer:5432/fraud_checker
-      - FACE_CONFIDENCE_THRESHOLD=0.65
-      - FACE_MIN_SIZE=80
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@pgbouncer:5432/${DB_NAME}
+      - FACE_API_KEY=${FACE_API_KEY}
+      - FACE_CONFIDENCE_THRESHOLD=${FACE_CONFIDENCE_THRESHOLD}
+      - FACE_MIN_SIZE=${FACE_MIN_SIZE}
       - USE_GPU=false
-      # SEARCH_THRESHOLD ยังไม่ lock — benchmark ก่อน
     depends_on:
       pgbouncer:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
-
-  # ========================
-  # (Phase 2) Bot Collector
-  # ========================
-  # collector:
-  #   build: ./fraud-collector
-  #   depends_on:
-  #     - api
-
-  # ========================
-  # (Phase 5) Bot Enricher
-  # ========================
-  # enricher:
-  #   build: ./fraud-enricher
-  #   depends_on:
-  #     - api
 
 volumes:
   pgdata:

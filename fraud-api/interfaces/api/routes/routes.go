@@ -99,8 +99,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 		api.Post("/bot/line-webhook", h.LineWebhookHandler.HandleWebhook)
 	}
 
-	// === Bot (API Key auth — bypass rate limit) ===
+	// === Bot (API Key auth + rate limited) ===
 	bot := api.Group("/bot")
+	bot.Use(middleware.RateLimitMiddleware(100, 1*time.Minute))
 	bot.Use(middleware.ApiKeyMiddleware(apiKey))
 	bot.Post("/uploads", h.UploadHandler.Upload)
 	bot.Post("/frauds", h.FraudHandler.Create)
@@ -110,8 +111,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	bot.Patch("/frauds/:id/enrich", h.FraudHandler.Enrich)
 	bot.Post("/face-ingest", h.FaceSearchHandler.IngestFace)
 
-	// === Admin (JWT auth) ===
+	// === Admin (JWT auth + rate limited) ===
 	admin := api.Group("/admin")
+	admin.Use(middleware.RateLimitMiddleware(200, 1*time.Minute))
 	admin.Use(middleware.JWTMiddleware(jwtSecret))
 	admin.Use(middleware.AdminOnly())
 

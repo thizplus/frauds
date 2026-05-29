@@ -14,16 +14,18 @@ import (
 )
 
 type SlipOKAdapter struct {
-	branchID string
-	apiKey   string
-	client   *http.Client
+	branchID   string
+	apiKey     string
+	logEnabled bool
+	client     *http.Client
 }
 
-func NewSlipOKAdapter(branchID, apiKey string) ports.SlipVerifyPort {
+func NewSlipOKAdapter(branchID, apiKey string, logEnabled bool) ports.SlipVerifyPort {
 	return &SlipOKAdapter{
-		branchID: branchID,
-		apiKey:   apiKey,
-		client:   &http.Client{Timeout: 15 * time.Second},
+		branchID:   branchID,
+		apiKey:     apiKey,
+		logEnabled: logEnabled,
+		client:     &http.Client{Timeout: 15 * time.Second},
 	}
 }
 
@@ -74,10 +76,10 @@ type slipOKAccount struct {
 func (a *SlipOKAdapter) VerifySlip(ctx context.Context, imageURL string) (*ports.SlipInfo, error) {
 	apiURL := fmt.Sprintf("https://api.slipok.com/api/line/apikey/%s", a.branchID)
 
-	// ส่งเป็น JSON: url + log=false
+	// ส่งเป็น JSON: url + log (true=ป้องกันสลิปซ้ำ)
 	body, _ := json.Marshal(map[string]any{
 		"url": imageURL,
-		"log": false,
+		"log": a.logEnabled,
 	})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))

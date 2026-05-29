@@ -21,7 +21,8 @@ type Config struct {
 }
 
 type FaceServiceConfig struct {
-	URL string // http://face-service:3002
+	URL    string // http://face-service:3002
+	APIKey string
 }
 
 type LINEConfig struct {
@@ -53,9 +54,10 @@ type StorageConfig struct {
 }
 
 type AppConfig struct {
-	Name string
-	Port string
-	Env  string
+	Name        string
+	Port        string
+	Env         string
+	CORSOrigins string
 }
 
 type DatabaseConfig struct {
@@ -101,9 +103,10 @@ func LoadConfig() (*Config, error) {
 
 	config := &Config{
 		App: AppConfig{
-			Name: getEnv("APP_NAME", "fraud-api"),
-			Port: getEnv("APP_PORT", "3000"),
-			Env:  getEnv("APP_ENV", "development"),
+			Name:        getEnv("APP_NAME", "fraud-api"),
+			Port:        getEnv("APP_PORT", "3000"),
+			Env:         getEnv("APP_ENV", "development"),
+			CORSOrigins: getEnv("CORS_ORIGINS", ""),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -114,7 +117,7 @@ func LoadConfig() (*Config, error) {
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret: getEnv("JWT_SECRET", "your-secret-key"),
+			Secret: getEnv("JWT_SECRET", ""),
 		},
 		Log: LogConfig{
 			Level:      getEnv("LOG_LEVEL", "info"),
@@ -144,7 +147,8 @@ func LoadConfig() (*Config, error) {
 			LocalPath: getEnv("STORAGE_LOCAL_PATH", "./uploads"),
 		},
 		FaceService: FaceServiceConfig{
-			URL: getEnv("FACE_SERVICE_URL", "http://face-service:3002"),
+			URL:    getEnv("FACE_SERVICE_URL", "http://face-service:3002"),
+			APIKey: getEnv("FACE_API_KEY", ""),
 		},
 		RedisURL: getEnv("REDIS_URL", ""),
 		LINE: LINEConfig{

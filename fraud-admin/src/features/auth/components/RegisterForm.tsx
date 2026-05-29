@@ -15,19 +15,16 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<'div'
     e.preventDefault()
     setIsLoading('form')
     // TODO: Implement register
-    console.log('Register submitted', { name, email, password, confirmPassword })
   }
 
   const handleLineRegister = () => {
     setIsLoading('line')
     // TODO: Implement LINE OAuth
-    console.log('LINE register clicked')
   }
 
   const handleGoogleRegister = () => {
     setIsLoading('google')
     // TODO: Implement Google OAuth
-    console.log('Google register clicked')
   }
 
   const isDisabled = isLoading !== null
