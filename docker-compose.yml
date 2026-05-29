@@ -1,16 +1,16 @@
 services:
   # ========================
-  # Go Fiber API
+  # Go Fiber API (api.เช็กคนโกง.com)
   # ========================
   api:
     build:
       context: ./fraud-api
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "8080:8080"
     environment:
       - APP_NAME=fraud-api
-      - APP_PORT=3000
+      - APP_PORT=8080
       - APP_ENV=production
       - CORS_ORIGINS=${CORS_ORIGINS}
       - DB_HOST=pgbouncer
@@ -52,11 +52,33 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 15s
+    restart: unless-stopped
+
+  # ========================
+  # Next.js Frontend (เช็กคนโกง.com)
+  # ========================
+  web:
+    build: ./fraud-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
+      - NEXT_PUBLIC_LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+      - NEXT_PUBLIC_LIFF_ID=${LINE_LIFF_ID}
+    restart: unless-stopped
+
+  # ========================
+  # Admin Panel (admin.เช็กคนโกง.com)
+  # ========================
+  admin:
+    build: ./fraud-admin
+    ports:
+      - "3001:3001"
     restart: unless-stopped
 
   # ========================
@@ -77,8 +99,6 @@ services:
   # ========================
   postgres:
     image: pgvector/pgvector:pg16
-    # ports ไม่ expose — เข้าถึงได้แค่ใน Docker network
-    # ถ้าต้อง debug จาก host: เปิด "127.0.0.1:5433:5432"
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -97,7 +117,6 @@ services:
   # ========================
   pgbouncer:
     image: edoburu/pgbouncer:latest
-    # ports ไม่ expose — เข้าถึงได้แค่ใน Docker network
     environment:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - AUTH_TYPE=scram-sha-256
@@ -113,28 +132,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
-
-  # ========================
-  # Next.js Frontend
-  # ========================
-  web:
-    build: ./fraud-web
-    ports:
-      - "3001:3001"
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.xn--12cainl6g3mua5b.com/api/v1
-      - NEXT_PUBLIC_LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
-      - NEXT_PUBLIC_LIFF_ID=${LINE_LIFF_ID}
-    restart: unless-stopped
-
-  # ========================
-  # Admin Panel (Vite + React)
-  # ========================
-  admin:
-    build: ./fraud-admin
-    ports:
-      - "5173:5173"
     restart: unless-stopped
 
   # ========================
