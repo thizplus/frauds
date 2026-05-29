@@ -19,7 +19,7 @@ find "$INPUT_DIR" -name "*.webm" | while read -r file; do
   outfile="$outdir/${parent}.webm"
 
   echo "Trimming: $file → $outfile (skip ${SKIP}s)"
-  ffmpeg -y -i "$file" -ss "$SKIP" -c copy "$outfile" 2>/dev/null
+  ffmpeg -y -ss "$SKIP" -i "$file" -c:v libvpx-vp9 -b:v 2M "$outfile" 2>/dev/null
 
   if [ $? -eq 0 ]; then
     echo "  ✓ Done: $outfile"
