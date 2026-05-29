@@ -53,6 +53,7 @@ export interface DebtorDetail extends Debtor {
 export interface CheckResultItem {
   source: string
   matchedBy: string
+  matchedFields?: string[]
   // fraud
   name?: string
   reportCount?: number
