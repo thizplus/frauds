@@ -22,7 +22,18 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
   const storageState = await setupCtx.storageState()
   await setupCtx.close()
 
-  // Phase 2: สร้าง context ใหม่ที่มี video → เริ่มอัดจากหน้าที่โหลดเสร็จแล้ว
+  // Phase 2: เปิดหน้าเว็บก่อน (ไม่อัด) → รอนิ่ง → ค่อยสร้าง context ที่อัด
+  const preloadCtx = await browser.newContext({
+    viewport: { width: 430, height: 932 },
+    isMobile: true,
+    storageState,
+  })
+  const preloadPage = await preloadCtx.newPage()
+  await preloadPage.goto(SITE_URL, { waitUntil: 'networkidle' })
+  await preloadPage.waitForTimeout(3000) // รอหน้านิ่งจริงๆ
+  await preloadCtx.close()
+
+  // Phase 3: สร้าง context ที่มี video → หน้าจะโหลดจาก cache นิ่งเลย
   const recordCtx = await browser.newContext({
     viewport: { width: 430, height: 932 },
     isMobile: true,
@@ -30,11 +41,8 @@ test('A-01: ค้นหาด้วยข้อความ (เจอ fraud)',
     recordVideo: { dir: recDir, size: { width: 430, height: 932 } },
   })
   const page = await recordCtx.newPage()
-
-  // === เริ่มอัดจากตรงนี้ (หน้าโหลดเสร็จแล้ว ไม่เห็นจังหวะเปิดเว็บ) ===
-
   await page.goto(SITE_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(2000) // รอหน้านิ่ง ก่อนเริ่ม subtitle
+  await page.waitForTimeout(2000) // รอนิ่ง 2 วิ ก่อนเริ่ม
 
   sub.mark('หน้าเว็บไซต์ เช็กคนโกง พร้อมใช้งานแล้ว')
   await page.waitForTimeout(3000)
