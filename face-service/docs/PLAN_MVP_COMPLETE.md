@@ -169,7 +169,7 @@ return SearchResponse(
 **แทนที่จะใส่ API Key** แค่ลบ ports ออกจาก docker-compose
 ข้างนอกเข้าไม่ได้ แต่ fraud-api เรียก `http://face-service:3002` ผ่าน Docker network ได้เลย
 
-```yaml
+```yaml 
 # docker-compose.yml — ลบ ports ออก
 face-service:
   build: ./face-service

@@ -80,3 +80,4 @@ fraud-web/.next/
 *.jpeg
 *.txt
 mockup/
+*.sql

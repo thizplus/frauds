@@ -1,29 +1,36 @@
 import { test } from '@playwright/test'
-import { openAppWithLogin, typeSlowly, waitForScanComplete, SubtitleTracker, MEMBER_TOKEN } from './helpers'
+import { typeSlowly, waitForScanComplete, loginAndGetState, startRecordFromHome, PAUSE, MEMBER_TOKEN } from './helpers'
+import path from 'path'
 
-test('A-03: ดู Fraud Detail + Evidence Gallery', async ({ page }) => {
-  const sub = new SubtitleTracker('A03-fraud-detail-gallery')
+test('A-03: ดู Fraud Detail + Evidence Gallery', async ({ browser }) => {
+  const recDir = path.resolve(__dirname, '../recordings/A03')
+  const storageState = await loginAndGetState(browser, MEMBER_TOKEN)
+  const { ctx, page } = await startRecordFromHome(browser, storageState, recDir)
 
-  sub.mark('มาดูรายละเอียดของคนที่ถูกแจ้งกัน')
-  await openAppWithLogin(page, MEMBER_TOKEN)
+  // --- หน้าแรก ---
+  await page.waitForTimeout(PAUSE.SCENE)
 
-  sub.mark('ค้นหาเบอร์โทรที่ต้องการตรวจสอบ')
+  // --- ค้นหา ---
   await typeSlowly(page, '.input-hero', '0812345678', 80)
+  await page.waitForTimeout(PAUSE.ACTION)
   await page.click('.btn-ai')
+  await page.waitForTimeout(PAUSE.ACTION)
 
-  sub.mark('รอ AI วิเคราะห์สักครู่')
+  // --- รอผลค้นหา ---
   await waitForScanComplete(page)
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('กดที่ชื่อเพื่อดูรายละเอียดเพิ่มเติม')
+  // --- กดดูรายละเอียด fraud ---
   await page.click('.row-ai')
-  await page.waitForTimeout(3000)
+  await page.waitForTimeout(PAUSE.LONG_RESULT)
 
-  sub.mark('เห็นข้อมูลครบ เบอร์โทร เลขบัญชี สถานะ จำนวนที่ถูกแจ้ง')
-  await page.waitForTimeout(3000)
+  // --- scroll ดูข้อมูล ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.SCROLL)
 
-  sub.mark('ด้านล่างจะมีรูปหลักฐานที่ผู้แจ้งแนบมาด้วย')
-  await page.waitForTimeout(3000)
+  // --- scroll ดูหลักฐาน ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.LONG_RESULT)
 
-  sub.save()
+  await ctx.close()
 })

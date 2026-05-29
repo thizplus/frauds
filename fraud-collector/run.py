@@ -35,8 +35,8 @@ def parse_group_id(url: str) -> str:
     return match.group(1) if match else url
 
 
-async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int = 50):
-    """1 คำสั่ง ทำทุกอย่าง: capture feed → capture comments → extract"""
+async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int = 50, full_pipeline: bool = False):
+    """1 คำสั่ง ทำทุกอย่าง: capture feed → capture comments → extract → (optional) full pipeline"""
 
     group_id = parse_group_id(group_url)
     # Ensure sorting=CHRONOLOGICAL
@@ -148,6 +148,14 @@ async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int 
 
     # Generate verification report
     _generate_verify_report(report, group_id, run_dir)
+
+    # === Full Pipeline (LLM → Normalize → Validate → DB → Face) ===
+    if full_pipeline:
+        print(f"\n{'='*60}")
+        print(f"  Full Pipeline — LLM → DB → Face Ingest")
+        print(f"{'='*60}")
+        from application.usecases.run_pipeline import run_pipeline
+        run_pipeline()
 
 
 async def _download_images_via_browser(pw, report):
@@ -447,6 +455,55 @@ h2 {{ color: #333; font-size: 16px; margin-top: 25px; border-bottom: 2px solid #
     print(f"  Verify: {report_path}")
 
 
+async def _auto_collect(max_scrolls: int = 5, max_comment_posts: int = 10, category_filter: str = None):
+    """Collect ทุกกลุ่มจาก categories.yaml แล้ว run full pipeline"""
+    import yaml
+
+    cat_path = Path("categories.yaml")
+    if not cat_path.exists():
+        print("ไม่พบ categories.yaml")
+        return
+
+    with open(cat_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    categories = config.get("categories", {})
+    total_groups = 0
+
+    for cat_id, cat_data in categories.items():
+        if category_filter and cat_id != category_filter:
+            continue
+
+        groups = cat_data.get("groups", [])
+        cat_name = cat_data.get("name", cat_id)
+        print(f"\n{'='*60}")
+        print(f"  Category: {cat_name} ({len(groups)} groups)")
+        print(f"{'='*60}")
+
+        for i, group_url in enumerate(groups):
+            total_groups += 1
+            print(f"\n  --- Group {i+1}/{len(groups)}: {group_url[:60]}... ---")
+            try:
+                await collect(
+                    group_url=group_url,
+                    max_scrolls=max_scrolls,
+                    max_comment_posts=max_comment_posts,
+                    full_pipeline=False,  # run pipeline ทีเดียวตอนจบ
+                )
+            except Exception as e:
+                print(f"  ERROR: {e} — skip group, continue")
+
+    # Run pipeline ครั้งเดียวหลัง collect ทุกกลุ่มเสร็จ
+    if total_groups > 0:
+        print(f"\n{'='*60}")
+        print(f"  Full Pipeline — {total_groups} groups collected")
+        print(f"{'='*60}")
+        from application.usecases.run_pipeline import run_pipeline
+        run_pipeline()
+    else:
+        print("ไม่มีกลุ่มที่ต้อง collect")
+
+
 # === CLI ===
 
 def main():
@@ -458,12 +515,22 @@ def main():
     collect_cmd.add_argument("--group", required=True, help="Facebook group URL")
     collect_cmd.add_argument("--max-scrolls", type=int, default=10, help="จำนวน scroll feed (default 10)")
     collect_cmd.add_argument("--max-comment-posts", type=int, default=50, help="จำนวน posts สูงสุดที่จะเก็บ comments")
+    collect_cmd.add_argument("--full-pipeline", action="store_true", help="ต่อ LLM → DB → Face Ingest อัตโนมัติ")
+
+    # auto — collect ทุกกลุ่มจาก categories.yaml + full pipeline
+    auto_cmd = sub.add_parser("auto", help="เก็บทุกกลุ่มจาก categories.yaml อัตโนมัติ")
+    auto_cmd.add_argument("--max-scrolls", type=int, default=5, help="จำนวน scroll feed ต่อกลุ่ม (default 5)")
+    auto_cmd.add_argument("--max-comment-posts", type=int, default=10, help="จำนวน posts ที่เก็บ comments ต่อกลุ่ม")
+    auto_cmd.add_argument("--category", type=str, help="เฉพาะ category (เช่น loan_fraud)")
 
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
     extract_cmd.add_argument("--run", type=str, help="Extract specific run")
     extract_cmd.add_argument("--all", action="store_true", help="Extract all runs")
     extract_cmd.add_argument("--force", action="store_true", help="Force re-extract")
+
+    # pipeline — run LLM → DB → Face เฉพาะ (ไม่ capture ใหม่)
+    sub.add_parser("pipeline", help="Run LLM → Normalize → Validate → DB → Face (ไม่ capture)")
 
     args = parser.parse_args()
 
@@ -474,7 +541,21 @@ def main():
             group_url=args.group,
             max_scrolls=args.max_scrolls,
             max_comment_posts=args.max_comment_posts,
+            full_pipeline=args.full_pipeline,
         ))
+
+    elif args.command == "auto":
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(_auto_collect(
+            max_scrolls=args.max_scrolls,
+            max_comment_posts=args.max_comment_posts,
+            category_filter=args.category,
+        ))
+
+    elif args.command == "pipeline":
+        from application.usecases.run_pipeline import run_pipeline
+        run_pipeline()
 
     elif args.command == "extract":
         if args.run:

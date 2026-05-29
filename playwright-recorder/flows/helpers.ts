@@ -1,4 +1,4 @@
-import { Page, BrowserContext } from '@playwright/test'
+import { Page, Browser } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
 
@@ -6,108 +6,79 @@ export const SITE_URL = 'https://xn--12cainl6g3mua5b.com'
 export const LIFF_URL = 'https://liff.line.me/2010174410-8ZWlb9uS'
 
 export const ADMIN_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4MzM2ZGEyNi1jOWExLTRhNzgtODFhNi1mMDJmYTA3Yjc1MTQiLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3ODA1Nzc0OTksImlhdCI6MTc3OTk3MjY5OX0.AfmtpoxMGi_UZYgUGEof1CL_CTBsFu1THng9Z1v-jfs'
-export const MEMBER_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhMmMxOTVkMi1jNmRjLTQyZjgtOTM0Mi0yNjk2NGQyMmJmZTQiLCJyb2xlIjoibWVtYmVyIiwiZXhwIjoxNzgwMDU4ODkwLCJpYXQiOjE3Nzk5NzI0OTB9.2CEr2wlU0t1Qpx1vHh5ROmCLpfh4vO3B6nLEEvsoibA'
+export const MEMBER_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhMmMxOTVkMi1jNmRjLTQyZjgtOTM0Mi0yNjk2NGQyMmJmZTQiLCJyb2xlIjoibWVtYmVyIiwiZXhwIjoxNzgwMTQ1NjEzLCJpYXQiOjE3ODAwNTkyMTN9.zPCvP3L45Gyjy6CpoG3Ah2cq2QANPA-vK0Ny6JhEG1k'
 
-// === Subtitle System ===
-
-interface SubtitleEntry {
-  startMs: number
-  text: string
+// === Pause Durations (วินาที สำหรับพูดอธิบาย) ===
+export const PAUSE = {
+  PAGE_LOAD: 5000,     // รอหน้าโหลด
+  SCENE: 4000,         // เปลี่ยน scene / ก่อนทำขั้นตอนถัดไป
+  RESULT: 6000,        // ดูผลลัพธ์
+  LONG_RESULT: 8000,   // ดูผลลัพธ์สำคัญ (ค้นเจอ, detail)
+  ACTION: 3000,        // ก่อน/หลังกดปุ่ม
+  SCROLL: 3000,        // หลัง scroll
+  MENU: 2000,          // หลังเปิด menu
 }
-
-export class SubtitleTracker {
-  private entries: SubtitleEntry[] = []
-  private startTime: number = Date.now()
-  private name: string
-
-  constructor(name: string) {
-    this.name = name
-    this.startTime = Date.now()
-  }
-
-  /** Mark subtitle ณ เวลาปัจจุบัน */
-  mark(text: string) {
-    this.entries.push({ startMs: Date.now() - this.startTime, text })
-  }
-
-  /** Generate SRT file */
-  save() {
-    const srtDir = path.resolve(__dirname, '../subtitles')
-    if (!fs.existsSync(srtDir)) fs.mkdirSync(srtDir, { recursive: true })
-
-    let srt = ''
-    for (let i = 0; i < this.entries.length; i++) {
-      const start = this.entries[i].startMs
-      const end = i + 1 < this.entries.length ? this.entries[i + 1].startMs : start + 5000
-      srt += `${i + 1}\n`
-      srt += `${formatSrtTime(start)} --> ${formatSrtTime(end)}\n`
-      srt += `${this.entries[i].text}\n\n`
-    }
-
-    const filePath = path.join(srtDir, `${this.name}.srt`)
-    fs.writeFileSync(filePath, srt, 'utf-8')
-  }
-}
-
-function formatSrtTime(ms: number): string {
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  const mil = ms % 1000
-  return `${pad(h)}:${pad(m)}:${pad(s)},${pad3(mil)}`
-}
-
-function pad(n: number): string { return n.toString().padStart(2, '0') }
-function pad3(n: number): string { return n.toString().padStart(3, '0') }
 
 // === Page Helpers ===
 
-/** Scene 0: เปิดระบบ (ไม่ login) */
-export async function openApp(page: Page) {
-  await page.goto(SITE_URL)
-  await page.waitForTimeout(3000)
-}
-
-/** Scene 0: เปิดระบบ + login → รอหน้าโหลด → เริ่มอัด video */
-export async function openAppWithLogin(page: Page, token: string) {
-  // inject token + navigate (ไม่ refresh ซ้ำ)
+/** Phase 1: Login + สร้าง storageState (ไม่อัด video) */
+export async function loginAndGetState(browser: Browser, token: string, role = 'member') {
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, isMobile: true })
+  const page = await ctx.newPage()
   await page.goto(SITE_URL, { waitUntil: 'domcontentloaded' })
   await page.evaluate((t) => {
     localStorage.setItem('fraud-checker-auth', JSON.stringify({
-      state: {
-        accessToken: t,
-        refreshToken: t,
-        user: { id: 'demo', name: 'Demo User', role: 'member' },
-        isLoggedIn: true,
-      },
+      state: { accessToken: t, refreshToken: t, user: { id: 'demo', name: 'Demo', role: 'member' }, isLoggedIn: true },
       version: 0,
     }))
   }, token)
-  await page.reload({ waitUntil: 'networkidle' })
-  await page.waitForTimeout(2000)
+  const storageState = await ctx.storageState()
+  await ctx.close()
+  return storageState
 }
 
-/** เริ่มอัด video (เรียกหลังหน้าโหลดเสร็จแล้ว) */
-export async function startRecording(page: Page, name: string) {
-  const dir = path.resolve(__dirname, '../recordings')
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  await (page.context() as any).tracing?.start({ screenshots: true, snapshots: true })
-  await page.video()?.saveAs?.(path.join(dir, `${name}.webm`)).catch(() => {})
+/** Phase 2: สร้าง record context + เปิดหน้า / เสมอ */
+export async function startRecordFromHome(browser: Browser, storageState: any, recDir: string) {
+  if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true })
+  const ctx = await browser.newContext({
+    viewport: { width: 430, height: 932 },
+    isMobile: true,
+    storageState,
+    recordVideo: { dir: recDir, size: { width: 430, height: 932 } },
+  })
+  const page = await ctx.newPage()
+  await page.goto(SITE_URL, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(PAUSE.PAGE_LOAD)
+  return { ctx, page }
 }
 
-/** หยุดอัด video */
-export async function stopRecording(page: Page) {
-  await (page.context() as any).tracing?.stop?.()
+/** เปิด burger menu แล้วกด link ไปหน้าอื่น */
+export async function navigateTo(page: Page, linkName: string) {
+  // ปิด drawer/overlay ที่อาจค้างอยู่
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(500)
+
+  // กด burger menu (ปุ่มใน nav ที่ไม่มี text)
+  const burgerBtn = page.locator('nav button').first()
+  await burgerBtn.click()
+  await page.waitForTimeout(PAUSE.MENU)
+
+  // รอ sidebar link โผล่แล้วค่อยกด
+  const link = page.locator(`aside a, [role="complementary"] a`).filter({ hasText: linkName }).first()
+  await link.waitFor({ state: 'visible', timeout: 5000 })
+  await page.waitForTimeout(500)
+  await link.click()
+  await page.waitForTimeout(PAUSE.PAGE_LOAD)
 }
 
 /** พิมพ์ช้าๆ */
 export async function typeSlowly(page: Page, selector: string, text: string, delayMs = 100) {
   await page.click(selector)
   await page.type(selector, text, { delay: delayMs })
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(1000)
 }
 
-/** รอ scan animation จบ */
+/** รอ scan animation จบ + หน่วงดูผลลัพธ์ */
 export async function waitForScanComplete(page: Page) {
-  await page.waitForTimeout(10000)
+  await page.waitForTimeout(12000)
 }

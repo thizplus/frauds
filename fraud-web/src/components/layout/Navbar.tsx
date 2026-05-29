@@ -99,7 +99,7 @@ function FullNavbar({ pathname }: { pathname: string }) {
                       <div className="w-px h-5 bg-slate-700 mx-2" />
                       <Link href="/report" className="btn btn-primary btn-sm">
                         <Plus className="w-4 h-4" />
-                        แจ้งคนโกง
+                        แจ้งข้อมูล
                       </Link>
                     </>
                   ) : (
@@ -172,7 +172,7 @@ function FullNavbar({ pathname }: { pathname: string }) {
                 <AlertTriangle className="w-7 h-7" />
               </div>
               <div>
-                <div className="text-lg font-extrabold leading-tight">แจ้งข้อมูลคนโกง</div>
+                <div className="text-lg font-extrabold leading-tight">แจ้งข้อมูล</div>
                 <div className="text-xs font-medium opacity-80">อย่าปล่อยให้คนโกงลอยนวล</div>
               </div>
             </Link>

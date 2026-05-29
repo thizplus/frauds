@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { User, Phone, CreditCard, Send, ImagePlus, X, ArrowLeft, AlertTriangle, IdCard, Plus, Globe, Check, Sparkles, Clock, Zap, Loader2, TrendingUp, Banknote, ShoppingCart, Users, HelpCircle } from 'lucide-react'
+import { User, Phone, CreditCard, Send, ImagePlus, X, ArrowLeft, AlertTriangle, IdCard, Plus, Globe, Check, Sparkles, Clock, Zap, Loader2, TrendingUp, Banknote, ShoppingCart, Users, HelpCircle, FileText, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useCreateReport, type CreateReportData } from '@/features/report'
 import { useCategories } from '@/features/search'
@@ -19,45 +19,22 @@ import { PaymentDrawer } from '@/features/services/PaymentDrawer'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 
-// === Dev: Random test data ===
-const FIRST_NAMES = ['สมชาย', 'สมหญิง', 'วิชัย', 'มานี', 'ประยุทธ์', 'สุดา', 'อนันต์', 'พิชัย', 'รัตนา', 'กมล', 'ธนา', 'ปิยะ', 'จิราพร', 'อภิชาติ', 'นภา']
-const LAST_NAMES = ['ใจดี', 'หนีหนี้', 'รักเงิน', 'เบี้ยวหนี้', 'ไม่คืน', 'หายไป', 'บล็อกไลน์', 'ปิดเครื่อง', 'ย้ายบ้าน', 'เปลี่ยนเบอร์', 'โกงเก่ง', 'ตีเนียน']
-const BANK_NAMES = ['กสิกรไทย', 'ไทยพาณิชย์', 'กรุงไทย', 'กรุงเทพ', 'ออมสิน', 'ทีเอ็มบีธนชาต', 'กรุงศรีอยุธยา']
-const NOTES = [
-  'กู้เงิน {amount} บาท สัญญาคืนภายใน 1 เดือน ผ่านมา 3 เดือนแล้วติดต่อไม่ได้ บล็อกไลน์หนี',
-  'ยืมเงิน {amount} บาท นัดผ่อนเดือนละ 3,000 จ่ายไป 2 งวดแล้วหายไปเลย',
-  'เล่นแชร์ด้วยกัน ถึงรอบต้องส่ง {amount} บาท แต่หนีหายไปเลย',
-  'ขายของออนไลน์ โอนเงินไป {amount} บาท ไม่ส่งของ ไม่คืนเงิน บล็อกทุกช่องทาง',
-  'หลอกลงทุน {amount} บาท บอกได้ผลตอบแทน 10% ต่อเดือน จ่ายมา 2 เดือนแล้วปิดหนี',
-]
-const SOCIALS = ['LINE: @{name}', 'FB: {name}.thai', 'IG: {name}_99', 'TikTok: @{name}555']
-
-function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
-function randDigits(n: number): string { return Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('') }
-
-function generateRandomForm(): CreateReportData {
-  const firstName = rand(FIRST_NAMES)
-  const lastName = rand(LAST_NAMES)
-  const amount = (Math.floor(Math.random() * 20) + 1) * 5000
-  const tag = firstName.toLowerCase().replace(/[^a-z]/g, '') || 'user' + randDigits(3)
-  return {
-    categoryId: 'loan_fraud',
-    firstName,
-    lastName,
-    idCard: randDigits(13),
-    phone: '0' + rand(['6', '8', '9']) + randDigits(8),
-    bankAccount: randDigits(10),
-    bankName: rand(BANK_NAMES),
-    socialAccounts: [1, 2].map(() => rand(SOCIALS).replace('{name}', tag)),
-    reporterNote: rand(NOTES).replace('{amount}', amount.toLocaleString()),
-  }
-}
 
 export default function ReportPage() {
   const [showLogin, setShowLogin] = useState(false)
   const [mounted, setMounted] = useState(false)
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
-  const [form, setForm] = useState<CreateReportData>(() => generateRandomForm())
+  const [form, setForm] = useState<CreateReportData>({
+    categoryId: '',
+    firstName: '',
+    lastName: '',
+    idCard: '',
+    phone: '',
+    bankAccount: '',
+    bankName: '',
+    socialAccounts: [],
+    reporterNote: '',
+  })
   const [newSocial, setNewSocial] = useState('')
   const [images, setImages] = useState<{ file: File; preview: string }[]>([])
   const [submitted, setSubmitted] = useState(false)
@@ -455,10 +432,15 @@ function ReportSuccess({ refCode, fraudId }: { refCode: string; fraudId: string 
         </div>
       )}
 
-      {/* Back button */}
-      <Link href="/" className="btn btn-secondary btn-lg w-full">
-        กลับหน้าค้นหา
-      </Link>
+      {/* Action buttons */}
+      <div className="flex gap-3">
+        <Link href="/dashboard/reports" className="btn btn-primary btn-lg flex-1 justify-center">
+          <FileText className="w-4 h-4" /> ดูรายงาน
+        </Link>
+        <Link href="/" className="btn btn-secondary btn-lg flex-1 justify-center">
+          <Search className="w-4 h-4" /> ค้นหาอีกครั้ง
+        </Link>
+      </div>
 
       {/* Payment Drawer */}
       <PaymentDrawer

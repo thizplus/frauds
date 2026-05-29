@@ -1,25 +1,34 @@
 import { test } from '@playwright/test'
-import { typeSlowly, SubtitleTracker, SITE_URL } from './helpers'
+import { PAUSE, SITE_URL } from './helpers'
+import path from 'path'
+import fs from 'fs'
 
-test('G-03: สมาชิกลงทะเบียนผ่าน invite link', async ({ page }) => {
-  const sub = new SubtitleTracker('G03-debtor-register')
+test('G-03: สมาชิกลงทะเบียนผ่าน invite link', async ({ browser }) => {
+  const recDir = path.resolve(__dirname, '../recordings/G03')
+  if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true })
 
-  sub.mark('เมื่อสมาชิกได้รับลิงก์ ก็เปิดลิงก์เข้ามาลงทะเบียนได้เลย')
-  // ใช้ invite code จาก lender profile
-  await page.goto(`${SITE_URL}/register/DEMO`)
-  await page.waitForTimeout(3000)
+  // G03 ไม่ต้อง login — เปิด invite link ตรงๆ (เหมือนสมาชิกเปิดลิงก์)
+  const recordCtx = await browser.newContext({
+    viewport: { width: 430, height: 932 },
+    isMobile: true,
+    recordVideo: { dir: recDir, size: { width: 430, height: 932 } },
+  })
+  const page = await recordCtx.newPage()
 
-  sub.mark('กรอกชื่อ นามสกุล และข้อมูลที่เจ้ามือกำหนด')
-  await page.waitForTimeout(2000)
+  // --- เปิดหน้าแรกก่อน แสดงว่าเป็น invite link ---
+  await page.goto(`${SITE_URL}/register/DEMO`, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(PAUSE.PAGE_LOAD)
 
-  sub.mark('กรอกเบอร์โทรสำหรับติดต่อ')
-  await page.waitForTimeout(2000)
+  // --- ดูหน้าฟอร์มลงทะเบียน ---
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('กรอกเลขบัญชีธนาคาร')
-  await page.waitForTimeout(2000)
+  // --- scroll ดูฟอร์มต่อ ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('กดส่งข้อมูล ลงทะเบียนเสร็จ ข้อมูลจะเข้าไปที่ระบบของเจ้ามือทันที')
-  await page.waitForTimeout(3000)
+  // --- scroll ดูปุ่มส่ง ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.save()
+  await recordCtx.close()
 })

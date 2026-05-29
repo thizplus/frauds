@@ -1,27 +1,29 @@
 import { test } from '@playwright/test'
-import { openAppWithLogin, typeSlowly, SubtitleTracker, MEMBER_TOKEN, SITE_URL } from './helpers'
+import { loginAndGetState, startRecordFromHome, navigateTo, PAUSE, MEMBER_TOKEN } from './helpers'
+import path from 'path'
 
-test('G-01: เปิดระบบเก็บข้อมูล (Lender)', async ({ page }) => {
-  const sub = new SubtitleTracker('G01-lender-setup')
+test('G-01: เปิดระบบเก็บข้อมูล (Lender)', async ({ browser }) => {
+  const recDir = path.resolve(__dirname, '../recordings/G01')
+  const storageState = await loginAndGetState(browser, MEMBER_TOKEN)
+  const { ctx, page } = await startRecordFromHome(browser, storageState, recDir)
 
-  sub.mark('มาดูระบบเก็บข้อมูลสำหรับเจ้ามือกัน')
-  await openAppWithLogin(page, MEMBER_TOKEN)
+  // --- หน้าแรก ---
+  await page.waitForTimeout(PAUSE.SCENE)
 
-  sub.mark('เข้าหน้าระบบเก็บข้อมูล')
-  await page.goto(`${SITE_URL}/lender`)
-  await page.waitForTimeout(3000)
+  // --- เปิด burger menu → ระบบเก็บข้อมูล ---
+  await navigateTo(page, 'ระบบเก็บข้อมูล')
+  await page.waitForTimeout(PAUSE.SCENE)
 
-  sub.mark('ใส่ชื่อธุรกิจ แล้วกดเปิดระบบ')
-  await page.waitForTimeout(3000)
+  // --- ดูหน้าระบบเก็บข้อมูล ---
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('ระบบจะสร้างลิงก์สำหรับให้สมาชิกลงทะเบียน')
-  await page.waitForTimeout(3000)
+  // --- scroll ดูข้อมูลเพิ่ม ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('คัดลอกลิงก์นี้ไปส่งให้สมาชิกได้เลย')
-  await page.waitForTimeout(3000)
+  // --- scroll ดูรายชื่อ / ลิงก์เชิญ ---
+  await page.evaluate(() => window.scrollBy(0, 300))
+  await page.waitForTimeout(PAUSE.RESULT)
 
-  sub.mark('สามารถตั้งค่าว่าจะให้สมาชิกกรอกข้อมูลอะไรบ้าง')
-  await page.waitForTimeout(3000)
-
-  sub.save()
+  await ctx.close()
 })
