@@ -52,6 +52,8 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
     print(f"  Output: {run_dir}")
     print(f"{'='*60}")
 
+    report = {}
+
     async with PlaywrightHelper(
         profile_dir="./pw_chrome_data",
         headless=False,
@@ -60,37 +62,46 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
         pw.account_id = "default"
 
         # === Login ===
-        print(f"\n  [1/4] Login check...")
+        print(f"\n  [1/5] Login check...")
         await pw.goto("https://www.facebook.com")
         await pw.wait(3000)
         if not await pw.check_facebook_login():
             await pw.wait_for_login()
 
         # === Phase 1: Capture Feed ===
-        print(f"\n  [2/4] Capture feed (scroll {max_scrolls} ครั้ง)...")
-        pw.job_type = "feed"
-        pw.job_id = f"feed_{group_id}_{run_id}"
+        try:
+            print(f"\n  [2/5] Capture feed (max_posts={max_posts})...")
+            pw.job_type = "feed"
+            pw.job_id = f"feed_{group_id}_{run_id}"
 
-        await pw.goto(group_url)
-        await pw.wait(5000)
+            await pw.goto(group_url)
+            await pw.wait(5000)
 
-        await pw.start_capture(run_dir)
-        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
-        await pw.stop_capture()
+            await pw.start_capture(run_dir)
+            await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
+            await pw.stop_capture()
+        except Exception as e:
+            print(f"  ✗ Feed capture error: {e}")
+            try: await pw.stop_capture()
+            except: pass
 
         # Quick extract เพื่อหา posts ที่มี comments
         posts = _quick_extract(run_dir)
         print(f"  → {len(posts)} posts captured")
+
+        if len(posts) == 0:
+            print(f"  ✗ ไม่มี posts — หยุด")
+            return
 
         # === Phase 2: Capture Comments per post ===
         posts_with_comments = [p for p in posts if p.get("engagement", {}).get("comment_count", 0) > 0]
         posts_to_collect = posts_with_comments[:max_comment_posts]
 
         if posts_to_collect:
-            print(f"\n  [3/4] Capture comments ({len(posts_to_collect)} posts with comments)...")
+            print(f"\n  [3/5] Capture comments ({len(posts_to_collect)} posts with comments)...")
             pw.job_type = "comments"
 
-            await pw.start_capture(run_dir)  # append to same stream
+            await pw.start_capture(run_dir)
 
             for i, post in enumerate(posts_to_collect):
                 pid = post["post_id"]
@@ -100,45 +111,44 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
                     post_url = f"https://www.facebook.com/groups/{group_id}/posts/{pid}/"
 
                 pw.job_id = f"comment_{pid}"
-
-                # Dynamic budget — formula แทน hard table
                 rounds = min(200, max(20, int(cc * 0.8)))
                 stale = 10 if cc > 50 else 8
 
-                print(f"    [{i+1}/{len(posts_to_collect)}] {pid} ({cc} comments, rounds={rounds})...")
+                try:
+                    print(f"    [{i+1}/{len(posts_to_collect)}] {pid} ({cc} comments)...")
+                    await pw.goto("https://www.facebook.com/")
+                    await pw.wait(2000)
+                    await pw.goto(post_url)
+                    await pw.wait(5000)
+                    await pw.save_html_snapshot(pid)
+                    budget_sec = min(300, max(60, cc * 2))
+                    await pw.scroll_comments(max_rounds=rounds, stale_limit=stale, budget_seconds=budget_sec)
+                    import random
+                    await pw.wait(int(random.uniform(5, 12) * 1000))
+                except Exception as e:
+                    print(f"    ✗ Comment error [{pid}]: {e} — skip, continue")
+                    continue
 
-                # Navigate to post (จาก facebook.com → full page ไม่ใช่ modal)
-                await pw.goto("https://www.facebook.com/")
-                await pw.wait(2000)
-                await pw.goto(post_url)
-                await pw.wait(5000)
-
-                # Save HTML snapshot (comments แรกที่ GraphQL ไม่ส่ง)
-                await pw.save_html_snapshot(pid)
-
-                # Scroll + click comments (hybrid stop: stale + timeout + budget)
-                budget_sec = min(300, max(60, cc * 2))  # 2 sec per comment, cap 5 min
-                await pw.scroll_comments(max_rounds=rounds, stale_limit=stale, budget_seconds=budget_sec)
-
-                # Human-like delay between posts
-                import random
-                delay = random.uniform(5, 12)
-                await pw.wait(int(delay * 1000))
-
-            await pw.stop_capture()
+            try: await pw.stop_capture()
+            except: pass
             print(f"  → Comments captured for {len(posts_to_collect)} posts")
         else:
-            print(f"\n  [3/4] No posts with comments — skip")
+            print(f"\n  [3/5] No posts with comments — skip")
 
         # === Phase 3: Extract ===
         print(f"\n  [4/5] Extract (raw → extracted.json)...")
+        try:
+            report = extract_run(run_dir)
+        except Exception as e:
+            print(f"  ✗ Extract error: {e}")
+            report = {"output_dir": str(run_dir)}
 
-        # Run extractor (ยังอยู่ใน browser context)
-        report = extract_run(run_dir)
-
-        # === Phase 4: Download images ผ่าน browser (มี FB cookies) ===
+        # === Phase 4: Download images ===
         print(f"\n  [5/5] Download images (ผ่าน browser session)...")
-        await _download_images_via_browser(pw, report)
+        try:
+            await _download_images_via_browser(pw, report)
+        except Exception as e:
+            print(f"  ✗ Image download error: {e} — ข้ามไป pipeline")
 
     # === Done (browser ปิดแล้ว) ===
     print(f"\n{'='*60}")

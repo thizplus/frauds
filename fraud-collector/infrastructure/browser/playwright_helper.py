@@ -397,6 +397,23 @@ class PlaywrightHelper:
                 stale_count = 0
             prev_post_count = post_count
 
+            # Auto-reload เมื่อค้าง (stale 8 ครั้ง แต่ยังไม่ครบ posts)
+            if stale_count == 8 and (max_posts == 0 or post_count < max_posts):
+                print(f"    ⟳ FB feed ค้าง — reload หน้า (มี {post_count} posts)...")
+                current_url = self.page.url
+                await self.page.reload(wait_until="networkidle")
+                await self.wait(5000)
+                # scroll กลับไปล่างสุด
+                await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await self.wait(3000)
+                stale_count = 0
+                reload_count = getattr(self, '_reload_count', 0) + 1
+                self._reload_count = reload_count
+                if reload_count >= 3:
+                    print(f"    ✗ reload 3 ครั้งแล้ว ยังค้าง — หยุด ({post_count} posts)")
+                    break
+                continue
+
             # Log progress
             if scroll_count % 5 == 0:
                 logger.info("scroll_progress", extra={
