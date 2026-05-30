@@ -154,7 +154,7 @@ export default function ReportPage() {
       </h1>
       <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>กรอกข้อมูลคนโกงที่พบ</p>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off">
         {/* หมวดหมู่ */}
         <div>
           <label className="report-label">ประเภทการโกง <span style={{ color: 'var(--accent)' }}>*</span></label>
