@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Phone, ShieldAlert, CheckCircle, Clock } from 'lucide-react'
+import { ArrowLeft, Users, Loader2, AlertTriangle, Phone, ShieldAlert, CheckCircle, Clock } from 'lucide-react'
+import { Pagination } from '@/components/shared/Pagination'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
@@ -106,16 +107,8 @@ export default function DebtorsPage() {
             ))}
           </div>
 
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-3">
-              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{page} / {meta.totalPages}</span>
-              <button className="btn btn-secondary btn-sm" disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {meta && (
+            <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
           )}
         </>
       )}
