@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Clock, BadgeCheck, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
+import { ArrowLeft, FileText, Clock, BadgeCheck, CheckCircle, AlertTriangle, Loader2, Bot, Pause, Play, Trash2 } from 'lucide-react'
+import { Pagination } from '@/components/shared/Pagination'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
@@ -157,13 +158,8 @@ export function ReportsPage() {
               />
             ))}
           </div>
-          {meta && meta.totalPages > 1 && (
-            <Pagination
-              page={reportPage}
-              totalPages={meta.totalPages}
-              onPrev={() => setReportPage((p) => Math.max(1, p - 1))}
-              onNext={() => setReportPage((p) => Math.min(meta.totalPages, p + 1))}
-            />
+          {meta && (
+            <Pagination page={reportPage} totalPages={meta.totalPages} onPageChange={setReportPage} />
           )}
         </>
       )}
@@ -363,12 +359,3 @@ function getRobotConfig(status: string) {
   }
 }
 
-function Pagination({ page, totalPages, onPrev, onNext }: { page: number; totalPages: number; onPrev: () => void; onNext: () => void }) {
-  return (
-    <div className="flex items-center justify-center gap-4 mt-3">
-      <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={onPrev}><ChevronLeft className="w-4 h-4" /></button>
-      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{page} / {totalPages}</span>
-      <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={onNext}><ChevronRight className="w-4 h-4" /></button>
-    </div>
-  )
-}
