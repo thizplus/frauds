@@ -81,3 +81,8 @@ fraud-web/.next/
 *.txt
 mockup/
 *.sql
+
+# ยกเว้น public assets (bank icons, favicon ฯลฯ)
+!fraud-web/public/**/*.png
+!fraud-web/public/**/*.jpg
+!fraud-web/public/**/*.ico
