@@ -142,10 +142,10 @@ function DebtorCard({ debtor, onOpenDetail }: {
 
   return (
     <div className="card w-full text-left p-0 overflow-hidden cursor-pointer" onClick={onOpenDetail}>
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-2.5 p-3">
         {/* Avatar circle */}
         <div
-          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-base font-bold"
+          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
           style={{ background: st.bg, color: st.color }}
         >
           {initials}
@@ -153,15 +153,15 @@ function DebtorCard({ debtor, onOpenDetail }: {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg truncate" style={{ color: 'var(--text)' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm truncate" style={{ color: 'var(--text)' }}>
               {[d.firstName, d.lastName].filter(Boolean).join(' ')}
             </span>
             <span
-              className="inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+              className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
               style={{ background: st.bg, color: st.color }}
             >
-              <StatusIcon className="w-3 h-3" />
+              <StatusIcon className="w-2.5 h-2.5" />
               {st.label}
             </span>
           </div>
