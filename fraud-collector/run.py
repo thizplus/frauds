@@ -74,6 +74,10 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
             pw.job_type = "feed"
             pw.job_id = f"feed_{group_id}_{run_id}"
 
+            # Block images/css/fonts → scroll เร็วขึ้น + ลด RAM
+            await pw.block_heavy_resources()
+            print(f"    (blocked images/css/fonts for faster scroll)")
+
             await pw.goto(group_url)
             await pw.wait(5000)
 
@@ -146,6 +150,7 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
         # === Phase 4: Download images ===
         print(f"\n  [5/5] Download images (ผ่าน browser session)...")
         try:
+            await pw.unblock_resources()  # เปิด resources กลับเพื่อ download รูป
             await _download_images_via_browser(pw, report)
         except Exception as e:
             print(f"  ✗ Image download error: {e} — ข้ามไป pipeline")
