@@ -30,20 +30,36 @@ Phase B: Pipeline (run.py pipeline / --full-pipeline)
 ## คำสั่งใช้งาน
 
 ```bash
-# === Phase A เท่านั้น (Capture + Extract + Download) ===
-python run.py collect --group https://www.facebook.com/groups/xxx/
+# === Phase A เท่านั้น (Capture 500 posts) ===
+python run.py collect --group https://www.facebook.com/groups/xxx/ --max-posts 500
 
-# === Phase A + B ทั้งหมด ===
-python run.py collect --group https://www.facebook.com/groups/xxx/ --full-pipeline
+# === Phase A + B หยุดก่อน DB (แนะนำ — เปิดทิ้งข้ามคืน) ===
+python run.py collect --group https://www.facebook.com/groups/xxx/ --max-posts 500 --full-pipeline --no-db
 
-# === Auto: Phase A ทุกกลุ่ม + Phase B ทีเดียว ===
-python run.py auto
+# === Phase A + B ทั้งหมด (เข้า DB เลย) ===
+python run.py collect --group https://www.facebook.com/groups/xxx/ --max-posts 500 --full-pipeline
 
 # === Phase B เท่านั้น (ไม่ scrape ใหม่) ===
-python run.py pipeline
+python run.py pipeline              # ทั้ง 5 steps
+python run.py pipeline --no-db      # หยุดที่ validate
+python run.py pipeline --db-only    # เฉพาะ DB + Face (หลังตรวจ validated/ แล้ว)
+
+# === Auto: Phase A ทุกกลุ่ม + Phase B ===
+python run.py auto --no-db
 ```
 
-Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()`
+### Options
+
+| Flag | หน้าที่ |
+|------|--------|
+| `--max-posts 500` | หยุดเมื่อได้ครบ X posts (นับจาก DOM จริง) |
+| `--max-scrolls 1000` | fallback ถ้าไม่ใช้ --max-posts |
+| `--max-comment-posts 50` | จำนวน posts สูงสุดที่จะเก็บ comments |
+| `--full-pipeline` | ต่อ LLM → Normalize → Validate อัตโนมัติ |
+| `--no-db` | หยุดหลัง validate ไม่เข้า DB (รอตรวจสอบ) |
+| `--db-only` | รัน DB + Face เท่านั้น (หลังตรวจแล้ว) |
+
+Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()` / `run_db_only()`
 
 ---
 
@@ -63,7 +79,8 @@ Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()`
    - ถ้ายังไม่ login → wait_for_login() (รอ user login ใน browser)
 3. goto(group_url + sorting=CHRONOLOGICAL)
 4. start_capture(run_dir) → register response listener สำหรับ /api/graphql
-5. scroll_feed(max_scrolls) → scroll หน้า feed X ครั้ง
+5. scroll_feed(max_posts=500) → scroll จนได้ครบ X posts (นับจาก DOM)
+   - stale detection: scroll 15 ครั้งไม่มี post ใหม่ = หมด feed → หยุดอัตโนมัติ
 6. ทุก GraphQL response ถูกบันทึกเป็น JSONL ใน graphql_stream/chunk_XXXX.jsonl
 ```
 
@@ -342,7 +359,7 @@ fraud-collector → POST /bot/face-ingest (API Key auth)
 
 [1] Login FB (Playwright, reuse session)
          ↓
-[2] Capture Feed (scroll group, record GraphQL → JSONL chunks)
+[2] Capture Feed (scroll จนครบ --max-posts, record GraphQL → JSONL chunks)
          ↓
 [3] Capture Comments (visit each post, scroll comments, save HTML snapshots)
          ↓
@@ -437,4 +454,29 @@ fraud-collector/
 
 ---
 
-*เช็คจาก code จริงทุกไฟล์ — 30 พ.ค. 2569 โดย Claude Opus 4.6*
+## Workflow แนะนำ (เปิดทิ้งข้ามคืน)
+
+```bash
+# ก่อนนอน — เก็บ 500 posts + LLM + validate แล้วหยุด
+python run.py collect --group "https://www.facebook.com/groups/2371935176344747" --max-posts 500 --full-pipeline --no-db
+
+# ตื่นมา — ตรวจ golden/validated/ + VERIFY report
+# พอใจแล้ว — รัน DB + Face
+python run.py pipeline --db-only
+```
+
+## Categories (กลุ่ม FB)
+
+ตั้งค่าใน `categories.yaml`:
+
+```yaml
+categories:
+  loan_fraud:
+    name: "เบี้ยวหนี้เงินกู้"
+    groups:
+      - "https://www.facebook.com/groups/2371935176344747"
+```
+
+---
+
+*เช็คจาก code จริงทุกไฟล์ — อัพเดท 30 พ.ค. 2569 โดย Claude Opus 4.6*
