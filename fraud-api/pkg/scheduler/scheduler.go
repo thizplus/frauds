@@ -14,13 +14,13 @@ import (
 )
 
 // Start สร้าง cron scheduler และเริ่มทำงาน
-func Start(db *gorm.DB, notifier ports.NotificationPort) *cron.Cron {
+func Start(db *gorm.DB, notifier ports.NotificationPort, lineMessaging ports.LineMessagingPort, richMenuFree string) *cron.Cron {
 	loc, _ := time.LoadLocation("Asia/Bangkok")
 	c := cron.New(cron.WithLocation(loc))
 
 	// ทุก 1 ชม. — expire subscriptions ที่หมดอายุ
 	c.AddFunc("@every 1h", func() {
-		safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier) })
+		safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier, lineMessaging, richMenuFree) })
 	})
 
 	// ทุกวัน 09:00 เวลาไทย — notify ก่อนหมดอายุ 3 วัน
@@ -29,7 +29,7 @@ func Start(db *gorm.DB, notifier ports.NotificationPort) *cron.Cron {
 	})
 
 	// รัน expire ทันทีตอน start
-	go safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier) })
+	go safeRun("expireSubscriptions", func() { expireSubscriptions(db, notifier, lineMessaging, richMenuFree) })
 
 	c.Start()
 	logger.Info("Scheduler started", "timezone", "Asia/Bangkok",
@@ -48,7 +48,7 @@ func safeRun(name string, fn func()) {
 }
 
 // expireSubscriptions อัปเดต status เป็น expired สำหรับ subscription ที่หมดอายุ
-func expireSubscriptions(db *gorm.DB, notifier ports.NotificationPort) {
+func expireSubscriptions(db *gorm.DB, notifier ports.NotificationPort, lineMessaging ports.LineMessagingPort, richMenuFree string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
@@ -76,6 +76,15 @@ func expireSubscriptions(db *gorm.DB, notifier ports.NotificationPort) {
 			Data:    map[string]string{"action": "renew", "planId": sub.PlanID.String()},
 		})
 		logger.Info("Expired notification sent", "user_id", sub.UserID, "plan", sub.Plan.Name)
+
+		// Switch Rich Menu -> free
+		if lineMessaging != nil && richMenuFree != "" && sub.User.LineUserID != "" {
+			if err := lineMessaging.LinkRichMenu(ctx, sub.User.LineUserID, richMenuFree); err != nil {
+				logger.WarnContext(ctx, "Failed to switch rich menu to free", "user_id", sub.UserID, "error", err)
+			} else {
+				logger.InfoContext(ctx, "Rich menu switched to free", "user_id", sub.UserID)
+			}
+		}
 	}
 }
 

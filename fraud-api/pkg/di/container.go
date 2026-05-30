@@ -162,7 +162,7 @@ func (c *Container) Initialize() error {
 	c.CategoryService = serviceimpl.NewCategoryService(c.CategoryRepo, c.FraudRepo)
 	c.SettingsService = serviceimpl.NewSettingsService(c.SettingsRepo)
 	c.MembershipService = serviceimpl.NewMembershipService(c.MembershipRepo)
-	c.PaymentService = serviceimpl.NewPaymentService(c.PaymentRepo, c.MembershipRepo, c.SettingsRepo)
+	c.PaymentService = serviceimpl.NewPaymentService(c.PaymentRepo, c.MembershipRepo, c.SettingsRepo, c.UserRepo, c.LineMessaging, cfg.LINE.RichMenuMember)
 	c.UserService = serviceimpl.NewUserService(c.UserRepo)
 	c.ServiceService = serviceimpl.NewServiceService(c.ServiceRepo)
 	c.NotificationService = serviceimpl.NewNotificationService(c.Notifier)

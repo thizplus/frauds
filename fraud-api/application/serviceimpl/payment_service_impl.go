@@ -23,17 +23,26 @@ type paymentServiceImpl struct {
 	repo           repositories.PaymentRepository
 	membershipRepo repositories.MembershipRepository
 	settingsRepo   repositories.SettingsRepository
+	userRepo       repositories.UserRepository
+	lineMessaging  ports.LineMessagingPort
+	richMenuMember string
 }
 
 func NewPaymentService(
 	repo repositories.PaymentRepository,
 	membershipRepo repositories.MembershipRepository,
 	settingsRepo repositories.SettingsRepository,
+	userRepo repositories.UserRepository,
+	lineMessaging ports.LineMessagingPort,
+	richMenuMember string,
 ) *paymentServiceImpl {
 	return &paymentServiceImpl{
 		repo:           repo,
 		membershipRepo: membershipRepo,
 		settingsRepo:   settingsRepo,
+		userRepo:       userRepo,
+		lineMessaging:  lineMessaging,
+		richMenuMember: richMenuMember,
 	}
 }
 
@@ -210,6 +219,7 @@ func (s *paymentServiceImpl) activateSubscription(ctx context.Context, payment *
 			return err
 		}
 		logger.InfoContext(ctx, "Subscription extended", "subscription_id", existing.ID, "user_id", payment.UserID)
+		s.switchRichMenuToMember(ctx, payment.UserID)
 		return nil
 	}
 
@@ -226,7 +236,26 @@ func (s *paymentServiceImpl) activateSubscription(ctx context.Context, payment *
 	}
 
 	logger.InfoContext(ctx, "Subscription created", "subscription_id", sub.ID, "user_id", payment.UserID)
+
+	// Switch Rich Menu → member
+	s.switchRichMenuToMember(ctx, payment.UserID)
+
 	return nil
+}
+
+func (s *paymentServiceImpl) switchRichMenuToMember(ctx context.Context, userID uuid.UUID) {
+	if s.lineMessaging == nil || s.richMenuMember == "" {
+		return
+	}
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil || user.LineUserID == "" {
+		return
+	}
+	if err := s.lineMessaging.LinkRichMenu(ctx, user.LineUserID, s.richMenuMember); err != nil {
+		logger.WarnContext(ctx, "Failed to switch rich menu to member", "user_id", userID, "error", err)
+	} else {
+		logger.InfoContext(ctx, "Rich menu switched to member", "user_id", userID)
+	}
 }
 
 func (s *paymentServiceImpl) getSettingBool(ctx context.Context, key string) bool {

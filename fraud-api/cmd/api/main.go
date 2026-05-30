@@ -92,7 +92,7 @@ func main() {
 	routes.SetupRoutes(app, h, container.Config.BotAPI.Key, container.Config.JWT.Secret)
 
 	// 6. Start scheduler (cron jobs)
-	sched := scheduler.Start(container.DB, container.Notifier)
+	sched := scheduler.Start(container.DB, container.Notifier, container.LineMessaging, container.Config.LINE.RichMenuFree)
 	defer sched.Stop()
 
 	// 7. Start server
