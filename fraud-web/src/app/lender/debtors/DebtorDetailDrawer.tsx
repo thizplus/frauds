@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive, ZoomIn } from 'lucide-react'
+import { User, Phone, CreditCard, IdCard, MapPin, Globe, ShieldAlert, CheckCircle, Loader2, Search, AlertTriangle, X, Building2, BrainCircuit, Check, Archive } from 'lucide-react'
+import { EvidenceGallery } from '@/components/ui/EvidenceGallery'
 import { SocialResultCard } from '@/features/search/components/SocialResultCard'
 import { formatDateShort, formatDatetime } from '@/lib/utils/format-date'
 import { CategoryPicker } from '@/components/shared/CategoryPicker'
@@ -195,17 +196,10 @@ export function DebtorDetailDrawer({ debtorId, open, onClose }: DebtorDetailDraw
 
             {/* รูปภาพ */}
             {(debtor.selfieImage || debtor.idCardImage) && (
-              <div>
-                <SectionTitle>รูปภาพ</SectionTitle>
-                <div className="grid grid-cols-2 gap-2">
-                  {debtor.selfieImage && (
-                    <ImageWithLightbox src={debtor.selfieImage} alt="Selfie" label="เซลฟี่" />
-                  )}
-                  {debtor.idCardImage && (
-                    <ImageWithLightbox src={debtor.idCardImage} alt="ID Card" label="บัตรประชาชน" />
-                  )}
-                </div>
-              </div>
+              <EvidenceGallery
+                urls={[debtor.selfieImage, debtor.idCardImage].filter(Boolean) as string[]}
+                isMember={true}
+              />
             )}
 
             {/* ผลเช็คประวัติ */}
@@ -496,40 +490,3 @@ function ClearDialog({ name, onClose, onSubmit, loading }: {
   )
 }
 
-function ImageWithLightbox({ src, alt, label }: { src: string; alt: string; label: string }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <>
-      <div className="cursor-pointer relative group" onClick={() => setOpen(true)}>
-        <p className="text-xs mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
-        <img src={src} alt={alt} className="w-full rounded-lg" style={{ border: '1px solid var(--border)' }} />
-        <div className="absolute inset-0 mt-4 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <ZoomIn className="w-6 h-6 text-white" />
-        </div>
-      </div>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.9)' }}
-          onClick={() => setOpen(false)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white p-2"
-            onClick={() => setOpen(false)}
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={src}
-            alt={alt}
-            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-    </>
-  )
-}
