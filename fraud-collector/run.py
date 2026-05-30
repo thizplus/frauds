@@ -35,8 +35,8 @@ def parse_group_id(url: str) -> str:
     return match.group(1) if match else url
 
 
-async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int = 50, full_pipeline: bool = False):
-    """1 คำสั่ง ทำทุกอย่าง: capture feed → capture comments → extract → (optional) full pipeline"""
+async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, max_comment_posts: int = 50, full_pipeline: bool = False, no_db: bool = True):
+    """1 คำสั่ง ทำทุกอย่าง: capture feed → capture comments → extract → (optional) pipeline"""
 
     group_id = parse_group_id(group_url)
     # Ensure sorting=CHRONOLOGICAL
@@ -75,7 +75,7 @@ async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int 
         await pw.wait(5000)
 
         await pw.start_capture(run_dir)
-        await pw.scroll_feed(max_scrolls=max_scrolls)
+        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
         await pw.stop_capture()
 
         # Quick extract เพื่อหา posts ที่มี comments
@@ -149,13 +149,16 @@ async def collect(group_url: str, max_scrolls: int = 10, max_comment_posts: int 
     # Generate verification report
     _generate_verify_report(report, group_id, run_dir)
 
-    # === Full Pipeline (LLM → Normalize → Validate → DB → Face) ===
+    # === Full Pipeline (LLM → Normalize → Validate → optional DB + Face) ===
     if full_pipeline:
         print(f"\n{'='*60}")
-        print(f"  Full Pipeline — LLM → DB → Face Ingest")
+        if no_db:
+            print(f"  Pipeline — LLM → Normalize → Validate (หยุดก่อน DB)")
+        else:
+            print(f"  Full Pipeline — LLM → DB → Face Ingest")
         print(f"{'='*60}")
         from application.usecases.run_pipeline import run_pipeline
-        run_pipeline()
+        run_pipeline(no_db=no_db)
 
 
 async def _download_images_via_browser(pw, report):
@@ -513,15 +516,18 @@ def main():
     # collect
     collect_cmd = sub.add_parser("collect", help="เก็บข้อมูลครบ: feed + comments + extract")
     collect_cmd.add_argument("--group", required=True, help="Facebook group URL")
-    collect_cmd.add_argument("--max-scrolls", type=int, default=10, help="จำนวน scroll feed (default 10)")
+    collect_cmd.add_argument("--max-posts", type=int, default=0, help="หยุดเมื่อได้ครบ X posts (แนะนำ เช่น 500)")
+    collect_cmd.add_argument("--max-scrolls", type=int, default=1000, help="จำนวน scroll สูงสุด (fallback ถ้าไม่ใช้ --max-posts)")
     collect_cmd.add_argument("--max-comment-posts", type=int, default=50, help="จำนวน posts สูงสุดที่จะเก็บ comments")
-    collect_cmd.add_argument("--full-pipeline", action="store_true", help="ต่อ LLM → DB → Face Ingest อัตโนมัติ")
+    collect_cmd.add_argument("--full-pipeline", action="store_true", help="ต่อ LLM → Validate อัตโนมัติ (ไม่เข้า DB)")
+    collect_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB (default เมื่อใช้ --full-pipeline)")
 
     # auto — collect ทุกกลุ่มจาก categories.yaml + full pipeline
     auto_cmd = sub.add_parser("auto", help="เก็บทุกกลุ่มจาก categories.yaml อัตโนมัติ")
     auto_cmd.add_argument("--max-scrolls", type=int, default=5, help="จำนวน scroll feed ต่อกลุ่ม (default 5)")
     auto_cmd.add_argument("--max-comment-posts", type=int, default=10, help="จำนวน posts ที่เก็บ comments ต่อกลุ่ม")
     auto_cmd.add_argument("--category", type=str, help="เฉพาะ category (เช่น loan_fraud)")
+    auto_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB")
 
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
@@ -529,8 +535,10 @@ def main():
     extract_cmd.add_argument("--all", action="store_true", help="Extract all runs")
     extract_cmd.add_argument("--force", action="store_true", help="Force re-extract")
 
-    # pipeline — run LLM → DB → Face เฉพาะ (ไม่ capture ใหม่)
-    sub.add_parser("pipeline", help="Run LLM → Normalize → Validate → DB → Face (ไม่ capture)")
+    # pipeline
+    pipeline_cmd = sub.add_parser("pipeline", help="Run LLM → Normalize → Validate → DB → Face (ไม่ capture)")
+    pipeline_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB")
+    pipeline_cmd.add_argument("--db-only", action="store_true", help="รัน DB + Face เท่านั้น (หลังตรวจ validated/ แล้ว)")
 
     args = parser.parse_args()
 
@@ -539,9 +547,11 @@ def main():
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         asyncio.run(collect(
             group_url=args.group,
+            max_posts=args.max_posts,
             max_scrolls=args.max_scrolls,
             max_comment_posts=args.max_comment_posts,
             full_pipeline=args.full_pipeline,
+            no_db=args.no_db if hasattr(args, 'no_db') else True,
         ))
 
     elif args.command == "auto":
@@ -554,8 +564,11 @@ def main():
         ))
 
     elif args.command == "pipeline":
-        from application.usecases.run_pipeline import run_pipeline
-        run_pipeline()
+        from application.usecases.run_pipeline import run_pipeline, run_db_only
+        if args.db_only:
+            run_db_only()
+        else:
+            run_pipeline(no_db=args.no_db)
 
     elif args.command == "extract":
         if args.run:

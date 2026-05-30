@@ -354,14 +354,23 @@ class PlaywrightHelper:
 
     # --- Scroll (Feed + Comments) ---
 
-    async def scroll_feed(self, max_scrolls: int = 15):
+    async def scroll_feed(self, max_scrolls: int = 15, max_posts: int = 0):
         """Scroll group feed with human-like delays
 
-        Worker ใช้ method นี้สำหรับ feed capture jobs
+        Args:
+            max_scrolls: จำนวน scroll สูงสุด (fallback ถ้าไม่ระบุ max_posts)
+            max_posts: หยุดเมื่อได้ครบ X posts (0 = ใช้ max_scrolls แทน)
         """
-        logger.info("scroll_feed_start", extra={"max_scrolls": max_scrolls})
+        mode = f"max_posts={max_posts}" if max_posts > 0 else f"max_scrolls={max_scrolls}"
+        logger.info("scroll_feed_start", extra={"mode": mode})
 
-        for i in range(max_scrolls):
+        scroll_count = 0
+        prev_post_count = 0
+        stale_count = 0
+
+        while True:
+            scroll_count += 1
+
             # กด "ดูเพิ่มเติม" / "See more"
             await self._click_see_more()
 
@@ -371,19 +380,46 @@ class PlaywrightHelper:
             await self.wait(int(delay * 1000))
 
             # Human-like pause
-            if (i + 1) % random.randint(5, 8) == 0:
+            if scroll_count % random.randint(5, 8) == 0:
                 pause = random.uniform(8, 15)
                 logger.info("human_pause", extra={"seconds": round(pause, 1)})
                 await self.wait(int(pause * 1000))
 
-            if (i + 1) % 5 == 0:
+            # นับ posts จริงจาก DOM
+            post_count = await self.page.evaluate("""
+                () => document.querySelectorAll('[role="article"]').length
+            """)
+
+            # เช็ค stale (ไม่มี post ใหม่)
+            if post_count == prev_post_count:
+                stale_count += 1
+            else:
+                stale_count = 0
+            prev_post_count = post_count
+
+            # Log progress
+            if scroll_count % 5 == 0:
                 logger.info("scroll_progress", extra={
-                    "scroll": i + 1,
-                    "max": max_scrolls,
+                    "scroll": scroll_count,
+                    "posts": post_count,
+                    "mode": mode,
                     "captured": self._capture_stats["responses"],
                 })
+                print(f"    scroll {scroll_count} | posts: {post_count} | captured: {self._capture_stats['responses']}")
 
-        logger.info("scroll_feed_done", extra={"captured": self._capture_stats["responses"]})
+            # หยุดเมื่อ: ครบ posts / ครบ scrolls / stale 15 ครั้ง (หมด feed)
+            if max_posts > 0 and post_count >= max_posts:
+                logger.info("scroll_feed_done_by_posts", extra={"posts": post_count, "scrolls": scroll_count})
+                print(f"    ✓ ครบ {post_count} posts (scroll {scroll_count} ครั้ง)")
+                break
+            if max_posts == 0 and scroll_count >= max_scrolls:
+                break
+            if stale_count >= 15:
+                logger.info("scroll_feed_done_by_stale", extra={"posts": post_count, "scrolls": scroll_count})
+                print(f"    ✓ หมด feed ({post_count} posts, stale {stale_count} ครั้ง)")
+                break
+
+        logger.info("scroll_feed_done", extra={"posts": post_count, "scrolls": scroll_count, "captured": self._capture_stats["responses"]})
 
     async def scroll_comments(self, max_rounds: int = 50, stale_limit: int = 8,
                               budget_seconds: int = 300):
