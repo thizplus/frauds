@@ -138,19 +138,10 @@ function DebtorCard({ debtor, onOpenDetail }: {
   const d = debtor
   const st = STATUS_MAP[d.status] || STATUS_MAP.active
   const StatusIcon = st.icon
-  const initials = (d.firstName?.[0] || '?').toUpperCase()
 
   return (
     <div className="card w-full text-left p-0 overflow-hidden cursor-pointer" onClick={onOpenDetail}>
       <div className="flex items-center gap-2.5 p-3">
-        {/* Avatar circle */}
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-          style={{ background: st.bg, color: st.color }}
-        >
-          {initials}
-        </div>
-
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
