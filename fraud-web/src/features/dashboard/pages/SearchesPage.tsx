@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Search, Clock, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Phone, CreditCard, IdCard, User, ScanFace, Copy, Check, ShieldAlert, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Search, Clock, Loader2, AlertTriangle, Phone, CreditCard, IdCard, User, ScanFace, Copy, Check, ShieldAlert, CheckCircle } from 'lucide-react'
+import { Pagination } from '@/components/shared/Pagination'
 import { useAuthStore } from '@/lib/stores/auth'
 import { LoginModal } from '@/features/auth'
 import { formatDatetime } from '@/lib/utils/format-date'
@@ -148,16 +149,8 @@ export function SearchesPage() {
               )
             })}
           </div>
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>{page} / {meta.totalPages}</span>
-              <button className="btn btn-secondary btn-sm" disabled={page >= meta.totalPages} onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {meta && (
+            <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
           )}
         </>
       )}
