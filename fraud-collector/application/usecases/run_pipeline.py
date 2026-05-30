@@ -60,11 +60,52 @@ def run_pipeline(extracted_dir: str = None, no_db: bool = False):
     if no_db:
         duration = time.time() - start
         ok = sum(1 for v in results.values() if v)
-        print(f"\n  Pipeline stopped before DB (--no-db) ({duration:.0f}s) — {ok}/{total_steps} steps succeeded")
-        print(f"  ข้อมูลอยู่ใน golden/validated/ พร้อมตรวจสอบ")
-        print(f"  เมื่อตรวจเสร็จ รัน: python run.py pipeline --db-only")
+
+        # สรุปข้อมูลใน validated/
+        validated_dir = Path("golden/validated")
+        proposal_dir = Path("golden/llm_proposals")
+        v_count = len(list(validated_dir.glob("*.json"))) if validated_dir.exists() else 0
+        p_count = len(list(proposal_dir.glob("*.json"))) if proposal_dir.exists() else 0
+
+        # นับ entities
+        total_entities = 0
+        valid_entities = 0
+        entity_types = {"name": 0, "phone": 0, "bank_account": 0, "id_card": 0}
+        if validated_dir.exists():
+            import json as _json
+            for vf in validated_dir.glob("*.json"):
+                try:
+                    with open(vf, "r", encoding="utf-8") as f:
+                        data = _json.load(f)
+                    for person in data.get("persons", []):
+                        for etype in ["names", "phones", "bank_accounts", "id_cards"]:
+                            key = etype.rstrip("s") if etype != "names" else "name"
+                            for e in person.get(etype, []):
+                                total_entities += 1
+                                if e.get("is_valid", True):
+                                    valid_entities += 1
+                                entity_types[key] = entity_types.get(key, 0) + 1
+                except Exception:
+                    pass
+
+        print(f"\n{'='*60}")
+        print(f"  สรุป Pipeline (หยุดก่อน DB)")
+        print(f"{'='*60}")
+        print(f"  LLM proposals:  {p_count} posts")
+        print(f"  Validated:      {v_count} posts")
+        print(f"  Entities:       {total_entities} ({valid_entities} valid)")
+        for etype, count in entity_types.items():
+            if count > 0:
+                print(f"    {etype}: {count}")
+        print(f"  Duration:       {duration:.0f}s")
+        print(f"")
+        print(f"  Steps:")
         for step, success in results.items():
             print(f"    {step}: {'OK' if success else 'FAIL'}")
+        print(f"")
+        print(f"  ตรวจสอบ: golden/validated/")
+        print(f"  เมื่อพร้อม: python run.py pipeline --db-only")
+        print(f"{'='*60}")
         return results
 
     # === Step 4: DB Ingest ===
