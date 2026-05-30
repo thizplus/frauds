@@ -6,10 +6,23 @@
 
 ## ภาพรวม
 
+ระบบแบ่งเป็น 2 ส่วนหลัก:
+
 ```
-Scrape FB (Playwright) → Extract posts → Download images
-    → LLM (Gemini) → Normalize → Validate
-    → DB Ingest (PostgreSQL) → Face Ingest (face-service)
+Phase A: Capture (run.py collect / auto)
+  [1] Login FB
+  [2] Capture Feed
+  [3] Capture Comments
+  [4] Extract (Raw → JSON)
+  [5] Download Images
+  [6] Generate Verify Report
+
+Phase B: Pipeline (run.py pipeline / --full-pipeline)
+  [7] LLM Extract (Gemini)       — Pipeline Step 1/5
+  [8] Normalize                   — Pipeline Step 2/5
+  [9] Validate                    — Pipeline Step 3/5
+  [10] DB Ingest (PostgreSQL)     — Pipeline Step 4/5
+  [11] Face Ingest (face-service) — Pipeline Step 5/5
 ```
 
 ---
@@ -17,20 +30,26 @@ Scrape FB (Playwright) → Extract posts → Download images
 ## คำสั่งใช้งาน
 
 ```bash
-# เก็บข้อมูล 1 กลุ่ม
+# === Phase A เท่านั้น (Capture + Extract + Download) ===
 python run.py collect --group https://www.facebook.com/groups/xxx/
 
-# เก็บ + รัน pipeline ต่อเลย
+# === Phase A + B ทั้งหมด ===
 python run.py collect --group https://www.facebook.com/groups/xxx/ --full-pipeline
 
-# เก็บทุกกลุ่มจาก categories.yaml + pipeline อัตโนมัติ
+# === Auto: Phase A ทุกกลุ่ม + Phase B ทีเดียว ===
 python run.py auto
 
-# รัน pipeline อย่างเดียว (ไม่ scrape ใหม่)
+# === Phase B เท่านั้น (ไม่ scrape ใหม่) ===
 python run.py pipeline
 ```
 
 Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()`
+
+---
+
+# Phase A: Capture (ขั้นตอน 1-6)
+
+> รันโดย `collect()` ใน `run.py` — ใช้ Playwright browser
 
 ---
 
@@ -151,6 +170,18 @@ Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()`
 
 ---
 
+> **Phase A จบที่ขั้นตอน 5** — ข้อมูลอยู่ใน extracted/ + images/ + golden/
+> ยังไม่เข้า DB ยังไม่ส่ง face-service
+
+---
+
+# Phase B: Pipeline (ขั้นตอน 6-10)
+
+> รันโดย `run_pipeline()` ใน `application/usecases/run_pipeline.py`
+> ทริกเกอร์ด้วย `--full-pipeline` / `python run.py pipeline` / `auto` mode
+
+---
+
 ## ขั้นตอน 6: LLM Entity Extraction (Pipeline Step 1/5)
 
 **ไฟล์**: `application/usecases/run_pipeline.py` → `golden/llm_propose.py`
@@ -242,6 +273,12 @@ Entry point: `run.py` → `collect()` / `_auto_collect()` / `run_pipeline()`
 
 ---
 
+> **ขั้นตอน 8 คือจุดที่สามารถหยุดรอตรวจสอบได้**
+> ข้อมูลอยู่ใน `golden/validated/` พร้อม is_valid + confidence_score
+> ยังไม่เข้า DB / face-service
+
+---
+
 ## ขั้นตอน 9: DB Ingest (Pipeline Step 4/5)
 
 **ไฟล์**: `golden/ingest_to_db.py` (ใช้ psycopg2 ตรง ไม่ผ่าน Go API)
@@ -301,6 +338,8 @@ fraud-collector → POST /bot/face-ingest (API Key auth)
 ## สรุป Flow ทั้งหมด (End-to-End)
 
 ```
+=== Phase A: Capture (ไม่เข้า DB) ===
+
 [1] Login FB (Playwright, reuse session)
          ↓
 [2] Capture Feed (scroll group, record GraphQL → JSONL chunks)
@@ -310,24 +349,26 @@ fraud-collector → POST /bot/face-ingest (API Key auth)
 [4] Extract (parse GraphQL + HTML → extracted.json per post)
          ↓
 [5] Download Images (via browser with FB cookies → SHA256 dedup → images/)
+
+=== Phase B: Pipeline (เข้า DB + face-service) ===
+
+[6] LLM Extract (Gemini 2.5 Flash → names/phones/banks/ids)
          ↓
-[6] Generate Verify Report (HTML visual QA)
-         ↓ (--full-pipeline หรือ python run.py pipeline)
-[7] LLM Extract (Gemini 2.5 Flash → names/phones/banks/ids)
+[7] Normalize (role tagging + name parsing + ownership grouping)
          ↓
-[8] Normalize (role tagging + name parsing + ownership grouping)
+[8] Validate (format + checksum → confidence scores)
+         ↓  ← หยุดตรงนี้ได้ (--no-db) รอตรวจสอบ validated/
          ↓
-[9] Validate (format + checksum → confidence scores)
+[9] DB Ingest (psycopg2 → social_posts + social_persons + searchable_entities)
          ↓
-[10] DB Ingest (psycopg2 → social_posts + social_persons + searchable_entities)
-         ↓
-[11] Face Ingest (POST /bot/face-ingest → face-service → pgvector embeddings)
+[10] Face Ingest (POST /bot/face-ingest → face-service → pgvector embeddings)
 ```
 
 ---
 
 ## ไฟล์สำคัญทั้งหมด
 
+### Phase A: Capture
 | ไฟล์ | หน้าที่ |
 |------|--------|
 | `run.py` | CLI entry point + orchestrator |
@@ -335,18 +376,27 @@ fraud-collector → POST /bot/face-ingest (API Key auth)
 | `infrastructure/utils/graphql_parser.py` | Parse FB GraphQL → posts + comments |
 | `application/usecases/replay_extractor.py` | Raw stream → extracted.json |
 | `application/usecases/image_downloader.py` | Download + verify + SHA256 dedup |
+
+### Phase B: Pipeline
+| ไฟล์ | หน้าที่ |
+|------|--------|
 | `application/usecases/run_pipeline.py` | Orchestrate 5 pipeline steps |
-| `application/usecases/normalizer.py` | LLM entities → persons + evidence |
+| `golden/llm_propose.py` | [Step 1/5] LLM extract (Gemini) |
+| `golden/normalize_all.py` | [Step 2/5] Normalize |
+| `application/usecases/normalizer.py` | Role tagging + name parsing + grouping |
+| `golden/validate_all.py` | [Step 3/5] Validate |
 | `application/usecases/entity_validator.py` | Format + checksum validation |
+| `golden/ingest_to_db.py` | [Step 4/5] DB ingest (psycopg2 ตรง) |
+| `golden/ingest_faces_to_service.py` | [Step 5/5] Face ingest (API) |
+
+### Supporting
+| ไฟล์ | หน้าที่ |
+|------|--------|
 | `infrastructure/adapters/llm/gemini_adapter.py` | Google Gemini API wrapper |
 | `infrastructure/adapters/parsers/base_thai_parser.py` | Thai regex patterns |
-| `infrastructure/adapters/storage/api_storage.py` | Go API client (POST /bot/frauds) |
+| `infrastructure/adapters/storage/api_storage.py` | Go API client |
 | `infrastructure/di/container.py` | Dependency injection |
-| `golden/llm_propose.py` | [Pipeline 1/5] LLM extract |
-| `golden/normalize_all.py` | [Pipeline 2/5] Normalize |
-| `golden/validate_all.py` | [Pipeline 3/5] Validate |
-| `golden/ingest_to_db.py` | [Pipeline 4/5] DB ingest (psycopg2) |
-| `golden/ingest_faces_to_service.py` | [Pipeline 5/5] Face ingest |
+| `infrastructure/config/category_loader.py` | Load categories.yaml |
 
 ---
 
@@ -356,21 +406,30 @@ fraud-collector → POST /bot/face-ingest (API Key auth)
 fraud-collector/
 ├── run.py                          ← ENTRY POINT
 ├── categories.yaml                 ← กลุ่ม FB ที่จะ scrape
-├── raw/                            ← Raw GraphQL captures
+│
+├── raw/                            ← [Step 1-3] Raw GraphQL captures
 │   └── {group_id}/run_{ts}/
 │       ├── graphql_stream/*.jsonl
-│       └── html_snapshots/*.html
-├── extracted/                      ← Structured post data
-│   └── {group_id}/{date}/post_{id}/
-│       └── extracted.json
-├── images/                         ← Downloaded images (SHA256 dedup)
+│       ├── html_snapshots/*.html
+│       └── VERIFY_{group_id}.html
+│
+├── extracted/                      ← [Step 4] Structured post data
+│   └── {group_id}/{date}/
+│       └── post_{id}/extracted.json
+│
+├── images/                         ← [Step 5] Downloaded images (SHA256 dedup)
 │   └── {hash[:2]}/{hash}.jpg
-├── golden/                         ← Pipeline outputs
-│   ├── image_manifest.json
-│   ├── llm_proposals/{post_id}.json
-│   ├── normalized/{post_id}.json
-│   ├── validated/{post_id}.json
-│   └── face_ingest_report.json
+│
+├── golden/                         ← [Step 6-10] Pipeline outputs
+│   ├── image_manifest.json         ← [Step 5] Image → local path mapping
+│   ├── llm_proposals/              ← [Step 6] LLM entity candidates
+│   │   └── {post_id}.json
+│   ├── normalized/                 ← [Step 7] Persons + evidence
+│   │   └── {post_id}.json
+│   ├── validated/                  ← [Step 8] + is_valid + confidence
+│   │   └── {post_id}.json
+│   └── face_ingest_report.json     ← [Step 10] Face ingest stats
+│
 ├── application/usecases/           ← Business logic
 ├── infrastructure/                 ← Adapters + browser + parsers
 └── domain/                         ← Models + ports
