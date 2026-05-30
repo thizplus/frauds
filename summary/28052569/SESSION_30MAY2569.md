@@ -1,79 +1,62 @@
 # Session Summary — 30 พ.ค. 2569
 
-> Production Deployment Day
+> Production Deployment Day — Deploy + Data Import + UI Fix + Rich Menu
 
 ---
 
 ## 1. Production Readiness Review
 
-ตรวจสอบความพร้อมระบบทั้ง 7 ส่วน พบ CRITICAL 31 จุด, WARNING 43 จุด
-เอกสาร: `PROD_READINESS_REVIEW.md`
+ตรวจสอบความพร้อมระบบ 7 ส่วน พบ CRITICAL 31 จุด, WARNING 43 จุด
+เอกสาร: `PROD_READINESS_REVIEW.md`, `PROD_HARDENING_CHANGES.md`
 
 ---
 
 ## 2. Production Hardening (Phase 1-3)
 
 ### Phase 1 — Security
-- Secrets ย้ายจาก docker-compose.yml -> `.env` (gitignored)
-- Generate keys ใหม่: JWT_SECRET, BOT_API_KEY, DB_PASSWORD, REDIS_PASSWORD, ADMIN_PASSWORD
-- CORS: `*` -> configurable ผ่าน `CORS_ORIGINS` env
+- Secrets -> `.env` (gitignored) + generate keys ใหม่ทั้งหมด
+- CORS: `*` -> configurable `CORS_ORIGINS`
 - API Key: `subtle.ConstantTimeCompare` ป้องกัน timing attack
-- DB ports ลบออก (internal only)
-- ลบ console.log password ใน fraud-admin
-- ลบ localhost fallbacks ใน frontend (throw error แทน)
-- ลบ JWT_SECRET default + Gemini API Key จาก source
+- DB ports ลบ, console.log password ลบ, localhost fallbacks ลบ
+- JWT_SECRET default ลบ, Gemini API Key ลบจาก source
 
 ### Phase 2 — Reliability
-- Health endpoint เช็ค DB connection จริง
+- Health endpoint เช็ค DB จริง
 - face-service: API Key auth + gunicorn 2 workers + non-root
-- Go face client ส่ง X-API-Key + timeout 15s
 - Scheduler: panic recovery + context.WithTimeout(5min)
-- fraud-web: multi-stage Dockerfile (production build)
+- fraud-web: multi-stage Dockerfile
 - Redis: requirepass + health check
-- PgBouncer: pin version
 
 ### Phase 3 — Performance & Compliance
-- เพิ่ม 4 DB indexes
-- เพิ่ม CASCADE DELETE 6 FK constraints
-- ลบ PII (email) จาก auth logs (PDPA)
-- Security headers (X-Frame-Options, nosniff, Referrer-Policy)
-- error.tsx + not-found.tsx ภาษาไทย
+- เพิ่ม 4 DB indexes + 6 CASCADE DELETE constraints
+- ลบ PII (email) จาก logs (PDPA)
+- Security headers + error.tsx + not-found.tsx
 - Rate limit: bot 100/min, admin 200/min
 
-เอกสาร: `PROD_HARDENING_CHANGES.md`
+---
+
+## 3. SlipOK + Admin Sidebar
+
+- SlipOK `log` parameter -> configurable จาก admin settings (default: true)
+- Admin sidebar: ลบ LINE, เพิ่ม Social Media
 
 ---
 
-## 3. SlipOK — ป้องกันสลิปซ้ำ
-
-- `slipok_adapter.go`: `"log": false` -> ค่าจาก `payment.slipok_log` setting
-- Admin UI: toggle "ป้องกันสลิปซ้ำ" ในหน้า Settings
-
----
-
-## 4. Admin Sidebar แก้ไข
-
-- ลบ LINE (config อยู่ใน .env)
-- เพิ่ม Social Media
-
----
-
-## 5. Hetzner Server Setup
+## 4. Hetzner Server Setup
 
 | รายการ | ค่า |
 |--------|-----|
 | IP | 5.223.85.66 |
-| OS | Ubuntu 24.04 LTS |
-| Location | Singapore |
+| OS | Ubuntu 24.04 LTS, Singapore |
 | SSH | `ssh -i ~/.ssh/id_ed25519_hetzner root@5.223.85.66` |
 | Project | `/opt/frauds/` |
 
-ติดตั้ง: Docker 29.5.2, Docker Compose v5.1.4, cloudflared
+Docker 29.5.2 + Docker Compose v5.1.4 + cloudflared
 เอกสาร: `SERVER_ACCESS.md`
 
 ---
 
-## 6. Cloudflare Tunnel
+## 5. Cloudflare Tunnel + Port Standardization
 
 | Hostname | Port | Service |
 |----------|------|---------|
@@ -83,107 +66,84 @@
 
 ---
 
-## 7. Port Standardization
+## 6. Frontend Docker + Build Fixes
 
-| Service | Port เดิม | Port ใหม่ |
-|---------|----------|----------|
-| fraud-web (Next.js) | 3001 | 3000 |
-| fraud-api (Go) | 3000 | 8080 |
-| fraud-admin (Vite) | 5173 | 3001 |
+- fraud-web + fraud-admin เพิ่มเข้า docker-compose
+- NEXT_PUBLIC_* / VITE_* ใส่เป็น build args (ไม่ใช่ runtime)
+- แก้ TypeScript build errors 7 จุด (fraud-admin + fraud-web)
 
 ---
 
-## 8. Frontend ใน Docker
+## 7. Database Migration & Cleanup
 
-- fraud-web + fraud-admin เพิ่มเข้า docker-compose.yml
-- NEXT_PUBLIC_* / VITE_* ใส่เป็น build args (ต้องใส่ตอน build ไม่ใช่ runtime)
-- fraud-admin: สร้าง Dockerfile ใหม่ (Vite build + serve)
-
----
-
-## 9. TypeScript Build Fixes
-
-| ไฟล์ | ปัญหา |
-|------|-------|
-| fraud-admin FraudListPage | FraudListParams not exported + implicit any |
-| fraud-admin NavUser | useLogout returns function not mutation |
-| fraud-admin AdminDashboard | unused Bot import |
-| fraud-admin SettingsPage | unused imports (FileText, Plus, Trash2, GripVertical) |
-| fraud-web search/page | missing Lock, ShieldCheck imports |
-| fraud-web SocialLinks | JSX namespace -> React.ReactElement |
-| fraud-web lender/types | missing matchedFields field |
-
----
-
-## 10. Database Migration & Cleanup
-
-- pg_dump local -> scp -> restore prod
+- pg_dump local -> restore prod
 - ล้าง mockup data ทั้ง local + prod
-- เหลือ: settings(26), categories(4), plans(3), services(1), admin(1)
 - Sync prod -> local ให้ตรงกัน
-- Reset admin password ด้วย bcrypt
+- Reset admin password (bcrypt)
 
 ---
 
-## 11. Import Debtors จากระบบเก่า (WordPress)
+## 8. Import Debtors จากระบบเก่า (WordPress)
 
-### ข้อมูล
-- แหล่ง: `bad_loan_export.json` (322 คน)
-- รูปบัตร ปชช.: `C:\Users\Admin\Local Sites\icezhouze\app\public\wp-content\uploads\`
-
-### Bank Name Mapping
-| ข้อมูลเก่า | ระบบใหม่ |
-|------------|---------|
-| ธนาคารกสิกรไทย | กสิกรไทย |
-| ธนาคารกรุงไทย | กรุงไทย |
-| ธนาคารธนชาต / ธนชาติ | ทีเอ็มบีธนชาต |
-| ธนาคารเพื่อการสหกรณ์ | ธ.ก.ส. |
-| PROMPTPAY / Prompay | พร้อมเพย์ |
-
-### ผลลัพธ์
 | รายการ | จำนวน |
 |--------|-------|
 | Debtors สร้างสำเร็จ | 322/322 |
 | รูปบัตร ปชช. upload | 313 (9 ไม่มีรูป) |
 | Check debtors | 322/322 (0 matches) |
 
-### Scripts ที่สร้าง
-- `scripts/import-debtors.js` — import debtors + upload รูป
-- `scripts/upload-all-missing.js` — upload รูปที่เหลือ + สร้าง SQL
-- `scripts/check-all-debtors.js` — รัน check ทุกคน
-
+Bank name mapping: ธนาคารกสิกรไทย -> กสิกรไทย, ธนาคารธนชาต -> ทีเอ็มบีธนชาต ฯลฯ
+Scripts: `scripts/import-debtors.js`, `scripts/upload-all-missing.js`, `scripts/check-all-debtors.js`
 เอกสาร: `PLAN_IMPORT_DEBTORS.md`
 
 ---
 
-## 12. UI Fixes & Features
+## 9. UI Fixes & Features
 
-### Bank Icons ไม่แสดง
-- สาเหตุ: `*.png` ถูก gitignore ทั้งหมด
-- แก้: เพิ่ม `!fraud-web/public/**/*.png` ใน .gitignore
-
-### Report Form Auto-fill
-- สาเหตุ: Chrome browser autofill
-- แก้: เพิ่ม `autoComplete="off"` ที่ form
-
-### Debtor List — ลบ Avatar
-- ลบ avatar วงกลมออก เพิ่มพื้นที่แสดงชื่อ
-
-### Debtor Detail — Lightbox
-- เพิ่ม lightbox สำหรับรูปบัตร ปชช. / selfie
-- ใช้ EvidenceGallery component ที่มีอยู่แล้ว (prev/next, counter, error handling)
-
-### Pagination Component (Reusable)
-- สร้าง `components/shared/Pagination.tsx`
-- แสดงเลขหน้า + ellipsis (1 ... 5 6 7 ... 17)
-- ใช้ทุกหน้าที่มี pagination:
-  - `/lender/debtors`
-  - `/dashboard/reports`
-  - `/dashboard/searches`
+| รายการ | รายละเอียด |
+|--------|-----------|
+| Bank icons ไม่แสดง | `*.png` ถูก gitignore -> เพิ่ม `!fraud-web/public/**/*.png` |
+| Report form auto-fill | เพิ่ม `autoComplete="off"` |
+| Debtor list avatar | ลบออก เพิ่มพื้นที่แสดงชื่อ |
+| Debtor detail lightbox | ใช้ EvidenceGallery component (prev/next, counter) |
+| Pagination component | สร้าง `components/shared/Pagination.tsx` แสดงเลขหน้า + ellipsis |
+| ใช้ Pagination ทุกหน้า | debtors, reports, searches |
 
 ---
 
-## 13. Git Commits วันนี้
+## 10. Rich Menu — Realtime Switch
+
+### ปัญหาเดิม
+- Rich menu ถูก assign แค่ตอน Follow (แอดเพื่อน) เท่านั้น
+- Subscribe/expire ไม่เปลี่ยน rich menu
+
+### แก้ไข (Backend)
+| เหตุการณ์ | ทำอะไร |
+|----------|--------|
+| Subscribe สำเร็จ | `payment_service_impl.go` -> link member menu |
+| Subscription หมดอายุ | `scheduler.go` -> link free menu |
+| Follow (เดิม) | เช็ค subscription -> link ถูกตัว |
+
+### แก้ไข (Rich Menu Images)
+- ภาพเดิมสลับ ID กัน (free image อยู่ member ID)
+- สร้าง rich menu ใหม่ + upload ภาพถูกตัว
+- เปลี่ยนทุกปุ่มเป็น LIFF URL (auto login ใน LINE app)
+
+### Rich Menu IDs (ปัจจุบัน)
+| Menu | ID |
+|------|----|
+| FREE | `richmenu-7632f51c7f9af5d0a39238ec1299166e` |
+| MEMBER | `richmenu-764dfa3b3651a04897174dfad6979159` |
+
+### Rich Menu Actions (LIFF URLs)
+| ปุ่ม | FREE | MEMBER |
+|------|------|--------|
+| ซ้าย | `liff.line.me/.../` | `liff.line.me/.../` |
+| ขวาบน | postback `#AI-SEARCH` | postback `#AI-SEARCH` |
+| ขวาล่าง | `liff.line.me/.../pricing` | `liff.line.me/.../lender` |
+
+---
+
+## 11. Git Commits วันนี้ (21 commits)
 
 ```
 ae1413f security: production hardening
@@ -204,38 +164,35 @@ f6f33d7 fix: remove avatar from debtor list
 a365c13 feat: add reusable Pagination component
 ee5a4c3 refactor: reports page use shared Pagination
 09df9f3 refactor: searches page use shared Pagination
+d4a8e71 docs: update session summary + import scripts
+7ccfb9f feat: realtime rich menu switch on subscribe/expire
 ```
 
 ---
 
-## 14. สถานะระบบปัจจุบัน
+## 12. สถานะระบบปัจจุบัน
 
 ### Services (Production)
-| Service | Status | URL |
-|---------|--------|-----|
-| fraud-web | Running | https://xn--12cainl6g3mua5b.com |
-| fraud-api | Running | https://api.xn--12cainl6g3mua5b.com |
-| fraud-admin | Running | https://admin.xn--12cainl6g3mua5b.com |
-| PostgreSQL | Healthy | internal |
-| PgBouncer | Healthy | internal |
-| Redis | Healthy | internal |
-| face-service | Running | internal |
-| cloudflared | Running | systemd |
+| Service | Status |
+|---------|--------|
+| fraud-web | Running :3000 |
+| fraud-api | Running :8080 |
+| fraud-admin | Running :3001 |
+| PostgreSQL | Healthy |
+| PgBouncer | Healthy |
+| Redis | Healthy |
+| face-service | Running |
+| cloudflared | Running (systemd) |
 
 ### Database
 | Table | จำนวน |
 |-------|-------|
-| users | 2 (admin + 1 member) |
-| debtors | 322 |
+| users | 2 |
+| debtors | 322 (313 มีรูป) |
 | fraud_categories | 4 |
 | membership_plans | 3 |
 | services | 1 |
 | system_settings | 26 |
-
-### Admin Login
-- URL: https://admin.xn--12cainl6g3mua5b.com
-- Email: admin@fraudchecker.com
-- Password: ดูใน .env (ADMIN_PASSWORD)
 
 ---
 
