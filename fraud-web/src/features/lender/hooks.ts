@@ -6,6 +6,8 @@ export const lenderKeys = {
   profile: () => [...lenderKeys.all, 'profile'] as const,
   debtors: (params?: Record<string, unknown>) => [...lenderKeys.all, 'debtors', params] as const,
   debtor: (id: string) => [...lenderKeys.all, 'debtor', id] as const,
+  myRole: () => [...lenderKeys.all, 'my-role'] as const,
+  admins: () => [...lenderKeys.all, 'admins'] as const,
 }
 
 export function useLenderProfile() {
@@ -78,5 +80,44 @@ export function useDeleteDebtor() {
   return useMutation({
     mutationFn: (id: string) => lenderService.deleteDebtor(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: lenderKeys.all }),
+  })
+}
+
+// === Admin Management ===
+
+export function useMyRole() {
+  return useQuery({
+    queryKey: lenderKeys.myRole(),
+    queryFn: () => lenderService.myRole(),
+    retry: false,
+  })
+}
+
+export function useLenderAdmins() {
+  return useQuery({
+    queryKey: lenderKeys.admins(),
+    queryFn: () => lenderService.listAdmins(),
+  })
+}
+
+export function useCreateAdminInvite() {
+  return useMutation({
+    mutationFn: () => lenderService.createAdminInvite(),
+  })
+}
+
+export function useDeleteAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => lenderService.deleteAdmin(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: lenderKeys.admins() }),
+  })
+}
+
+export function useJoinLender() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (token: string) => lenderService.joinLender(token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: lenderKeys.myRole() }),
   })
 }

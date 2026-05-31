@@ -247,6 +247,104 @@ func (h *LenderHandler) ClearDebtor(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, fiber.Map{"message": "ปลดโกงสำเร็จ"})
 }
 
+// === Admin Management ===
+
+// MyRole GET /lender/my-role
+func (h *LenderHandler) MyRole(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	role, err := h.lenderService.MyRole(ctx, user.ID)
+	if err != nil {
+		return utils.BadRequestResponse(c, err.Error())
+	}
+	return utils.SuccessResponse(c, role)
+}
+
+// ListAdmins GET /lender/admins
+func (h *LenderHandler) ListAdmins(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	admins, err := h.lenderService.ListAdmins(ctx, user.ID)
+	if err != nil {
+		return utils.BadRequestResponse(c, err.Error())
+	}
+	return utils.SuccessResponse(c, admins)
+}
+
+// DeleteAdminMember DELETE /lender/admins/:id
+func (h *LenderHandler) DeleteAdminMember(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	adminID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid ID")
+	}
+
+	if err := h.lenderService.DeleteAdmin(ctx, user.ID, adminID); err != nil {
+		return utils.BadRequestResponse(c, err.Error())
+	}
+	return utils.SuccessResponse(c, fiber.Map{"message": "ลบผู้ดูแลสำเร็จ"})
+}
+
+// CreateAdminInvite POST /lender/admin-invite
+func (h *LenderHandler) CreateAdminInvite(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	invite, err := h.lenderService.CreateAdminInvite(ctx, user.ID)
+	if err != nil {
+		return utils.BadRequestResponse(c, err.Error())
+	}
+	return utils.CreatedResponse(c, invite)
+}
+
+// GetJoinInfo GET /lender/join/:token
+func (h *LenderHandler) GetJoinInfo(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	token := c.Params("token")
+	info, err := h.lenderService.GetJoinInfo(ctx, token)
+	if err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+	return utils.SuccessResponse(c, info)
+}
+
+// JoinLender POST /lender/join/:token
+func (h *LenderHandler) JoinLender(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	user, _ := middleware.GetAuthUser(c)
+	if user == nil {
+		return utils.UnauthorizedResponse(c, "กรุณาเข้าสู่ระบบ")
+	}
+
+	token := c.Params("token")
+	if err := h.lenderService.JoinLender(ctx, user.ID, token); err != nil {
+		logger.WarnContext(ctx, "Join lender failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+	return utils.SuccessResponse(c, fiber.Map{"message": "เข้าร่วมระบบสำเร็จ"})
+}
+
 // === Public Registration ===
 
 // GetInviteInfo GET /register/:code

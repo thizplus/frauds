@@ -150,25 +150,54 @@ func (s *lenderServiceImpl) RegisterDebtor(ctx context.Context, inviteCode strin
 	return mappers.DebtorToResponse(debtor), nil
 }
 
-func (s *lenderServiceImpl) ensureOwner(ctx context.Context, userID, debtorID uuid.UUID) (*models.LenderProfile, *models.Debtor, error) {
+func (s *lenderServiceImpl) ensureOwner(ctx context.Context, userID uuid.UUID) (*models.LenderProfile, error) {
 	profile, err := s.lenderRepo.GetProfileByUserID(ctx, userID)
 	if err != nil {
-		return nil, nil, errors.New("ไม่พบระบบเก็บข้อมูล")
+		return nil, errors.New("ไม่พบระบบเก็บข้อมูล")
+	}
+	return profile, nil
+}
+
+// ensureAccess — เช็คว่า user เป็นเจ้าของหรือผู้ดูแล return (profile, role, error)
+func (s *lenderServiceImpl) ensureAccess(ctx context.Context, userID uuid.UUID) (*models.LenderProfile, string, error) {
+	// 1. เช็คเจ้าของ
+	profile, err := s.lenderRepo.GetProfileByUserID(ctx, userID)
+	if err == nil && profile != nil {
+		return profile, "owner", nil
+	}
+
+	// 2. เช็คผู้ดูแล
+	admins, err := s.lenderRepo.ListLendersByAdminUserID(ctx, userID)
+	if err == nil && len(admins) > 0 {
+		profile, err := s.lenderRepo.GetProfileByID(ctx, admins[0].LenderID)
+		if err == nil {
+			return profile, "admin", nil
+		}
+	}
+
+	return nil, "", errors.New("ไม่พบระบบเก็บข้อมูล")
+}
+
+// ensureAccessWithDebtor — เช็ค access + validate debtor ownership
+func (s *lenderServiceImpl) ensureAccessWithDebtor(ctx context.Context, userID, debtorID uuid.UUID) (*models.LenderProfile, *models.Debtor, error) {
+	profile, _, err := s.ensureAccess(ctx, userID)
+	if err != nil {
+		return nil, nil, err
 	}
 	debtor, err := s.lenderRepo.GetDebtorByID(ctx, debtorID)
 	if err != nil {
-		return nil, nil, errors.New("ไม่พบลูกหนี้")
+		return nil, nil, errors.New("ไม่พบสมาชิก")
 	}
 	if debtor.LenderID != profile.ID {
-		return nil, nil, errors.New("ไม่มีสิทธิ์เข้าถึงลูกหนี้นี้")
+		return nil, nil, errors.New("ไม่มีสิทธิ์เข้าถึงสมาชิกนี้")
 	}
 	return profile, debtor, nil
 }
 
 func (s *lenderServiceImpl) ListDebtors(ctx context.Context, userID uuid.UUID, search, status string, page, limit int) ([]dto.DebtorResponse, int64, error) {
-	profile, err := s.lenderRepo.GetProfileByUserID(ctx, userID)
+	profile, _, err := s.ensureAccess(ctx, userID)
 	if err != nil {
-		return nil, 0, errors.New("ไม่พบระบบเก็บข้อมูล")
+		return nil, 0, err
 	}
 	if page < 1 {
 		page = 1
@@ -184,7 +213,7 @@ func (s *lenderServiceImpl) ListDebtors(ctx context.Context, userID uuid.UUID, s
 }
 
 func (s *lenderServiceImpl) GetDebtor(ctx context.Context, userID, debtorID uuid.UUID) (*dto.DebtorDetailResponse, error) {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,9 +221,9 @@ func (s *lenderServiceImpl) GetDebtor(ctx context.Context, userID, debtorID uuid
 }
 
 func (s *lenderServiceImpl) AddDebtor(ctx context.Context, userID uuid.UUID, req *dto.AddDebtorRequest) (*dto.DebtorResponse, error) {
-	profile, err := s.lenderRepo.GetProfileByUserID(ctx, userID)
+	profile, _, err := s.ensureAccess(ctx, userID)
 	if err != nil {
-		return nil, errors.New("ไม่พบระบบเก็บข้อมูล")
+		return nil, err
 	}
 
 	var socialJSON datatypes.JSON
@@ -226,7 +255,7 @@ func (s *lenderServiceImpl) AddDebtor(ctx context.Context, userID uuid.UUID, req
 }
 
 func (s *lenderServiceImpl) UpdateDebtor(ctx context.Context, userID, debtorID uuid.UUID, req *dto.RegisterDebtorRequest) error {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return err
 	}
@@ -245,7 +274,7 @@ func (s *lenderServiceImpl) UpdateDebtor(ctx context.Context, userID, debtorID u
 }
 
 func (s *lenderServiceImpl) DeleteDebtor(ctx context.Context, userID, debtorID uuid.UUID) error {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return err
 	}
@@ -257,7 +286,7 @@ func (s *lenderServiceImpl) DeleteDebtor(ctx context.Context, userID, debtorID u
 // === Actions ===
 
 func (s *lenderServiceImpl) CheckDebtor(ctx context.Context, userID, debtorID uuid.UUID) ([]dto.CheckResultItem, error) {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +440,7 @@ func (s *lenderServiceImpl) entityToCheckResult(entity *models.SearchableEntity,
 }
 
 func (s *lenderServiceImpl) FlagDebtor(ctx context.Context, userID, debtorID uuid.UUID, req *dto.FlagDebtorRequest) error {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return err
 	}
@@ -467,7 +496,7 @@ func (s *lenderServiceImpl) FlagDebtor(ctx context.Context, userID, debtorID uui
 }
 
 func (s *lenderServiceImpl) ClearDebtor(ctx context.Context, userID, debtorID uuid.UUID, req *dto.ClearDebtorRequest) error {
-	_, debtor, err := s.ensureOwner(ctx, userID, debtorID)
+	_, debtor, err := s.ensureAccessWithDebtor(ctx, userID, debtorID)
 	if err != nil {
 		return err
 	}
@@ -489,4 +518,146 @@ func (s *lenderServiceImpl) ClearDebtor(ctx context.Context, userID, debtorID uu
 
 	logger.InfoContext(ctx, "Debtor cleared", "debtor_id", debtorID)
 	return nil
+}
+
+// === Admin Management ===
+
+func (s *lenderServiceImpl) ListAdmins(ctx context.Context, userID uuid.UUID) ([]dto.LenderAdminResponse, error) {
+	profile, err := s.ensureOwner(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	admins, err := s.lenderRepo.ListAdminsByLenderID(ctx, profile.ID)
+	if err != nil {
+		return nil, err
+	}
+	return mappers.LenderAdminsToResponses(admins), nil
+}
+
+func (s *lenderServiceImpl) DeleteAdmin(ctx context.Context, userID, adminID uuid.UUID) error {
+	profile, err := s.ensureOwner(ctx, userID)
+	if err != nil {
+		return err
+	}
+	admin, err := s.lenderRepo.GetAdminByID(ctx, adminID)
+	if err != nil {
+		return errors.New("ไม่พบผู้ดูแลนี้")
+	}
+	if admin.LenderID != profile.ID {
+		return errors.New("ไม่มีสิทธิ์ลบผู้ดูแลนี้")
+	}
+	if err := s.lenderRepo.DeleteAdmin(ctx, adminID); err != nil {
+		return err
+	}
+	logger.InfoContext(ctx, "Lender admin removed", "admin_id", adminID, "lender_id", profile.ID)
+	return nil
+}
+
+func (s *lenderServiceImpl) CreateAdminInvite(ctx context.Context, userID uuid.UUID) (*dto.AdminInviteResponse, error) {
+	profile, err := s.ensureOwner(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// สร้าง token ใหม่ (ลิงก์เก่าใช้ไม่ได้)
+	token := utils.GenerateInviteCode() + utils.GenerateInviteCode() // 20 chars
+	profile.AdminInviteToken = token
+	if err := s.lenderRepo.UpdateProfile(ctx, profile); err != nil {
+		return nil, err
+	}
+
+	logger.InfoContext(ctx, "Admin invite created", "lender_id", profile.ID)
+	return &dto.AdminInviteResponse{
+		Token:     token,
+		InviteURL: mappers.AdminJoinBaseURL() + token,
+	}, nil
+}
+
+// === Join ===
+
+func (s *lenderServiceImpl) GetJoinInfo(ctx context.Context, token string) (*dto.JoinLenderInfoResponse, error) {
+	profile, err := s.lenderRepo.GetProfileByAdminInviteToken(ctx, token)
+	if err != nil {
+		return nil, errors.New("ลิงก์ไม่ถูกต้องหรือถูกใช้งานแล้ว")
+	}
+	return &dto.JoinLenderInfoResponse{
+		BusinessName: profile.BusinessName,
+		OwnerName:    profile.User.Name,
+	}, nil
+}
+
+func (s *lenderServiceImpl) JoinLender(ctx context.Context, userID uuid.UUID, token string) error {
+	// 1. เช็คว่า user มีระบบตัวเอง → ปฏิเสธ
+	existing, _ := s.lenderRepo.GetProfileByUserID(ctx, userID)
+	if existing != nil {
+		return errors.New("คุณมีระบบของตัวเองแล้ว ไม่สามารถเป็นผู้ดูแลระบบอื่นได้")
+	}
+
+	// 2. หา profile จาก token
+	profile, err := s.lenderRepo.GetProfileByAdminInviteToken(ctx, token)
+	if err != nil {
+		return errors.New("ลิงก์ไม่ถูกต้องหรือถูกใช้งานแล้ว")
+	}
+
+	// 3. ห้าม join ระบบตัวเอง
+	if profile.UserID == userID {
+		return errors.New("ไม่สามารถเข้าร่วมระบบของตัวเองได้")
+	}
+
+	// 4. เช็ค duplicate
+	dup, _ := s.lenderRepo.GetAdminByLenderAndUser(ctx, profile.ID, userID)
+	if dup != nil {
+		return errors.New("คุณเป็นผู้ดูแลระบบนี้อยู่แล้ว")
+	}
+
+	// 5. สร้าง LenderAdmin
+	now := time.Now()
+	admin := &models.LenderAdmin{
+		LenderID: profile.ID,
+		UserID:   userID,
+		JoinedAt: now,
+	}
+	if err := s.lenderRepo.CreateAdmin(ctx, admin); err != nil {
+		return err
+	}
+
+	// 6. ลบ token (ใช้ได้ครั้งเดียว)
+	profile.AdminInviteToken = ""
+	s.lenderRepo.UpdateProfile(ctx, profile)
+
+	logger.InfoContext(ctx, "Admin joined lender", "user_id", userID, "lender_id", profile.ID)
+	return nil
+}
+
+// === Role ===
+
+func (s *lenderServiceImpl) MyRole(ctx context.Context, userID uuid.UUID) (*dto.MyRoleResponse, error) {
+	// เช็คเจ้าของ
+	profile, err := s.lenderRepo.GetProfileByUserID(ctx, userID)
+	if err == nil && profile != nil {
+		id := profile.ID.String()
+		name := profile.BusinessName
+		return &dto.MyRoleResponse{
+			Role:         "owner",
+			LenderID:     &id,
+			BusinessName: &name,
+		}, nil
+	}
+
+	// เช็คผู้ดูแล
+	admins, err := s.lenderRepo.ListLendersByAdminUserID(ctx, userID)
+	if err == nil && len(admins) > 0 {
+		p, err := s.lenderRepo.GetProfileByID(ctx, admins[0].LenderID)
+		if err == nil {
+			id := p.ID.String()
+			name := p.BusinessName
+			return &dto.MyRoleResponse{
+				Role:         "admin",
+				LenderID:     &id,
+				BusinessName: &name,
+			}, nil
+		}
+	}
+
+	return &dto.MyRoleResponse{Role: "none"}, nil
 }

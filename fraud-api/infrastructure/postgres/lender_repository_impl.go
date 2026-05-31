@@ -33,6 +33,24 @@ func (r *lenderRepository) GetProfileByUserID(ctx context.Context, userID uuid.U
 	return &p, nil
 }
 
+func (r *lenderRepository) GetProfileByID(ctx context.Context, id uuid.UUID) (*models.LenderProfile, error) {
+	var p models.LenderProfile
+	err := r.db.WithContext(ctx).Preload("User").First(&p, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *lenderRepository) GetProfileByAdminInviteToken(ctx context.Context, token string) (*models.LenderProfile, error) {
+	var p models.LenderProfile
+	err := r.db.WithContext(ctx).Preload("User").Where("admin_invite_token = ? AND is_active = ?", token, true).First(&p).Error
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func (r *lenderRepository) GetProfileByInviteCode(ctx context.Context, code string) (*models.LenderProfile, error) {
 	var p models.LenderProfile
 	err := r.db.WithContext(ctx).Preload("User").Where("invite_code = ? AND is_active = ?", code, true).First(&p).Error
@@ -68,6 +86,48 @@ func (r *lenderRepository) UpdateDebtor(ctx context.Context, debtor *models.Debt
 func (r *lenderRepository) DeleteDebtor(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&models.Debtor{}, id).Error
 }
+
+// Admins
+
+func (r *lenderRepository) CreateAdmin(ctx context.Context, admin *models.LenderAdmin) error {
+	return r.db.WithContext(ctx).Create(admin).Error
+}
+
+func (r *lenderRepository) GetAdminByID(ctx context.Context, id uuid.UUID) (*models.LenderAdmin, error) {
+	var a models.LenderAdmin
+	err := r.db.WithContext(ctx).Preload("User").First(&a, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *lenderRepository) GetAdminByLenderAndUser(ctx context.Context, lenderID, userID uuid.UUID) (*models.LenderAdmin, error) {
+	var a models.LenderAdmin
+	err := r.db.WithContext(ctx).Where("lender_id = ? AND user_id = ?", lenderID, userID).First(&a).Error
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *lenderRepository) ListAdminsByLenderID(ctx context.Context, lenderID uuid.UUID) ([]models.LenderAdmin, error) {
+	var admins []models.LenderAdmin
+	err := r.db.WithContext(ctx).Preload("User").Where("lender_id = ?", lenderID).Order("joined_at ASC").Find(&admins).Error
+	return admins, err
+}
+
+func (r *lenderRepository) ListLendersByAdminUserID(ctx context.Context, userID uuid.UUID) ([]models.LenderAdmin, error) {
+	var admins []models.LenderAdmin
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&admins).Error
+	return admins, err
+}
+
+func (r *lenderRepository) DeleteAdmin(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&models.LenderAdmin{}, id).Error
+}
+
+// Debtors
 
 func (r *lenderRepository) ListDebtors(ctx context.Context, lenderID uuid.UUID, search, status string, page, limit int) ([]models.Debtor, int64, error) {
 	var debtors []models.Debtor

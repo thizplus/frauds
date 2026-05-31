@@ -50,6 +50,29 @@ export interface DebtorDetail extends Debtor {
   checkResult?: CheckResultItem[] | null
 }
 
+export interface LenderAdmin {
+  id: string
+  userName: string
+  userEmail: string
+  joinedAt: string
+}
+
+export interface AdminInvite {
+  token: string
+  inviteUrl: string
+}
+
+export interface JoinLenderInfo {
+  businessName: string
+  ownerName: string
+}
+
+export interface MyRole {
+  role: 'owner' | 'admin' | 'none'
+  lenderId?: string
+  businessName?: string
+}
+
 export interface CheckResultItem {
   source: string
   matchedBy: string

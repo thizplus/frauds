@@ -13,7 +13,8 @@ type LenderProfile struct {
 	BusinessName string         `gorm:"size:200;not null"`
 	InviteCode   string         `gorm:"size:20;uniqueIndex;not null"`
 	FormFields   datatypes.JSON `gorm:"type:jsonb;default:'{}'"`
-	IsActive     bool           `gorm:"default:true"`
+	AdminInviteToken string         `gorm:"size:40;uniqueIndex"`
+	IsActive         bool           `gorm:"default:true"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 

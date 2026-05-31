@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 import type { ApiResponse, PaginatedResponse } from '@/lib/api/types'
-import type { LenderProfile, Debtor, DebtorDetail, CheckResultItem } from './types'
+import type { LenderProfile, Debtor, DebtorDetail, CheckResultItem, LenderAdmin, AdminInvite, JoinLenderInfo, MyRole } from './types'
 
 export const lenderService = {
   async setup(data: { businessName: string }): Promise<LenderProfile> {
@@ -48,6 +48,35 @@ export const lenderService = {
 
   async clearDebtor(id: string, data: { note?: string }): Promise<void> {
     await apiClient.post(`/lender/debtors/${id}/clear`, data)
+  },
+
+  // Admin management
+  async myRole(): Promise<MyRole> {
+    const res = await apiClient.get<ApiResponse<MyRole>>('/lender/my-role')
+    return res.data.data
+  },
+
+  async listAdmins(): Promise<LenderAdmin[]> {
+    const res = await apiClient.get<ApiResponse<LenderAdmin[]>>('/lender/admins')
+    return res.data.data
+  },
+
+  async deleteAdmin(id: string): Promise<void> {
+    await apiClient.delete(`/lender/admins/${id}`)
+  },
+
+  async createAdminInvite(): Promise<AdminInvite> {
+    const res = await apiClient.post<ApiResponse<AdminInvite>>('/lender/admin-invite')
+    return res.data.data
+  },
+
+  async getJoinInfo(token: string): Promise<JoinLenderInfo> {
+    const res = await apiClient.get<ApiResponse<JoinLenderInfo>>(`/lender/join/${token}`)
+    return res.data.data
+  },
+
+  async joinLender(token: string): Promise<void> {
+    await apiClient.post(`/lender/join/${token}`)
   },
 
   // Public

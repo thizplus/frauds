@@ -63,6 +63,7 @@ func Migrate(db *gorm.DB) error {
 		&models.ServicePayment{},
 		&models.LenderProfile{},
 		&models.Debtor{},
+		&models.LenderAdmin{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
@@ -82,6 +83,8 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("ALTER TABLE searchable_entities ADD COLUMN IF NOT EXISTS review_status VARCHAR(20) DEFAULT 'approved'")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_social_posts_review ON social_posts(review_status)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_se_review ON searchable_entities(review_status)")
+	db.Exec("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'")
+	db.Exec("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS comments_json JSONB DEFAULT '[]'")
 
 	// CASCADE DELETE constraints (เพิ่มให้ FK ที่ขาด)
 	cascades := []string{

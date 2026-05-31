@@ -9,6 +9,34 @@ import (
 )
 
 const inviteBaseURL = "https://xn--12cainl6g3mua5b.com/register/"
+const adminJoinBase = "https://xn--12cainl6g3mua5b.com/lender/join/"
+
+func AdminJoinBaseURL() string {
+	return adminJoinBase
+}
+
+func LenderAdminToResponse(a *models.LenderAdmin) *dto.LenderAdminResponse {
+	if a == nil {
+		return nil
+	}
+	return &dto.LenderAdminResponse{
+		ID:        a.ID.String(),
+		UserName:  a.User.Name,
+		UserEmail: a.User.Email,
+		JoinedAt:  a.JoinedAt.Format(time.RFC3339),
+	}
+}
+
+func LenderAdminsToResponses(admins []models.LenderAdmin) []dto.LenderAdminResponse {
+	results := make([]dto.LenderAdminResponse, 0, len(admins))
+	for i := range admins {
+		r := LenderAdminToResponse(&admins[i])
+		if r != nil {
+			results = append(results, *r)
+		}
+	}
+	return results
+}
 
 func defaultFormFields() *dto.FormFieldsConfig {
 	return &dto.FormFieldsConfig{

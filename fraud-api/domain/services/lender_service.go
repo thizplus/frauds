@@ -27,4 +27,16 @@ type LenderService interface {
 	CheckDebtor(ctx context.Context, userID uuid.UUID, debtorID uuid.UUID) ([]dto.CheckResultItem, error)
 	FlagDebtor(ctx context.Context, userID uuid.UUID, debtorID uuid.UUID, req *dto.FlagDebtorRequest) error
 	ClearDebtor(ctx context.Context, userID uuid.UUID, debtorID uuid.UUID, req *dto.ClearDebtorRequest) error
+
+	// Admin Management (เจ้าของเท่านั้น)
+	ListAdmins(ctx context.Context, userID uuid.UUID) ([]dto.LenderAdminResponse, error)
+	DeleteAdmin(ctx context.Context, userID uuid.UUID, adminID uuid.UUID) error
+	CreateAdminInvite(ctx context.Context, userID uuid.UUID) (*dto.AdminInviteResponse, error)
+
+	// Join (ผู้ดูแล)
+	GetJoinInfo(ctx context.Context, token string) (*dto.JoinLenderInfoResponse, error)
+	JoinLender(ctx context.Context, userID uuid.UUID, token string) error
+
+	// Role
+	MyRole(ctx context.Context, userID uuid.UUID) (*dto.MyRoleResponse, error)
 }
