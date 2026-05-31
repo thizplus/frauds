@@ -8,6 +8,7 @@ import {
   Settings,
   Sparkles,
   Database,
+  FileSearch,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -35,6 +36,11 @@ export const NAV_MAIN: NavItem[] = [
     title: 'รายชื่อคนโกง',
     url: '/frauds',
     icon: ShieldAlert,
+  },
+  {
+    title: 'ตรวจสอบ Social',
+    url: '/social-review',
+    icon: FileSearch,
   },
   {
     title: 'หมวดหมู่',

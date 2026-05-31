@@ -11,12 +11,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
-def run_pipeline(extracted_dir: str = None, no_db: bool = False):
+def run_pipeline(extracted_dir: str = None, no_db: bool = False, use_api: bool = False):
     """Run post-capture pipeline
 
     Args:
         extracted_dir: path to extracted/ directory (ถ้าไม่ระบุใช้ default)
         no_db: True = หยุดหลัง validate (ไม่ ingest DB + face) สำหรับตรวจสอบก่อน
+        use_api: True = ส่งผ่าน HTTP API แทน psycopg2 ตรง (สำหรับ distributed collector)
     """
     start = time.time()
 
@@ -109,9 +110,11 @@ def run_pipeline(extracted_dir: str = None, no_db: bool = False):
         return results
 
     # === Step 4: DB Ingest ===
-    print(f"\n  [Pipeline 4/{total_steps}] DB Ingest...")
+    ingest_script = "golden/ingest_to_api.py" if use_api else "golden/ingest_to_db.py"
+    label = "DB Ingest (API)" if use_api else "DB Ingest"
+    print(f"\n  [Pipeline 4/{total_steps}] {label}...")
     try:
-        _run_script("golden/ingest_to_db.py")
+        _run_script(ingest_script)
         results["db_ingest"] = True
     except Exception as e:
         print(f"    ERROR: {e}")
@@ -136,28 +139,44 @@ def run_pipeline(extracted_dir: str = None, no_db: bool = False):
     return results
 
 
-def run_db_only():
-    """Run DB Ingest + Face Ingest only (หลังตรวจสอบ validated/ แล้ว)"""
-    start = time.time()
-    results = {"db_ingest": False, "face_ingest": False}
+def run_db_only(use_api: bool = False, skip_face: bool = False):
+    """Run DB Ingest + Face Ingest only (หลังตรวจสอบ validated/ แล้ว)
 
-    print(f"\n  [DB-Only 1/2] DB Ingest...")
+    Args:
+        use_api: True = ส่งผ่าน HTTP API แทน psycopg2
+        skip_face: True = ไม่ ingest face (สำหรับ distributed — รอ admin approve)
+    """
+    start = time.time()
+
+    if skip_face:
+        results = {"db_ingest": False}
+        total_steps = 1
+    else:
+        results = {"db_ingest": False, "face_ingest": False}
+        total_steps = 2
+
+    ingest_script = "golden/ingest_to_api.py" if use_api else "golden/ingest_to_db.py"
+    label = "DB Ingest (API)" if use_api else "DB Ingest"
+    print(f"\n  [DB-Only 1/{total_steps}] {label}...")
     try:
-        _run_script("golden/ingest_to_db.py")
+        _run_script(ingest_script)
         results["db_ingest"] = True
     except Exception as e:
         print(f"    ERROR: {e}")
 
-    print(f"\n  [DB-Only 2/2] Face Ingest...")
-    try:
-        _run_script("golden/ingest_faces_to_service.py")
-        results["face_ingest"] = True
-    except Exception as e:
-        print(f"    ERROR: {e}")
+    if not skip_face:
+        print(f"\n  [DB-Only 2/{total_steps}] Face Ingest...")
+        try:
+            _run_script("golden/ingest_faces_to_service.py")
+            results["face_ingest"] = True
+        except Exception as e:
+            print(f"    ERROR: {e}")
+    else:
+        print(f"\n  (Face ingest skipped — รอ admin approve)")
 
     duration = time.time() - start
     ok = sum(1 for v in results.values() if v)
-    print(f"\n  DB-Only done! ({duration:.0f}s) — {ok}/2 steps succeeded")
+    print(f"\n  DB-Only done! ({duration:.0f}s) — {ok}/{total_steps} steps succeeded")
     for step, success in results.items():
         print(f"    {step}: {'OK' if success else 'FAIL'}")
 

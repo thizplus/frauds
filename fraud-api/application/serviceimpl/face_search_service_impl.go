@@ -78,6 +78,10 @@ func (s *faceSearchServiceImpl) SearchByFace(ctx context.Context, imageBytes []b
 			if s.socialSearchRepo != nil {
 				post, err := s.socialSearchRepo.GetPostByID(ctx, m.SourceID)
 				if err == nil && post != nil {
+					// Skip ถ้ายังไม่ approved — ป้องกันข้อมูลที่ยังไม่ผ่านการตรวจ
+					if post.ReviewStatus != "" && post.ReviewStatus != "approved" {
+						continue
+					}
 					postInfo := &dto.SocialPostInfo{
 						AuthorName:    post.AuthorName,
 						Message:       post.Message,

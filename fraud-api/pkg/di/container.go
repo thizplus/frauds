@@ -53,6 +53,7 @@ type Container struct {
 	LenderService         services.LenderService
 	NotificationService   services.NotificationService
 	SocialSearchService   services.SocialSearchService
+	SocialService         services.SocialService
 	FaceSearchService     services.FaceSearchService
 	ServicePaymentService services.ServicePaymentService
 	MemberService         services.MemberService
@@ -167,6 +168,7 @@ func (c *Container) Initialize() error {
 	c.ServiceService = serviceimpl.NewServiceService(c.ServiceRepo)
 	c.NotificationService = serviceimpl.NewNotificationService(c.Notifier)
 	c.SocialSearchService = serviceimpl.NewSocialSearchService(c.SocialSearchRepo)
+	c.SocialService = serviceimpl.NewSocialService(db, c.SocialSearchRepo, faceClient)
 
 	c.SearchService = serviceimpl.NewSearchService(
 		c.FraudRepo, c.SearchLogRepo, c.CategoryRepo,

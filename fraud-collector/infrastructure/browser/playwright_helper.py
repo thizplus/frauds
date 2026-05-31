@@ -184,11 +184,12 @@ class PlaywrightHelper:
 
     # --- Capture Layer (Dumb Recorder) ---
 
-    async def start_capture(self, run_dir: str | Path):
+    async def start_capture(self, run_dir: str | Path, known_post_ids: set = None):
         """Start capturing GraphQL responses to chunked stream files
 
         Args:
             run_dir: directory to store raw data (e.g. raw/{group_id}/run_{timestamp}/)
+            known_post_ids: set of post_ids ที่เก็บแล้ว (สำหรับ smart scroll skip)
         """
         self._run_dir = Path(run_dir)
         self._stream_dir = self._run_dir / "graphql_stream"
@@ -199,6 +200,11 @@ class PlaywrightHelper:
         self._current_chunk_num = 0
         self._current_chunk_size = 0
         self._capture_stats = {"responses": 0, "bytes_total": 0, "skipped_too_large": 0, "errors": 0}
+
+        # Smart scroll: track new vs known posts
+        self._known_post_ids = known_post_ids or set()
+        self._new_post_ids = set()
+        self._skipped_post_ids = set()
 
         self._open_chunk()
         self._capturing = True
@@ -315,6 +321,23 @@ class PlaywrightHelper:
         except Exception:
             pass
 
+        # Smart scroll: parse post_ids จาก response (best effort)
+        if self.job_type == "feed" and self._known_post_ids is not None:
+            try:
+                from infrastructure.utils.graphql_parser import split_multiline_response, detect_response_shape
+                for json_obj in split_multiline_response(body):
+                    shape = detect_response_shape(json_obj)
+                    if shape.type == "feed_posts":
+                        for node in shape.nodes:
+                            pid = node.get("post_id", "")
+                            if pid:
+                                if pid in self._known_post_ids:
+                                    self._skipped_post_ids.add(pid)
+                                else:
+                                    self._new_post_ids.add(pid)
+            except Exception:
+                pass  # parse fail → ไม่เป็นไร ยังเก็บ raw เหมือนเดิม
+
         # Build capture line (ไม่ json.loads response body — เก็บ raw text)
         capture_line = json.dumps({
             "_capture": {
@@ -430,10 +453,12 @@ class PlaywrightHelper:
             prev_dom_count = dom_count
 
             # Auto-reload เมื่อค้าง (stale 8 ครั้ง แต่ยังไม่ครบ posts)
-            if stale_count == 8 and (max_posts == 0 or total_posts_seen < max_posts):
-                print(f"    ⟳ FB feed ค้าง — reload หน้า (สะสม {total_posts_seen} posts)...")
-                current_url = self.page.url
-                await self.page.reload(wait_until="networkidle")
+            if stale_count == 8 and (max_posts == 0 or new_count < max_posts):
+                print(f"    ⟳ FB feed ค้าง — reload หน้า (new: {new_count}, skip: {skip_count})...")
+                try:
+                    await self.page.reload(wait_until="domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
                 await self.wait(5000)
                 # scroll กลับไปล่างสุด
                 await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -468,20 +493,28 @@ class PlaywrightHelper:
                 except Exception:
                     pass
 
+            # Smart count: ใช้ parsed post_ids ถ้ามี, fallback DOM count
+            new_count = len(self._new_post_ids) if self._new_post_ids or self._skipped_post_ids else total_posts_seen
+            skip_count = len(self._skipped_post_ids)
+
             # Log progress
             if scroll_count % 5 == 0:
                 logger.info("scroll_progress", extra={
                     "scroll": scroll_count,
-                    "posts": total_posts_seen,
-                    "mode": mode,
+                    "new_posts": new_count,
+                    "skipped": skip_count,
+                    "dom": dom_count,
                     "captured": self._capture_stats["responses"],
                 })
-                print(f"    scroll {scroll_count} | posts: {total_posts_seen} (DOM: {dom_count}) | captured: {self._capture_stats['responses']}")
+                if skip_count > 0:
+                    print(f"    scroll {scroll_count} | new: {new_count} skip: {skip_count} (DOM: {dom_count}) | captured: {self._capture_stats['responses']}")
+                else:
+                    print(f"    scroll {scroll_count} | posts: {new_count} (DOM: {dom_count}) | captured: {self._capture_stats['responses']}")
 
-            # หยุดเมื่อ: ครบ posts / ครบ scrolls / stale 15 ครั้ง (หมด feed)
-            if max_posts > 0 and total_posts_seen >= max_posts:
-                logger.info("scroll_feed_done_by_posts", extra={"posts": total_posts_seen, "scrolls": scroll_count})
-                print(f"    ✓ ครบ {total_posts_seen} posts (scroll {scroll_count} ครั้ง)")
+            # หยุดเมื่อ: ครบ posts ใหม่ / ครบ scrolls / stale 15 ครั้ง (หมด feed)
+            if max_posts > 0 and new_count >= max_posts:
+                logger.info("scroll_feed_done_by_posts", extra={"new": new_count, "skipped": skip_count, "scrolls": scroll_count})
+                print(f"    ✓ ครบ {new_count} posts ใหม่ (ข้าม {skip_count} ซ้ำ, scroll {scroll_count} ครั้ง)")
                 break
             if max_posts == 0 and scroll_count >= max_scrolls:
                 break

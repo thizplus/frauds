@@ -16,4 +16,9 @@ type SocialSearchRepository interface {
 
 	// GetPostByID — ดึง social_post by ID (สำหรับ face search resolve)
 	GetPostByID(ctx context.Context, postID string) (*models.SocialPost, error)
+
+	// Admin review
+	ListPostsByReviewStatus(ctx context.Context, status string, page, limit int) ([]models.SocialPost, int64, error)
+	UpdatePostReviewStatus(ctx context.Context, postID string, status string) error
+	UpdateEntitiesReviewStatus(ctx context.Context, postID string, status string) error
 }

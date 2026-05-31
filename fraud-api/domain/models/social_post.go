@@ -17,6 +17,7 @@ type SocialPost struct {
 	ShareCount    int        `gorm:"column:share_count"`
 	ImageCount    int        `gorm:"column:image_count"`
 	PersonCount   int        `gorm:"column:person_count"`
+	ReviewStatus  string     `gorm:"column:review_status"`
 }
 
 func (SocialPost) TableName() string { return "social_posts" }

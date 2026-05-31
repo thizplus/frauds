@@ -17,6 +17,7 @@ const ServicePaymentsPage = lazy(() => import('@/features/service-payments').the
 const ServicesPage = lazy(() => import('@/features/services').then((m) => ({ default: m.ServicesPage })))
 const TransactionsPage = lazy(() => import('@/features/transactions').then((m) => ({ default: m.TransactionsPage })))
 const LendersPage = lazy(() => import('@/features/lenders').then((m) => ({ default: m.LendersPage })))
+const SocialReviewPage = lazy(() => import('@/features/social-review').then((m) => ({ default: m.SocialReviewPage })))
 
 export default function AppRoutes() {
   return (
@@ -40,6 +41,7 @@ export default function AppRoutes() {
               <Route path="/service-payments" element={<ServicePaymentsPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/lenders" element={<LendersPage />} />
+              <Route path="/social-review" element={<SocialReviewPage />} />
               <Route path="/settings/:section" element={<SettingsPage />} />
               <Route path="/settings" element={<Navigate to="/settings/quota" replace />} />
             </Route>

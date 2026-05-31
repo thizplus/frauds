@@ -522,6 +522,102 @@ async def _auto_collect(max_scrolls: int = 5, max_comment_posts: int = 10, categ
         print("ไม่มีกลุ่มที่ต้อง collect")
 
 
+async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2000, cleanup: bool = True):
+    """V3: Smart scroll + parallel pipeline (comments+images ∥ LLM → API)"""
+    from application.usecases.cleanup import load_known_post_ids, cleanup_run
+    from application.usecases.parallel_collector import run_parallel
+
+    group_id = parse_group_id(group_url)
+    if "sorting_setting" not in group_url:
+        group_url = group_url.rstrip('/') + "/?sorting_setting=CHRONOLOGICAL"
+
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = Path(f"raw/{group_id}/run_{run_id}")
+
+    # Load known post_ids
+    known_ids = load_known_post_ids()
+    print(f"\n{'='*60}")
+    print(f"  Collect V3: {group_id}")
+    print(f"  Known posts: {len(known_ids)} (จะข้าม)")
+    print(f"  Target: {max_posts} posts ใหม่")
+    print(f"  Cleanup: {'ON' if cleanup else 'OFF'}")
+    print(f"{'='*60}")
+
+    # Environment
+    env = {
+        "API_BASE_URL": os.environ.get("API_BASE_URL", "http://localhost:8080/api/v1"),
+        "BOT_API_KEY": os.environ.get("BOT_API_KEY", ""),
+        "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
+    }
+
+    async with PlaywrightHelper(
+        profile_dir="./pw_chrome_data",
+        headless=False,
+    ) as pw:
+        pw.worker_id = "collector_v3"
+        pw.account_id = "default"
+
+        # === Login ===
+        print(f"\n  [1/4] Login check...")
+        await pw.goto("https://www.facebook.com")
+        await pw.wait(3000)
+        if not await pw.check_facebook_login():
+            await pw.wait_for_login()
+
+        # === Phase 1: Smart scroll feed ===
+        print(f"\n  [2/4] Scroll feed (smart — ข้ามซ้ำ)...")
+        pw.job_type = "feed"
+        pw.job_id = f"feed_{group_id}_{run_id}"
+
+        await pw.block_heavy_resources()
+        await pw.goto(group_url)
+        await pw.wait(5000)
+
+        await pw.start_capture(run_dir, known_post_ids=known_ids)
+        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
+        await pw.stop_capture()
+
+        # Get new post IDs from smart scroll
+        new_post_ids = list(pw._new_post_ids)
+        skip_count = len(pw._skipped_post_ids)
+        print(f"\n  Feed done: {len(new_post_ids)} new, {skip_count} skipped")
+
+        if not new_post_ids:
+            print(f"  ไม่มี posts ใหม่ — หยุด")
+            return
+
+        # === Phase 2: Extract ===
+        print(f"\n  [3/4] Extract...")
+        try:
+            report = extract_run(run_dir)
+        except Exception as e:
+            print(f"  Extract error: {e}")
+            return
+
+        extracted_dir = Path(report.get("output_dir", "extracted"))
+
+        # === Phase 3: Parallel — comments+images ∥ LLM ===
+        print(f"\n  [4/4] Parallel: comments+images + LLM pipeline...")
+        await pw.unblock_resources()  # เปิด resources กลับ (ต้อง download images)
+
+        await run_parallel(
+            pw=pw,
+            new_post_ids=new_post_ids,
+            group_id=group_id,
+            extracted_dir=extracted_dir,
+            env=env,
+            cleanup=cleanup,
+        )
+
+    # Cleanup run_dir
+    if cleanup:
+        cleanup_run(run_dir)
+
+    print(f"\n{'='*60}")
+    print(f"  V3 DONE!")
+    print(f"{'='*60}")
+
+
 # === CLI ===
 
 def main():
@@ -544,6 +640,13 @@ def main():
     auto_cmd.add_argument("--category", type=str, help="เฉพาะ category (เช่น loan_fraud)")
     auto_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB")
 
+    # collect-v3 — smart scroll + parallel pipeline
+    v3_cmd = sub.add_parser("collect-v3", help="V3: smart scroll + parallel (comments+images ∥ LLM → API)")
+    v3_cmd.add_argument("--group", required=True, help="Facebook group URL")
+    v3_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ที่ต้องการ (default 500)")
+    v3_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
+    v3_cmd.add_argument("--no-cleanup", action="store_true", help="ไม่ลบ temp data (เก็บไว้ debug)")
+
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
     extract_cmd.add_argument("--run", type=str, help="Extract specific run")
@@ -554,6 +657,8 @@ def main():
     pipeline_cmd = sub.add_parser("pipeline", help="Run LLM → Normalize → Validate → DB → Face (ไม่ capture)")
     pipeline_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB")
     pipeline_cmd.add_argument("--db-only", action="store_true", help="รัน DB + Face เท่านั้น (หลังตรวจ validated/ แล้ว)")
+    pipeline_cmd.add_argument("--api", action="store_true", help="ส่งผ่าน HTTP API แทน psycopg2 (สำหรับ distributed)")
+    pipeline_cmd.add_argument("--skip-face", action="store_true", help="ไม่ ingest face (รอ admin approve)")
 
     args = parser.parse_args()
 
@@ -569,6 +674,16 @@ def main():
             no_db=args.no_db if hasattr(args, 'no_db') else True,
         ))
 
+    elif args.command == "collect-v3":
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(_collect_v3(
+            group_url=args.group,
+            max_posts=args.max_posts,
+            max_scrolls=args.max_scrolls,
+            cleanup=not args.no_cleanup,
+        ))
+
     elif args.command == "auto":
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -580,10 +695,11 @@ def main():
 
     elif args.command == "pipeline":
         from application.usecases.run_pipeline import run_pipeline, run_db_only
+        skip_face = args.skip_face or args.api  # --api เสมอ skip face (รอ admin approve)
         if args.db_only:
-            run_db_only()
+            run_db_only(use_api=args.api, skip_face=skip_face)
         else:
-            run_pipeline(no_db=args.no_db)
+            run_pipeline(no_db=args.no_db, use_api=args.api)
 
     elif args.command == "extract":
         if args.run:

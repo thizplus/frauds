@@ -73,6 +73,7 @@ func main() {
 		container.NotificationService,
 		container.LenderService,
 		container.SocialSearchService,
+		container.SocialService,
 		container.FaceSearchService,
 		container.ServicePaymentService,
 		container.MemberService,

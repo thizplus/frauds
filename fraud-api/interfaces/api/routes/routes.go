@@ -110,6 +110,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	bot.Get("/frauds/incomplete", h.FraudHandler.GetIncomplete)
 	bot.Patch("/frauds/:id/enrich", h.FraudHandler.Enrich)
 	bot.Post("/face-ingest", h.FaceSearchHandler.IngestFace)
+	bot.Post("/social-batch", h.SocialHandler.IngestBatch)
 
 	// === Admin (JWT auth + rate limited) ===
 	admin := api.Group("/admin")
@@ -134,6 +135,12 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Put("/categories/reorder", h.CategoryHandler.ReorderCategories)
 	admin.Put("/categories/:id", h.CategoryHandler.UpdateCategory)
 	admin.Delete("/categories/:id", h.CategoryHandler.DeleteCategory)
+
+	// Social Review
+	admin.Get("/social/posts", h.SocialHandler.ListPending)
+	admin.Patch("/social/posts/batch-approve", h.SocialHandler.BatchApprove)
+	admin.Patch("/social/posts/:id/approve", h.SocialHandler.ApprovePost)
+	admin.Patch("/social/posts/:id/reject", h.SocialHandler.RejectPost)
 
 	// Settings
 	admin.Get("/settings", h.SettingsHandler.GetAll)

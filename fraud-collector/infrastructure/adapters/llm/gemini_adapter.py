@@ -34,6 +34,35 @@ OUTPUT JSON ONLY:
 INPUT:
 """
 
+BATCH_EXTRACTION_PROMPT = """ROLE:
+คุณคือระบบดึงข้อมูล entity จากข้อความภาษาไทย
+
+TASK:
+- ดึง entities จากแต่ละโพสต์ (มีหลายโพสต์)
+- แต่ละโพสต์มี post_id กำกับ
+- ไม่ต้องตัดสินว่าใครผิดหรือถูก
+
+RULES:
+- ห้ามเดา — ถ้าไม่แน่ใจ → confidence ต่ำ
+- ห้ามเพิ่มข้อมูลที่ไม่มีในข้อความ
+- ถ้าโพสต์ไม่มี entity ให้ return arrays ว่าง
+- ต้อง return ครบทุก post_id ที่ให้มา
+
+OUTPUT JSON ONLY — array of objects:
+
+[
+  {
+    "post_id": "xxx",
+    "names": [{"value": "", "confidence": 0.0}],
+    "phones": [{"value": "", "confidence": 0.0}],
+    "bank_accounts": [{"value": "", "confidence": 0.0}],
+    "id_cards": [{"value": "", "confidence": 0.0}]
+  }
+]
+
+INPUT (หลายโพสต์):
+"""
+
 
 class GeminiAdapter(LLMPort):
 
@@ -56,7 +85,42 @@ class GeminiAdapter(LLMPort):
         logger.info("extraction_done", extra={"model": self.model})
         return result
 
-    def _safe_parse(self, text: str) -> dict:
+    def extract_entities_batch(self, posts_text: list[dict]) -> list[dict]:
+        """Batch extraction — ส่งหลายโพสต์ใน 1 API call
+
+        Args:
+            posts_text: [{"post_id": "xxx", "text": "..."}]
+
+        Returns:
+            [{"post_id": "xxx", "names": [...], "phones": [...], ...}]
+        """
+        # สร้าง input รวม
+        parts = []
+        for item in posts_text:
+            parts.append(f"=== POST_ID: {item['post_id']} ===")
+            parts.append(item['text'])
+            parts.append("")
+
+        prompt = BATCH_EXTRACTION_PROMPT + "\n".join(parts)
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+            },
+        )
+
+        result = self._safe_parse(response.text)
+
+        # อาจ return dict แทน list ถ้ามี post เดียว
+        if isinstance(result, dict):
+            result = [result]
+
+        logger.info("batch_extraction_done", extra={"model": self.model, "count": len(result)})
+        return result
+
+    def _safe_parse(self, text: str) -> dict | list:
         text = text.strip().replace("```json", "").replace("```", "")
         try:
             return json.loads(text)

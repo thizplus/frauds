@@ -19,6 +19,7 @@ type SearchableEntity struct {
 	PersonID           *string `gorm:"column:person_id"`
 	PostID             string  `gorm:"column:post_id"`
 	GroupID            string  `gorm:"column:group_id"`
+	ReviewStatus       string  `gorm:"column:review_status"`
 
 	// Relations (read-only, populated by Preload or manually from JOIN)
 	Person *SocialPerson `gorm:"foreignKey:PersonID" json:"-"`

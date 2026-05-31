@@ -60,6 +60,13 @@ export const LENDER_ROUTES = {
   BY_ID: (id: string) => `/admin/lenders/${id}`,
 }
 
+export const SOCIAL_REVIEW_ROUTES = {
+  LIST: '/admin/social/posts',
+  APPROVE: (id: string) => `/admin/social/posts/${id}/approve`,
+  REJECT: (id: string) => `/admin/social/posts/${id}/reject`,
+  BATCH_APPROVE: '/admin/social/posts/batch-approve',
+}
+
 export const SERVICE_PAYMENT_ROUTES = {
   LIST: '/admin/service-payments',
   BY_ID: (id: string) => `/admin/service-payments/${id}`,

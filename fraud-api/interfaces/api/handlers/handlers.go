@@ -21,6 +21,7 @@ type Handlers struct {
 	AdminHandler           *AdminHandler
 	LenderHandler          *LenderHandler
 	SocialSearchHandler    *SocialSearchHandler
+	SocialHandler          *SocialHandler
 	FaceSearchHandler      *FaceSearchHandler
 	LineWebhookHandler     *LineWebhookHandler
 }
@@ -38,6 +39,7 @@ func NewHandlers(
 	notificationService services.NotificationService,
 	lenderService services.LenderService,
 	socialSearchService services.SocialSearchService,
+	socialService services.SocialService,
 	faceSearchService services.FaceSearchService,
 	servicePaymentService services.ServicePaymentService,
 	memberService services.MemberService,
@@ -60,6 +62,7 @@ func NewHandlers(
 		AdminHandler:           NewAdminHandler(adminService),
 		LenderHandler:          NewLenderHandler(lenderService),
 		SocialSearchHandler:    NewSocialSearchHandler(socialSearchService),
+		SocialHandler:          NewSocialHandler(socialService),
 		FaceSearchHandler:      NewFaceSearchHandler(faceSearchService, searchService),
 		// LineWebhookHandler สร้างแยกใน main/DI เพราะต้องใช้ channelSecret
 	}

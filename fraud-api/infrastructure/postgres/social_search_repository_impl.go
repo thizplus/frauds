@@ -90,6 +90,7 @@ func (r *socialSearchRepository) SearchExact(ctx context.Context, entityType str
 		WHERE se.entity_type = ?
 			AND se.normalized_value = ?
 			AND se.is_valid = TRUE
+			AND se.review_status = 'approved'
 		ORDER BY se.confidence_score DESC
 	`, entityType, normalizedValue).Scan(&rows).Error
 
@@ -135,6 +136,7 @@ func (r *socialSearchRepository) SearchFuzzyName(ctx context.Context, name strin
 		LEFT JOIN social_posts p ON se.post_id = p.id
 		WHERE se.entity_type = 'name'
 			AND se.normalized_value IS NOT NULL
+			AND se.review_status = 'approved'
 			AND similarity(se.normalized_value, ?) > ?
 		ORDER BY similarity(se.normalized_value, ?) DESC, se.confidence_score DESC
 		LIMIT 50
@@ -154,6 +156,32 @@ func (r *socialSearchRepository) GetPostByID(ctx context.Context, postID string)
 		return nil, err
 	}
 	return &post, nil
+}
+
+func (r *socialSearchRepository) ListPostsByReviewStatus(ctx context.Context, status string, page, limit int) ([]models.SocialPost, int64, error) {
+	var total int64
+	r.db.WithContext(ctx).Model(&models.SocialPost{}).Where("review_status = ?", status).Count(&total)
+
+	var posts []models.SocialPost
+	offset := (page - 1) * limit
+	err := r.db.WithContext(ctx).
+		Where("review_status = ?", status).
+		Order("creation_time DESC").
+		Offset(offset).Limit(limit).
+		Find(&posts).Error
+	return posts, total, err
+}
+
+func (r *socialSearchRepository) UpdatePostReviewStatus(ctx context.Context, postID string, status string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.SocialPost{}).
+		Where("id = ?", postID).
+		Update("review_status", status).Error
+}
+
+func (r *socialSearchRepository) UpdateEntitiesReviewStatus(ctx context.Context, postID string, status string) error {
+	return r.db.WithContext(ctx).
+		Exec("UPDATE searchable_entities SET review_status = ? WHERE post_id = ?", status, postID).Error
 }
 
 // rowsToEntities — แปลง scan rows เป็น models.SearchableEntity พร้อม relations

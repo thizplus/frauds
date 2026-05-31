@@ -77,6 +77,12 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_searchable_entities_normalized ON searchable_entities(normalized_value, entity_type)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_debtors_lender_status ON debtors(lender_id, status)")
 
+	// Social review system — เพิ่ม review_status column (idempotent)
+	db.Exec("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS review_status VARCHAR(20) DEFAULT 'approved'")
+	db.Exec("ALTER TABLE searchable_entities ADD COLUMN IF NOT EXISTS review_status VARCHAR(20) DEFAULT 'approved'")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_social_posts_review ON social_posts(review_status)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_se_review ON searchable_entities(review_status)")
+
 	// CASCADE DELETE constraints (เพิ่มให้ FK ที่ขาด)
 	cascades := []string{
 		"ALTER TABLE fraud_reports DROP CONSTRAINT IF EXISTS fk_fraud_reports_fraud",
