@@ -772,11 +772,9 @@ async def _collect_v4(group_url: str, max_posts: int = 500, max_scrolls: int = 2
 
     print(f"\n  Pipeline: LLM → Normalize → Validate → API ({len(new_post_ids)} posts)...")
     from application.usecases.run_pipeline import run_pipeline
-    run_pipeline(use_api=True)
+    run_pipeline(use_api=True, skip_face=True)
 
-    # Append known_ids
-    from application.usecases.cleanup import append_known_post_ids
-    append_known_post_ids(new_post_ids)
+    # known_ids append แล้วระหว่าง scroll ใน _on_response() ไม่ต้อง append ซ้ำ
 
     if cleanup:
         cleanup_run(run_dir)

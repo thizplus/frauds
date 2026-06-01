@@ -51,8 +51,8 @@ class CollectorApp:
     def _load_config(self):
         self.config = {
             "api_url": DEFAULT_API_URL,
-            "api_key": "0b4e0601b318199e6215d2d95c8bf837e011041cb3dbfe0a",
-            "gemini_key": "AIzaSyBoG2TRIoTCRaFGgi32rCotuQMMVts9O0w",
+            "api_key": "",
+            "gemini_key": "",
             "group_url": "",
             "max_posts": 500,
             "skip_keywords": DEFAULT_SKIP_KEYWORDS,
@@ -110,11 +110,11 @@ class CollectorApp:
 
         ttk.Label(config_frame, text="API Key:").grid(row=2, column=0, sticky="w", pady=2)
         self.api_key_var = tk.StringVar(value=self.config.get("api_key", ""))
-        ttk.Entry(config_frame, textvariable=self.api_key_var, width=50, show="*").grid(row=2, column=1, sticky="ew", pady=2)
+        ttk.Entry(config_frame, textvariable=self.api_key_var, width=50).grid(row=2, column=1, sticky="ew", pady=2)
 
         ttk.Label(config_frame, text="Gemini Key:").grid(row=3, column=0, sticky="w", pady=2)
         self.gemini_key_var = tk.StringVar(value=self.config.get("gemini_key", ""))
-        ttk.Entry(config_frame, textvariable=self.gemini_key_var, width=50, show="*").grid(row=3, column=1, sticky="ew", pady=2)
+        ttk.Entry(config_frame, textvariable=self.gemini_key_var, width=50).grid(row=3, column=1, sticky="ew", pady=2)
 
         ttk.Label(config_frame, text="API URL:").grid(row=4, column=0, sticky="w", pady=2)
         self.api_url_var = tk.StringVar(value=self.config.get("api_url", DEFAULT_API_URL))
@@ -162,7 +162,7 @@ class CollectorApp:
             with open(known_file, 'r') as f:
                 known = sum(1 for line in f if line.strip())
         if known > 0:
-            self.stats_var.set(f"Posts ที่เก็บแล้ว: {known}")
+            self.stats_var.set(f"Posts ที่ scroll แล้ว: {known} (ข้ามซ้ำอัตโนมัติ)")
         else:
             self.stats_var.set("ยังไม่มีข้อมูล — กด Start เพื่อเริ่มเก็บ")
 
@@ -230,6 +230,7 @@ class CollectorApp:
         env["API_BASE_URL"] = api_url
         env["BOT_API_KEY"] = api_key
         env["GEMINI_API_KEY"] = gemini_key
+        env["PYTHONUNBUFFERED"] = "1"  # output real-time ไม่ buffer
 
         python = self._find_python()
         cmd = [

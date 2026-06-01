@@ -437,8 +437,8 @@ class PlaywrightHelper:
             await self.wait(int(delay * 1000))
 
             # Human-like pause
-            if scroll_count % random.randint(5, 8) == 0:
-                pause = random.uniform(8, 15)
+            if scroll_count % random.randint(8, 15) == 0:
+                pause = random.uniform(3, 7)
                 logger.info("human_pause", extra={"seconds": round(pause, 1)})
                 await self.wait(int(pause * 1000))
 
@@ -762,11 +762,11 @@ class PlaywrightHelper:
 
 
 def human_delay() -> float:
-    """Weighted delay distribution — more human-like than uniform random"""
+    """Weighted delay — เร็วขึ้นเหมือนคนเลื่อน feed จริง"""
     roll = random.random()
-    if roll < 0.70:
-        return random.uniform(2, 8)     # 70% = browse fast
-    elif roll < 0.90:
-        return random.uniform(10, 25)   # 20% = reading post
+    if roll < 0.80:
+        return random.uniform(1, 3)     # 80% = เลื่อนเร็ว
+    elif roll < 0.95:
+        return random.uniform(3, 6)     # 15% = หยุดดูโพส
     else:
-        return random.uniform(30, 90)   # 10% = pause / doing something else
+        return random.uniform(6, 12)    # 5% = อ่านโพส

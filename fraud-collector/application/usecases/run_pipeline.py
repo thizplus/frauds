@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
-def run_pipeline(extracted_dir: str = None, no_db: bool = False, use_api: bool = False):
+def run_pipeline(extracted_dir: str = None, no_db: bool = False, use_api: bool = False, skip_face: bool = False):
     """Run post-capture pipeline
 
     Args:
@@ -120,12 +120,15 @@ def run_pipeline(extracted_dir: str = None, no_db: bool = False, use_api: bool =
         print(f"    ERROR: {e}")
 
     # === Step 5: Face Ingest ===
-    print(f"\n  [Pipeline 5/{total_steps}] Face Ingest...")
-    try:
-        _run_script("golden/ingest_faces_to_service.py")
-        results["face_ingest"] = True
-    except Exception as e:
-        print(f"    ERROR: {e}")
+    if skip_face:
+        print(f"\n  (Face ingest skipped — รอ admin approve)")
+    else:
+        print(f"\n  [Pipeline 5/{total_steps}] Face Ingest...")
+        try:
+            _run_script("golden/ingest_faces_to_service.py")
+            results["face_ingest"] = True
+        except Exception as e:
+            print(f"    ERROR: {e}")
 
     duration = time.time() - start
     ok = sum(1 for v in results.values() if v)
