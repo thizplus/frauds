@@ -12,6 +12,9 @@ export const socialReviewService = {
   async reject(postId: string) {
     return apiClient.patch(SOCIAL_REVIEW_ROUTES.REJECT(postId))
   },
+  async archive(postId: string) {
+    return apiClient.patch(SOCIAL_REVIEW_ROUTES.ARCHIVE(postId))
+  },
   async batchApprove(postIds: string[]) {
     return apiClient.patch(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE, { postIds })
   },

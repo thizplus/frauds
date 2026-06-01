@@ -183,9 +183,76 @@ async def run_parallel(pw, new_post_ids: list, group_id: str,
         print(f"  Errors:   {llm_results['errors']}")
 
 
+def _load_image_manifest() -> dict:
+    """โหลด image_manifest.json → dict mapping post_id_index → local_path"""
+    manifest_path = Path("golden/image_manifest.json")
+    mapping = {}
+    if manifest_path.exists():
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                items = json.load(f)
+            for item in items:
+                pid = item.get("post_id", "")
+                idx = item.get("image_index", 0)
+                local = item.get("local_path")
+                url = item.get("source_url", "")
+                if local:
+                    mapping[f"{pid}_{idx}"] = local
+                    if url:
+                        mapping[url] = local
+        except Exception:
+            pass
+    return mapping
+
+
+def _upload_image_to_r2(http_client, api_url: str, local_path: str, folder: str) -> str | None:
+    """Upload local image → R2 ผ่าน POST /bot/uploads → return R2 URL"""
+    from pathlib import Path
+    p = Path(local_path)
+    if not p.exists() or p.stat().st_size < 1000:
+        return None
+    try:
+        with open(p, 'rb') as f:
+            resp = http_client.post(
+                f"{api_url}/bot/uploads",
+                params={"folder": folder},
+                files={"file": (p.name, f, "image/jpeg")},
+                timeout=30,
+            )
+        if resp.status_code == 200:
+            return resp.json().get("data", {}).get("url")
+    except Exception:
+        pass
+    return None
+
+
+def _upload_post_images(http_client, api_url: str, post: dict, image_manifest: dict) -> list[str]:
+    """Upload post images จาก local → R2 → return R2 URLs"""
+    import html as _html
+    pid = post.get("post_id", "")
+    r2_urls = []
+
+    for i, img in enumerate(post.get("images", [])):
+        # หา local path จาก image_manifest
+        fb_url = img.get("full_url") or img.get("thumbnail_url") or ""
+        local_path = image_manifest.get(f"{pid}_{i}") or image_manifest.get(fb_url)
+
+        if local_path:
+            r2_url = _upload_image_to_r2(http_client, api_url, local_path, f"social/{pid}")
+            if r2_url:
+                r2_urls.append(r2_url)
+                continue
+
+        # Fallback: ใช้ FB URL (อาจ expire)
+        if fb_url:
+            r2_urls.append(_html.unescape(fb_url))
+
+    return r2_urls
+
+
 def _process_and_send(gemini, batch: list, api_url: str, http_client,
                        group_id: str, env: dict, cleanup: bool, results: dict):
-    """LLM batch → Normalize → Validate → Build payload → API"""
+    """LLM batch → Normalize → Validate → Upload R2 → Build payload → API"""
     import hashlib
     from application.usecases.normalizer import normalize_post as _normalize
     from application.usecases.entity_validator import validate_post as _validate
@@ -217,7 +284,26 @@ def _process_and_send(gemini, batch: list, api_url: str, http_client,
             normalized = _normalize(post, llm_output)
             validated = _validate(normalized)
 
-            # Build post payload (inline — ไม่พึ่ง ingest_to_api.py)
+            # Build post payload
+            # Upload images → R2 แล้วใช้ R2 URL
+            image_manifest = _load_image_manifest()
+            image_urls = _upload_post_images(http_client, api_url, post, image_manifest)
+
+            # Comments (ใช้ FB URL เพราะ comment images ไม่ได้ download)
+            import html as _html
+            comments_payload = []
+            for c in post.get("comments", []) or post.get("initial_comments", []):
+                c_imgs = []
+                for att in c.get("attachments", []):
+                    c_url = att.get("full_url") or att.get("thumbnail_url") or att.get("url")
+                    if c_url:
+                        c_imgs.append(_html.unescape(c_url))
+                comments_payload.append({
+                    "authorName": c.get("author", {}).get("name", ""),
+                    "text": c.get("text", ""),
+                    "imageUrls": c_imgs,
+                })
+
             post_payload = {
                 "postId": pid,
                 "authorName": post.get("author", {}).get("name", ""),
@@ -229,6 +315,8 @@ def _process_and_send(gemini, batch: list, api_url: str, http_client,
                 "commentCount": post.get("engagement", {}).get("comment_count", 0),
                 "shareCount": post.get("engagement", {}).get("share_count", 0),
                 "imageCount": post.get("image_count_reported", 0),
+                "imageUrls": image_urls,
+                "comments": comments_payload,
                 "persons": [],
             }
 
@@ -342,3 +430,43 @@ def _process_and_send(gemini, batch: list, api_url: str, http_client,
         print(f"ERROR: {e}")
         import traceback
         traceback.print_exc()
+
+
+def process_batch_pipeline(posts: list, group_id: str, env: dict, cleanup: bool = True):
+    """LLM batch → Normalize → Validate → API (รันหลัง browser ปิด)
+
+    Args:
+        posts: list ของ extracted post data (มี comments ครบแล้ว)
+        group_id: FB group ID
+        env: environment vars
+        cleanup: True = ลบ temp data หลังส่ง API
+    """
+    import httpx
+    from infrastructure.adapters.llm.gemini_adapter import GeminiAdapter
+
+    gemini_key = env.get("GEMINI_API_KEY", "")
+    api_url = env.get("API_BASE_URL", "http://localhost:8080/api/v1")
+    api_key = env.get("BOT_API_KEY", "")
+
+    if not gemini_key:
+        print("  ERROR: GEMINI_API_KEY not set")
+        return
+
+    gemini = GeminiAdapter(api_key=gemini_key)
+    http_client = httpx.Client(headers={"X-API-Key": api_key}, timeout=120)
+
+    results = {"batches": 0, "posts": 0, "entities": 0, "errors": 0}
+
+    # แบ่ง batch
+    for i in range(0, len(posts), BATCH_SIZE):
+        batch = posts[i:i + BATCH_SIZE]
+        _process_and_send(gemini, batch, api_url, http_client, group_id, env, cleanup, results)
+
+    http_client.close()
+
+    print(f"\n  === LLM Pipeline Summary ===")
+    print(f"  Batches:  {results['batches']}")
+    print(f"  Posts:    {results['posts']}")
+    print(f"  Entities: {results['entities']}")
+    if results['errors'] > 0:
+        print(f"  Errors:   {results['errors']}")

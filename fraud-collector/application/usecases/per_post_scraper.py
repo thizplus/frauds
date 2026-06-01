@@ -1,97 +1,177 @@
 """Per-Post Scraper — เก็บ comments + download images ทีละ post
 
-ใช้ browser ที่เปิดอยู่ (มี FB cookies) เข้าแต่ละ post → scroll comments → download images
+Copy logic จาก run.py collect() ที่ทำงานได้ดี:
+- comments: start_capture → goto post → save_html_snapshot → scroll_comments → stop_capture
+- images: download ผ่าน browser (มี FB cookies)
+- extract: extract_run() → merge comments (GraphQL + HTML + initial)
 """
 import hashlib
 import json
 import random
+import re
 from pathlib import Path
 
+from infrastructure.utils.graphql_parser import (
+    split_multiline_response, detect_response_shape,
+    extract_post, parse_comment_batch, extract_comments_from_html,
+    merge_comments,
+)
 
-async def process_post(pw, post_data: dict, group_id: str, images_dir: Path) -> dict:
-    """เก็บ comments + download images สำหรับ 1 post
+
+async def process_posts_comments(pw, posts: list, group_id: str, run_dir: Path):
+    """เก็บ comments ทุก post — ใช้ flow เดิมจาก run.py (capture ต่อเนื่อง)
 
     Args:
-        pw: PlaywrightHelper instance (browser เปิดอยู่)
-        post_data: extracted post data (จาก feed scroll)
+        pw: PlaywrightHelper (browser เปิดอยู่)
+        posts: list ของ extracted post data
         group_id: FB group ID
-        images_dir: directory เก็บรูป (images/)
-
-    Returns:
-        post_data ที่อัพเดทแล้ว (มี comments ครบ + local image paths)
+        run_dir: run directory (สำหรับ capture + html_snapshots)
     """
-    post_id = post_data.get("post_id", "")
-    permalink = post_data.get("permalink_url", "")
-    if not permalink:
-        permalink = f"https://www.facebook.com/groups/{group_id}/posts/{post_id}/"
+    posts_with_comments = [p for p in posts if p.get("engagement", {}).get("comment_count", 0) > 0]
 
-    comment_count = post_data.get("engagement", {}).get("comment_count", 0)
+    if not posts_with_comments:
+        return
 
-    # 1. เข้า post → เก็บ comments
-    if comment_count > 0:
+    print(f"    เก็บ comments: {len(posts_with_comments)} posts...")
+
+    pw.job_type = "comments"
+    await pw.start_capture(run_dir)
+
+    for i, post in enumerate(posts_with_comments):
+        pid = post.get("post_id", "")
+        cc = post.get("engagement", {}).get("comment_count", 0)
+        post_url = post.get("permalink_url", "")
+        if not post_url:
+            post_url = f"https://www.facebook.com/groups/{group_id}/posts/{pid}/"
+
+        pw.job_id = f"comment_{pid}"
+        rounds = min(200, max(20, int(cc * 0.8)))
+        stale = 10 if cc > 50 else 8
+
         try:
-            await pw.goto(permalink)
-            await pw.wait(3000)
+            # ไป FB home ก่อน (reset state)
+            await pw.goto("https://www.facebook.com/")
+            await pw.wait(2000)
+
+            # เข้า post
+            await pw.goto(post_url)
+            await pw.wait(5000)
+
+            # ปิด Messenger popup
+            await _close_messenger(pw)
+
+            # Save HTML snapshot (สำหรับ initial comments)
+            await pw.save_html_snapshot(pid)
 
             # Scroll comments
-            budget = min(300, max(30, comment_count * 2))
-            rounds = min(200, max(10, int(comment_count * 0.8)))
-            stale = 8 if comment_count > 50 else 6
+            budget_sec = min(300, max(60, cc * 2))
+            await pw.scroll_comments(max_rounds=rounds, stale_limit=stale, budget_seconds=budget_sec)
 
-            await pw.scroll_comments(max_rounds=rounds, stale_limit=stale, budget_seconds=budget)
+            # Human-like delay
+            await pw.wait(int(random.uniform(5, 12) * 1000))
+
         except Exception as e:
-            print(f"      Comment error [{post_id}]: {e}")
-
-    # 2. Download images (ยังอยู่ใน browser มี cookies)
-    local_images = []
-    images = post_data.get("images", [])
-    for i, img in enumerate(images):
-        url = img.get("full_url") or img.get("thumbnail_url")
-        if not url:
+            print(f"      Comment error [{pid}]: {e} — skip, continue")
             continue
-        try:
-            local_path = await _download_image(pw, url, images_dir, post_id, i)
-            if local_path:
-                local_images.append({
-                    "post_id": post_id,
-                    "image_index": i,
-                    "source_url": url,
-                    "local_path": str(local_path),
-                })
-        except Exception as e:
-            print(f"      Image error [{post_id}#{i}]: {e}")
-
-    # 3. Human-like delay
-    await pw.wait(random.randint(2000, 6000))
-
-    # เพิ่ม local images info
-    post_data["_local_images"] = local_images
-
-    return post_data
-
-
-async def _download_image(pw, url: str, images_dir: Path, post_id: str, index: int) -> Path | None:
-    """Download image ผ่าน browser (มี FB cookies)"""
-    url_hash = hashlib.sha256(url.encode()).hexdigest()
-    save_dir = images_dir / url_hash[:2]
-    save_path = save_dir / f"{url_hash}.jpg"
-
-    # Skip if exists
-    if save_path.exists() and save_path.stat().st_size > 1000:
-        return save_path
-
-    save_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # ใช้ page.request (Playwright API context) ดาวน์โหลดผ่าน browser cookies
-        resp = await pw.page.context.request.get(url)
-        if resp.ok:
-            body = await resp.body()
-            if len(body) > 1000:  # skip tiny images (icons/stickers)
-                with open(save_path, 'wb') as f:
-                    f.write(body)
-                return save_path
+        await pw.stop_capture()
     except Exception:
         pass
 
-    return None
+
+async def process_posts_images(pw, posts: list, output_dir: Path):
+    """Download images ทุก post — ใช้ flow เดิมจาก run.py
+
+    Args:
+        pw: PlaywrightHelper (browser เปิดอยู่)
+        posts: list ของ extracted post data (จาก extract_run)
+        output_dir: extracted output directory
+    """
+    # Collect image URLs from extracted.json
+    images = []
+    for post_path in sorted(output_dir.glob("post_*/extracted.json")):
+        try:
+            with open(post_path, 'r', encoding='utf-8') as f:
+                post = json.load(f)
+            pid = post["post_id"]
+            for i, img in enumerate(post.get("images", [])):
+                url = img.get("full_url") or img.get("thumbnail_url")
+                if url:
+                    images.append({"post_id": pid, "index": i, "url": url})
+        except Exception:
+            continue
+
+    if not images:
+        print("    ไม่มีรูปที่ต้อง download")
+        return
+
+    print(f"    Download images: {len(images)} รูป...")
+
+    # Navigate กลับไป FB ก่อน download
+    await pw.goto("https://www.facebook.com")
+    await pw.wait(2000)
+
+    manifest = []
+    ok_count = 0
+
+    for i, img in enumerate(images):
+        url_hash = hashlib.sha256(img["url"].encode()).hexdigest()
+        save_path = f"images/{url_hash[:2]}/{url_hash}.jpg"
+
+        # Skip if already exists
+        if Path(save_path).exists() and Path(save_path).stat().st_size > 1000:
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": save_path,
+                "download_status": "ok",
+            })
+            ok_count += 1
+            continue
+
+        result = await pw.download_image(img["url"], save_path)
+
+        if result["ok"]:
+            ok_count += 1
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": save_path,
+                "download_status": "ok", "file_size": result["size"],
+            })
+        else:
+            manifest.append({
+                "post_id": img["post_id"], "image_index": img["index"],
+                "source_url": img["url"], "local_path": None,
+                "download_status": "failed", "error": result["error"],
+            })
+
+        if (i + 1) % 5 == 0:
+            print(f"      [{i+1}/{len(images)}] downloaded: {ok_count}")
+            await pw.wait(1000)
+        else:
+            await pw.wait(300)
+
+    # Save manifest
+    Path("golden").mkdir(exist_ok=True)
+    with open("golden/image_manifest.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    failed = len(images) - ok_count
+    print(f"    Images: {ok_count}/{len(images)} | Failed: {failed}")
+
+
+async def _close_messenger(pw):
+    """ปิด Messenger popup / chat overlay"""
+    try:
+        await pw.page.evaluate("""
+            () => {
+                // ปิด Messenger chat windows
+                document.querySelectorAll('[aria-label="Close chat"], [aria-label="ปิดแชท"]').forEach(el => el.click());
+                // ซ่อน Messenger container
+                document.querySelectorAll('[role="complementary"], [data-pagelet="ChatTab"]').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        """)
+    except Exception:
+        pass

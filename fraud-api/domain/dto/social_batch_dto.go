@@ -23,7 +23,15 @@ type SocialPostInput struct {
 	CommentCount  int                 `json:"commentCount"`
 	ShareCount    int                 `json:"shareCount"`
 	ImageCount    int                 `json:"imageCount"`
+	ImageURLs     []string            `json:"imageUrls"`
+	Comments      []SocialCommentInput `json:"comments"`
 	Persons       []SocialPersonInput `json:"persons"`
+}
+
+type SocialCommentInput struct {
+	AuthorName string   `json:"authorName"`
+	Text       string   `json:"text"`
+	ImageURLs  []string `json:"imageUrls"`
 }
 
 type SocialPersonInput struct {
@@ -64,17 +72,34 @@ type SocialBatchResponse struct {
 // === Admin Review ===
 
 type SocialPostResponse struct {
-	PostID        string `json:"postId"`
-	GroupID       string `json:"groupId"`
-	AuthorName    string `json:"authorName"`
-	Message       string `json:"message"`
-	PermalinkURL  string `json:"permalinkUrl"`
-	CreationTime  string `json:"creationTime,omitempty"`
-	ReactionCount int    `json:"reactionCount"`
-	CommentCount  int    `json:"commentCount"`
-	ImageCount    int    `json:"imageCount"`
-	PersonCount   int    `json:"personCount"`
-	ReviewStatus  string `json:"reviewStatus"`
+	PostID        string                `json:"postId"`
+	GroupID       string                `json:"groupId"`
+	AuthorName    string                `json:"authorName"`
+	Message       string                `json:"message"`
+	PermalinkURL  string                `json:"permalinkUrl"`
+	CreationTime  string                `json:"creationTime,omitempty"`
+	ReactionCount int                   `json:"reactionCount"`
+	CommentCount  int                   `json:"commentCount"`
+	ImageCount    int                   `json:"imageCount"`
+	PersonCount   int                   `json:"personCount"`
+	ReviewStatus  string                `json:"reviewStatus"`
+	ImageURLs     []string              `json:"imageUrls"`
+	Comments      []SocialCommentOutput `json:"comments"`
+	Entities      []SocialEntityOutput  `json:"entities"`
+}
+
+type SocialEntityOutput struct {
+	EntityType      string  `json:"entityType"`
+	RawValue        string  `json:"rawValue"`
+	NormalizedValue string  `json:"normalizedValue,omitempty"`
+	ConfidenceScore float64 `json:"confidenceScore"`
+	SourceType      string  `json:"sourceType,omitempty"`
+}
+
+type SocialCommentOutput struct {
+	AuthorName string   `json:"authorName"`
+	Text       string   `json:"text"`
+	ImageURLs  []string `json:"imageUrls,omitempty"`
 }
 
 type SocialPostListResponse struct {

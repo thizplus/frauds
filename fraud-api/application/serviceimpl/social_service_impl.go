@@ -4,14 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"fraud-api/domain/dto"
+	"fraud-api/domain/models"
+	"fraud-api/domain/ports"
 	"fraud-api/domain/repositories"
 	"fraud-api/domain/services"
 	"fraud-api/pkg/faceclient"
 	"fraud-api/pkg/logger"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -19,10 +25,11 @@ type socialServiceImpl struct {
 	db         *gorm.DB
 	repo       repositories.SocialSearchRepository
 	faceClient *faceclient.FaceClient
+	storage    ports.StoragePort
 }
 
-func NewSocialService(db *gorm.DB, repo repositories.SocialSearchRepository, faceClient *faceclient.FaceClient) services.SocialService {
-	return &socialServiceImpl{db: db, repo: repo, faceClient: faceClient}
+func NewSocialService(db *gorm.DB, repo repositories.SocialSearchRepository, faceClient *faceclient.FaceClient, storage ports.StoragePort) services.SocialService {
+	return &socialServiceImpl{db: db, repo: repo, faceClient: faceClient, storage: storage}
 }
 
 func (s *socialServiceImpl) IngestBatch(ctx context.Context, req *dto.SocialBatchRequest) (*dto.SocialBatchResponse, error) {
@@ -47,18 +54,26 @@ func (s *socialServiceImpl) IngestBatch(ctx context.Context, req *dto.SocialBatc
 				creationTime = &t
 			}
 
+			// Serialize image_urls + comments to JSON
+			imageURLsJSON, _ := json.Marshal(post.ImageURLs)
+			commentsJSON, _ := json.Marshal(post.Comments)
+
 			result := tx.Exec(`
 				INSERT INTO social_posts (id, group_id, author_name, author_id, message,
 					permalink_url, creation_time, reaction_count, comment_count,
-					share_count, image_count, pipeline_version, pipeline_run_id, review_status)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review')
+					share_count, image_count, pipeline_version, pipeline_run_id, review_status,
+					image_urls, comments_json)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?)
 				ON CONFLICT (id) DO UPDATE SET
 					pipeline_version = EXCLUDED.pipeline_version,
-					pipeline_run_id = EXCLUDED.pipeline_run_id
+					pipeline_run_id = EXCLUDED.pipeline_run_id,
+					image_urls = EXCLUDED.image_urls,
+					comments_json = EXCLUDED.comments_json
 			`,
 				post.PostID, req.GroupID, post.AuthorName, post.AuthorID, post.Message,
 				post.PermalinkURL, creationTime, post.ReactionCount, post.CommentCount,
 				post.ShareCount, post.ImageCount, req.PipelineVersion, req.PipelineRunID,
+				string(imageURLsJSON), string(commentsJSON),
 			)
 			if result.Error != nil {
 				logger.WarnContext(ctx, "Failed to upsert post", "postId", post.PostID, "error", result.Error)
@@ -179,6 +194,44 @@ func (s *socialServiceImpl) ListPendingPosts(ctx context.Context, page, limit in
 		if p.CreationTime != nil {
 			item.CreationTime = p.CreationTime.Format(time.RFC3339)
 		}
+
+		// Parse image_urls from JSONB
+		if p.ImageURLs != nil {
+			var urls []string
+			if err := json.Unmarshal(p.ImageURLs, &urls); err == nil {
+				item.ImageURLs = urls
+			}
+		}
+
+		// Parse comments from JSONB
+		if p.CommentsJSON != nil {
+			var comments []dto.SocialCommentOutput
+			if err := json.Unmarshal(p.CommentsJSON, &comments); err == nil {
+				item.Comments = comments
+			}
+		}
+
+		// Load entities สำหรับ post นี้
+		var entities []models.SearchableEntity
+		s.db.WithContext(ctx).Where("post_id = ?", p.ID).Find(&entities)
+		for _, e := range entities {
+			normalized := ""
+			if e.NormalizedValue != nil {
+				normalized = *e.NormalizedValue
+			}
+			sourceType := ""
+			if e.SourceType != nil {
+				sourceType = *e.SourceType
+			}
+			item.Entities = append(item.Entities, dto.SocialEntityOutput{
+				EntityType:      e.EntityType,
+				RawValue:        e.RawValue,
+				NormalizedValue: normalized,
+				ConfidenceScore: e.ConfidenceScore,
+				SourceType:      sourceType,
+			})
+		}
+
 		items = append(items, item)
 	}
 
@@ -206,14 +259,30 @@ func (s *socialServiceImpl) ApprovePost(ctx context.Context, postID string) erro
 }
 
 func (s *socialServiceImpl) RejectPost(ctx context.Context, postID string) error {
-	if err := s.repo.UpdatePostReviewStatus(ctx, postID, "rejected"); err != nil {
+	// ลบรูปจาก R2 ก่อนลบ DB
+	post, _ := s.repo.GetPostByID(ctx, postID)
+	if post != nil && post.ImageURLs != nil {
+		go s.deleteR2Images(postID, post.ImageURLs)
+	}
+
+	// ลบข้อมูลทั้งหมดของ post ออกจาก DB
+	s.db.WithContext(ctx).Exec("DELETE FROM searchable_entities WHERE post_id = ?", postID)
+	s.db.WithContext(ctx).Exec("DELETE FROM social_persons WHERE post_id = ?", postID)
+	s.db.WithContext(ctx).Exec("DELETE FROM social_posts WHERE id = ?", postID)
+
+	logger.InfoContext(ctx, "Social post rejected and deleted", "postId", postID)
+	return nil
+}
+
+func (s *socialServiceImpl) ArchivePost(ctx context.Context, postID string) error {
+	if err := s.repo.UpdatePostReviewStatus(ctx, postID, "archived"); err != nil {
 		return fmt.Errorf("update post: %w", err)
 	}
-	if err := s.repo.UpdateEntitiesReviewStatus(ctx, postID, "rejected"); err != nil {
+	if err := s.repo.UpdateEntitiesReviewStatus(ctx, postID, "archived"); err != nil {
 		return fmt.Errorf("update entities: %w", err)
 	}
 
-	logger.InfoContext(ctx, "Social post rejected", "postId", postID)
+	logger.InfoContext(ctx, "Social post archived", "postId", postID)
 	return nil
 }
 
@@ -237,8 +306,88 @@ func (s *socialServiceImpl) BatchApprove(ctx context.Context, postIDs []string) 
 }
 
 func (s *socialServiceImpl) faceIngestForPost(postID string) {
-	// Background: ดึง image URLs จาก post แล้วส่ง face-service
-	// ตอนนี้ skip — face ingest จะทำผ่าน collector หรือ admin trigger แยก
-	// เพราะ image อยู่ใน local ของ collector ไม่ได้อยู่บน server
-	logger.Info("Face ingest queued for approved post", "postId", postID)
+	ctx := context.Background()
+
+	post, err := s.repo.GetPostByID(ctx, postID)
+	if err != nil || post == nil {
+		logger.Warn("Face ingest: post not found", "postId", postID)
+		return
+	}
+
+	// Parse image URLs from JSONB
+	var imageURLs []string
+	if post.ImageURLs != nil {
+		if err := json.Unmarshal(post.ImageURLs, &imageURLs); err != nil {
+			logger.Warn("Face ingest: parse image_urls failed", "postId", postID, "error", err)
+			return
+		}
+	}
+
+	if len(imageURLs) == 0 {
+		logger.Info("Face ingest: no images", "postId", postID)
+		return
+	}
+
+	logger.Info("Face ingest starting", "postId", postID, "images", len(imageURLs))
+
+	ingested := 0
+	for _, url := range imageURLs {
+		// Download image
+		imageBytes, err := downloadImageFromURL(url)
+		if err != nil {
+			logger.Warn("Face ingest: download failed", "url", url[:80], "error", err)
+			continue
+		}
+		if len(imageBytes) < 5000 {
+			continue // skip tiny images
+		}
+
+		// Send to face-service
+		_, err = s.faceClient.Ingest(ctx, imageBytes, "social_post", postID)
+		if err != nil {
+			logger.Warn("Face ingest: ingest failed", "postId", postID, "error", err)
+			continue
+		}
+		ingested++
+	}
+
+	logger.Info("Face ingest done", "postId", postID, "ingested", ingested, "total", len(imageURLs))
+}
+
+func (s *socialServiceImpl) deleteR2Images(postID string, imageURLsJSON datatypes.JSON) {
+	ctx := context.Background()
+	var urls []string
+	if err := json.Unmarshal(imageURLsJSON, &urls); err != nil {
+		return
+	}
+
+	deleted := 0
+	for _, url := range urls {
+		// Extract R2 key จาก URL: https://pub-xxx.r2.dev/social/postid/uuid.jpg → social/postid/uuid.jpg
+		idx := strings.Index(url, "/social/")
+		if idx < 0 {
+			continue
+		}
+		key := url[idx+1:] // "social/postid/uuid.jpg"
+		if err := s.storage.Delete(ctx, key); err != nil {
+			logger.Warn("R2 delete failed", "key", key, "error", err)
+		} else {
+			deleted++
+		}
+	}
+	logger.Info("R2 images deleted", "postId", postID, "deleted", deleted, "total", len(urls))
+}
+
+func downloadImageFromURL(imageURL string) ([]byte, error) {
+	resp, err := http.Get(imageURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
 }

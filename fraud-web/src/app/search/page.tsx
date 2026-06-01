@@ -207,15 +207,15 @@ export default function SearchPage() {
               )}
 
               {!isMember && ((isUnified ? (unifiedData?.totalResults ?? 0) : (data?.data?.length ?? 0)) > 0) && (
-                <div className="card p-4 mt-6 text-center">
-                  <Lock className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--accent)' }} />
-                  <p className="text-sm font-medium mb-1" style={{ color: 'var(--text)' }}>
+                <div className="card p-6 mt-6 text-center">
+                  <Lock className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--accent)' }} />
+                  <p className="text-base font-bold mb-2" style={{ color: 'var(--text)' }}>
                     ข้อมูลถูก mask สำหรับผู้ใช้ฟรี
                   </p>
-                  <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
                     สมัครสมาชิกเพื่อดูเบอร์โทร เลขบัญชี และรูปหลักฐานเต็ม
                   </p>
-                  <a href="/pricing" className="btn btn-primary btn-sm">
+                  <a href="/pricing" className="btn btn-primary btn-lg w-full">
                     สมัครสมาชิก
                   </a>
                 </div>

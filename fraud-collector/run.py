@@ -176,9 +176,12 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
         run_pipeline(no_db=no_db)
 
 
-async def _download_images_via_browser(pw, report):
+async def _download_images_via_browser(pw, report, only_post_ids: set = None):
     """Download images ผ่าน Playwright browser (มี FB cookies)
     ใช้ page.goto(url) + resp.body() — ต้อง run ก่อน browser ปิด
+
+    Args:
+        only_post_ids: ถ้าระบุ → download เฉพาะ posts เหล่านี้ (สำหรับ V3)
     """
     import hashlib
 
@@ -193,6 +196,9 @@ async def _download_images_via_browser(pw, report):
         with open(post_path, 'r', encoding='utf-8') as f:
             post = json.load(f)
         post_id = post["post_id"]
+        # Filter เฉพาะ posts ที่ต้องการ (ถ้าระบุ)
+        if only_post_ids and post_id not in only_post_ids:
+            continue
         for i, img in enumerate(post.get("images", [])):
             url = img.get("full_url") or img.get("thumbnail_url")
             if url:
@@ -523,9 +529,9 @@ async def _auto_collect(max_scrolls: int = 5, max_comment_posts: int = 10, categ
 
 
 async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2000, cleanup: bool = True):
-    """V3: Smart scroll + parallel pipeline (comments+images ∥ LLM → API)"""
+    """V3: Smart scroll + comments/images (copy จาก collect เดิม) + LLM → API"""
     from application.usecases.cleanup import load_known_post_ids, cleanup_run
-    from application.usecases.parallel_collector import run_parallel
+    import random as _random
 
     group_id = parse_group_id(group_url)
     if "sorting_setting" not in group_url:
@@ -543,7 +549,6 @@ async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2
     print(f"  Cleanup: {'ON' if cleanup else 'OFF'}")
     print(f"{'='*60}")
 
-    # Environment
     env = {
         "API_BASE_URL": os.environ.get("API_BASE_URL", "http://localhost:8080/api/v1"),
         "BOT_API_KEY": os.environ.get("BOT_API_KEY", ""),
@@ -557,14 +562,170 @@ async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2
         pw.worker_id = "collector_v3"
         pw.account_id = "default"
 
-        # === Login ===
+        # === [1/6] Login ===
+        print(f"\n  [1/6] Login check...")
+        await pw.goto("https://www.facebook.com")
+        await pw.wait(3000)
+        if not await pw.check_facebook_login():
+            await pw.wait_for_login()
+
+        # === [2/6] Smart scroll feed ===
+        print(f"\n  [2/6] Scroll feed (smart — ข้ามซ้ำ)...")
+        pw.job_type = "feed"
+        pw.job_id = f"feed_{group_id}_{run_id}"
+
+        await pw.block_heavy_resources()
+        await pw.goto(group_url)
+        await pw.wait(5000)
+
+        await pw.start_capture(run_dir, known_post_ids=known_ids)
+        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
+        await pw.stop_capture()
+
+        new_post_ids = list(pw._new_post_ids)
+        new_post_ids_set = set(new_post_ids)
+        skip_count = len(pw._skipped_post_ids)
+        print(f"\n  Feed done: {len(new_post_ids)} new, {skip_count} skipped")
+
+        if not new_post_ids:
+            print(f"  ไม่มี posts ใหม่ — หยุด")
+            return
+
+        # Quick extract เพื่อหา posts ที่มี comments (ยังไม่ save — แค่ parse)
+        posts = _quick_extract(run_dir)
+        posts = [p for p in posts if p.get("post_id") in new_post_ids_set]
+        print(f"  → {len(posts)} new posts found")
+
+        if not posts:
+            print(f"  ✗ ไม่มี posts — หยุด")
+            return
+
+        # === [3/6] Capture Comments (เหมือน collect เดิม 100%) ===
+        posts_with_comments = [p for p in posts if p.get("engagement", {}).get("comment_count", 0) > 0]
+
+        if posts_with_comments:
+            print(f"\n  [3/6] Capture comments ({len(posts_with_comments)} posts with comments)...")
+            pw.job_type = "comments"
+
+            await pw.start_capture(run_dir)
+
+            for i, post in enumerate(posts_with_comments):
+                pid = post["post_id"]
+                cc = post.get("engagement", {}).get("comment_count", 0)
+                post_url = post.get("permalink_url", "")
+                if not post_url:
+                    post_url = f"https://www.facebook.com/groups/{group_id}/posts/{pid}/"
+
+                pw.job_id = f"comment_{pid}"
+                rounds = min(200, max(20, int(cc * 0.8)))
+                stale = 10 if cc > 50 else 8
+
+                try:
+                    print(f"    [{i+1}/{len(posts_with_comments)}] {pid} ({cc} comments)...")
+                    await pw.goto("https://www.facebook.com/")
+                    await pw.wait(2000)
+                    await pw.goto(post_url)
+                    await pw.wait(5000)
+                    await pw.save_html_snapshot(pid)
+                    budget_sec = min(300, max(60, cc * 2))
+                    await pw.scroll_comments(max_rounds=rounds, stale_limit=stale, budget_seconds=budget_sec)
+                    await pw.wait(int(_random.uniform(5, 12) * 1000))
+                except Exception as e:
+                    print(f"    ✗ Comment error [{pid}]: {e} — skip, continue")
+                    continue
+
+            try: await pw.stop_capture()
+            except: pass
+            print(f"  → Comments captured for {len(posts_with_comments)} posts")
+        else:
+            print(f"\n  [3/6] No posts with comments — skip")
+
+        # === [4/6] Extract — ครั้งเดียว! (feed + comments + HTML → merge ครบ) ===
+        print(f"\n  [4/6] Extract (feed + comments → extracted.json)...")
+        try:
+            report = extract_run(run_dir)
+        except Exception as e:
+            print(f"  ✗ Extract error: {e}")
+            report = {"output_dir": str(run_dir)}
+
+        # === [5/6] Download images (เฉพาะ new posts) ===
+        print(f"\n  [5/6] Download images...")
+        try:
+            await pw.unblock_resources()
+            await _download_images_via_browser(pw, report, only_post_ids=new_post_ids_set)
+        except Exception as e:
+            print(f"  ✗ Image download error: {e}")
+
+    # === [6/6] LLM Pipeline (หลัง browser ปิด) ===
+    extracted_dir = Path(report.get("output_dir", "extracted"))
+    final_posts = []
+    for pid in new_post_ids:
+        for f in extracted_dir.rglob(f"post_{pid}/extracted.json"):
+            try:
+                with open(f, 'r', encoding='utf-8') as fh:
+                    final_posts.append(json.load(fh))
+            except Exception:
+                pass
+            break
+
+    if final_posts:
+        print(f"\n  [6/6] LLM Pipeline: {len(final_posts)} posts...")
+        from application.usecases.parallel_collector import process_batch_pipeline
+        process_batch_pipeline(final_posts, group_id, env, cleanup)
+    else:
+        print(f"  ไม่มี posts สำหรับ LLM pipeline")
+
+    if cleanup:
+        cleanup_run(run_dir)
+
+    print(f"\n{'='*60}")
+    print(f"  V3 DONE!")
+    print(f"{'='*60}")
+
+
+async def _collect_v4(group_url: str, max_posts: int = 500, max_scrolls: int = 2000, cleanup: bool = True):
+    """V4: Post Only — ไม่เก็บ comments (เร็ว 10 เท่า)
+
+    Flow: scroll feed → extract → download images → LLM → API
+    """
+    from application.usecases.cleanup import load_known_post_ids, cleanup_run
+
+    group_id = parse_group_id(group_url)
+    if "sorting_setting" not in group_url:
+        group_url = group_url.rstrip('/') + "/?sorting_setting=CHRONOLOGICAL"
+
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = Path(f"raw/{group_id}/run_{run_id}")
+
+    known_ids = load_known_post_ids()
+    print(f"\n{'='*60}")
+    print(f"  Collect V4 (Post Only): {group_id}")
+    print(f"  Known posts: {len(known_ids)} (จะข้าม)")
+    print(f"  Target: {max_posts} posts ใหม่")
+    print(f"  Cleanup: {'ON' if cleanup else 'OFF'}")
+    print(f"{'='*60}")
+
+    env = {
+        "API_BASE_URL": os.environ.get("API_BASE_URL", "http://localhost:8080/api/v1"),
+        "BOT_API_KEY": os.environ.get("BOT_API_KEY", ""),
+        "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
+    }
+
+    async with PlaywrightHelper(
+        profile_dir="./pw_chrome_data",
+        headless=False,
+    ) as pw:
+        pw.worker_id = "collector_v4"
+        pw.account_id = "default"
+
+        # === [1/4] Login ===
         print(f"\n  [1/4] Login check...")
         await pw.goto("https://www.facebook.com")
         await pw.wait(3000)
         if not await pw.check_facebook_login():
             await pw.wait_for_login()
 
-        # === Phase 1: Smart scroll feed ===
+        # === [2/4] Smart scroll feed ===
         print(f"\n  [2/4] Scroll feed (smart — ข้ามซ้ำ)...")
         pw.job_type = "feed"
         pw.job_id = f"feed_{group_id}_{run_id}"
@@ -577,8 +738,8 @@ async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2
         await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
         await pw.stop_capture()
 
-        # Get new post IDs from smart scroll
         new_post_ids = list(pw._new_post_ids)
+        new_post_ids_set = set(new_post_ids)
         skip_count = len(pw._skipped_post_ids)
         print(f"\n  Feed done: {len(new_post_ids)} new, {skip_count} skipped")
 
@@ -586,35 +747,42 @@ async def _collect_v3(group_url: str, max_posts: int = 500, max_scrolls: int = 2
             print(f"  ไม่มี posts ใหม่ — หยุด")
             return
 
-        # === Phase 2: Extract ===
+        # === [3/4] Extract ===
         print(f"\n  [3/4] Extract...")
         try:
             report = extract_run(run_dir)
         except Exception as e:
-            print(f"  Extract error: {e}")
-            return
+            print(f"  ✗ Extract error: {e}")
+            report = {"output_dir": str(run_dir)}
 
-        extracted_dir = Path(report.get("output_dir", "extracted"))
+        # === [4/4] Download images ===
+        print(f"\n  [4/4] Download images...")
+        try:
+            await pw.unblock_resources()
+            await _download_images_via_browser(pw, report, only_post_ids=new_post_ids_set)
+        except Exception as e:
+            print(f"  ✗ Image download error: {e}")
 
-        # === Phase 3: Parallel — comments+images ∥ LLM ===
-        print(f"\n  [4/4] Parallel: comments+images + LLM pipeline...")
-        await pw.unblock_resources()  # เปิด resources กลับ (ต้อง download images)
+    # === Pipeline เดิม (LLM → Normalize → Validate → API) ===
+    # บอก pipeline ว่า process เฉพาะ new posts
+    filter_file = Path("golden/.process_post_ids")
+    with open(filter_file, 'w') as f:
+        for pid in new_post_ids:
+            f.write(pid + "\n")
 
-        await run_parallel(
-            pw=pw,
-            new_post_ids=new_post_ids,
-            group_id=group_id,
-            extracted_dir=extracted_dir,
-            env=env,
-            cleanup=cleanup,
-        )
+    print(f"\n  Pipeline: LLM → Normalize → Validate → API ({len(new_post_ids)} posts)...")
+    from application.usecases.run_pipeline import run_pipeline
+    run_pipeline(use_api=True)
 
-    # Cleanup run_dir
+    # Append known_ids
+    from application.usecases.cleanup import append_known_post_ids
+    append_known_post_ids(new_post_ids)
+
     if cleanup:
         cleanup_run(run_dir)
 
     print(f"\n{'='*60}")
-    print(f"  V3 DONE!")
+    print(f"  V4 DONE!")
     print(f"{'='*60}")
 
 
@@ -647,6 +815,13 @@ def main():
     v3_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
     v3_cmd.add_argument("--no-cleanup", action="store_true", help="ไม่ลบ temp data (เก็บไว้ debug)")
 
+    # collect-v4 — post only (ไม่เก็บ comments)
+    v4_cmd = sub.add_parser("collect-v4", help="V4: Post Only — ไม่เก็บ comments (เร็ว 10x)")
+    v4_cmd.add_argument("--group", required=True, help="Facebook group URL")
+    v4_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ (default 500)")
+    v4_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
+    v4_cmd.add_argument("--no-cleanup", action="store_true", help="ไม่ลบ temp data")
+
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
     extract_cmd.add_argument("--run", type=str, help="Extract specific run")
@@ -678,6 +853,16 @@ def main():
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         asyncio.run(_collect_v3(
+            group_url=args.group,
+            max_posts=args.max_posts,
+            max_scrolls=args.max_scrolls,
+            cleanup=not args.no_cleanup,
+        ))
+
+    elif args.command == "collect-v4":
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(_collect_v4(
             group_url=args.group,
             max_posts=args.max_posts,
             max_scrolls=args.max_scrolls,

@@ -335,6 +335,12 @@ class PlaywrightHelper:
                                     self._skipped_post_ids.add(pid)
                                 else:
                                     self._new_post_ids.add(pid)
+                                    # Append known_ids ทันที — resume ได้ถ้าพัง
+                                    try:
+                                        with open("known_post_ids.txt", "a") as _f:
+                                            _f.write(pid + "\n")
+                                    except Exception:
+                                        pass
             except Exception:
                 pass  # parse fail → ไม่เป็นไร ยังเก็บ raw เหมือนเดิม
 

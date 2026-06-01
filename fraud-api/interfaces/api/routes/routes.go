@@ -147,6 +147,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Patch("/social/posts/batch-approve", h.SocialHandler.BatchApprove)
 	admin.Patch("/social/posts/:id/approve", h.SocialHandler.ApprovePost)
 	admin.Patch("/social/posts/:id/reject", h.SocialHandler.RejectPost)
+	admin.Patch("/social/posts/:id/archive", h.SocialHandler.ArchivePost)
 
 	// Settings
 	admin.Get("/settings", h.SettingsHandler.GetAll)

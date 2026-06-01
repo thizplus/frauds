@@ -9,6 +9,7 @@ import {
   useSocialReviewFeed,
   useApproveSocialPost,
   useRejectSocialPost,
+  useArchiveSocialPost,
   useBatchApproveSocialPosts,
 } from '../hooks'
 
@@ -16,6 +17,7 @@ export function SocialReviewPage() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useSocialReviewFeed()
   const approve = useApproveSocialPost()
   const reject = useRejectSocialPost()
+  const archive = useArchiveSocialPost()
   const batchApprove = useBatchApproveSocialPosts()
   const [processingId, setProcessingId] = useState<string | null>(null)
   const observerRef = useRef<HTMLDivElement>(null)
@@ -66,6 +68,20 @@ export function SocialReviewPage() {
       },
       onError: () => {
         toast.error('ปฏิเสธไม่สำเร็จ')
+        setProcessingId(null)
+      },
+    })
+  }
+
+  const handleArchive = (postId: string) => {
+    setProcessingId(postId)
+    archive.mutate(postId, {
+      onSuccess: () => {
+        toast.success('เก็บไว้ก่อนแล้ว')
+        setProcessingId(null)
+      },
+      onError: () => {
+        toast.error('เก็บไว้ไม่สำเร็จ')
         setProcessingId(null)
       },
     })
@@ -137,8 +153,10 @@ export function SocialReviewPage() {
                 post={post}
                 onApprove={handleApprove}
                 onReject={handleReject}
+                onArchive={handleArchive}
                 isApproving={processingId === post.postId && approve.isPending}
                 isRejecting={processingId === post.postId && reject.isPending}
+                isArchiving={processingId === post.postId && archive.isPending}
               />
             ))}
 

@@ -85,6 +85,19 @@ func (h *SocialHandler) RejectPost(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, fiber.Map{"postId": postID, "status": "rejected"})
 }
 
+// ArchivePost PATCH /admin/social/posts/:id/archive
+func (h *SocialHandler) ArchivePost(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	postID := c.Params("id")
+
+	if err := h.socialService.ArchivePost(ctx, postID); err != nil {
+		logger.WarnContext(ctx, "Archive post failed", "postId", postID, "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{"postId": postID, "status": "archived"})
+}
+
 // BatchApprove PATCH /admin/social/posts/batch-approve
 func (h *SocialHandler) BatchApprove(c *fiber.Ctx) error {
 	ctx := c.UserContext()

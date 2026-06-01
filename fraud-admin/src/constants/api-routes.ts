@@ -64,6 +64,7 @@ export const SOCIAL_REVIEW_ROUTES = {
   LIST: '/admin/social/posts',
   APPROVE: (id: string) => `/admin/social/posts/${id}/approve`,
   REJECT: (id: string) => `/admin/social/posts/${id}/reject`,
+  ARCHIVE: (id: string) => `/admin/social/posts/${id}/archive`,
   BATCH_APPROVE: '/admin/social/posts/batch-approve',
 }
 

@@ -189,6 +189,12 @@ def find_entity_position(text: str, value: str) -> tuple:
     if matched:
         return matched.start(), matched.end()
 
+    # hashtag match — #ชื่อ_นามสกุล → ชื่อ นามสกุล
+    hashtag_pattern = r"#?" + re.escape(normalized_val).replace(r"\ ", r"[_\s]+")
+    matched = re.search(hashtag_pattern, text, flags=re.UNICODE)
+    if matched:
+        return matched.start(), matched.end()
+
     return -1, -1
 
 

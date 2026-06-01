@@ -36,6 +36,14 @@ export function useRejectSocialPost() {
   })
 }
 
+export function useArchiveSocialPost() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (postId: string) => socialReviewService.archive(postId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: socialReviewKeys.all }),
+  })
+}
+
 export function useBatchApproveSocialPosts() {
   const qc = useQueryClient()
   return useMutation({
