@@ -10,6 +10,9 @@ export interface SocialPostItem {
   imageCount: number
   personCount: number
   reviewStatus: string
+  postType: string
+  postTypeConfidence: string
+  postTypeReason: string
   imageUrls: string[]
   comments: SocialComment[]
   entities: SocialEntity[]

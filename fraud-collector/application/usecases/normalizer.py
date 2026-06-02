@@ -22,12 +22,22 @@ _NAME_STOPWORDS = {
 }
 
 
+def _normalize_entity(item) -> dict:
+    """รองรับทั้ง string และ {"value": "", "confidence": 0.0}"""
+    if isinstance(item, str):
+        return {"value": item.strip(), "confidence": 0.5}
+    if isinstance(item, dict):
+        return item
+    return {"value": str(item), "confidence": 0.0}
+
+
 def clean_entities(llm_output: dict) -> dict:
     """filter empty/garbage entities ก่อน normalize"""
     cleaned = {}
     for key in ["names", "phones", "bank_accounts", "id_cards"]:
         items = llm_output.get(key, [])
-        cleaned[key] = [x for x in items if x.get("value", "").strip()]
+        normalized = [_normalize_entity(x) for x in items]
+        cleaned[key] = [x for x in normalized if x.get("value", "").strip()]
     return cleaned
 
 

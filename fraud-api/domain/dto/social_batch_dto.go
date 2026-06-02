@@ -13,19 +13,22 @@ type SocialBatchRequest struct {
 }
 
 type SocialPostInput struct {
-	PostID        string              `json:"postId" validate:"required"`
-	AuthorName    string              `json:"authorName"`
-	AuthorID      string              `json:"authorId"`
-	Message       string              `json:"message"`
-	PermalinkURL  string              `json:"permalinkUrl"`
-	CreationTime  *int64              `json:"creationTime"`
-	ReactionCount int                 `json:"reactionCount"`
-	CommentCount  int                 `json:"commentCount"`
-	ShareCount    int                 `json:"shareCount"`
-	ImageCount    int                 `json:"imageCount"`
-	ImageURLs     []string            `json:"imageUrls"`
-	Comments      []SocialCommentInput `json:"comments"`
-	Persons       []SocialPersonInput `json:"persons"`
+	PostID             string              `json:"postId" validate:"required"`
+	AuthorName         string              `json:"authorName"`
+	AuthorID           string              `json:"authorId"`
+	Message            string              `json:"message"`
+	PermalinkURL       string              `json:"permalinkUrl"`
+	CreationTime       *int64              `json:"creationTime"`
+	ReactionCount      int                 `json:"reactionCount"`
+	CommentCount       int                 `json:"commentCount"`
+	ShareCount         int                 `json:"shareCount"`
+	ImageCount         int                 `json:"imageCount"`
+	ImageURLs          []string            `json:"imageUrls"`
+	PostType           string              `json:"postType"`
+	PostTypeConfidence string              `json:"postTypeConfidence"`
+	PostTypeReason     string              `json:"postTypeReason"`
+	Comments           []SocialCommentInput `json:"comments"`
+	Persons            []SocialPersonInput `json:"persons"`
 }
 
 type SocialCommentInput struct {
@@ -72,20 +75,23 @@ type SocialBatchResponse struct {
 // === Admin Review ===
 
 type SocialPostResponse struct {
-	PostID        string                `json:"postId"`
-	GroupID       string                `json:"groupId"`
-	AuthorName    string                `json:"authorName"`
-	Message       string                `json:"message"`
-	PermalinkURL  string                `json:"permalinkUrl"`
-	CreationTime  string                `json:"creationTime,omitempty"`
-	ReactionCount int                   `json:"reactionCount"`
-	CommentCount  int                   `json:"commentCount"`
-	ImageCount    int                   `json:"imageCount"`
-	PersonCount   int                   `json:"personCount"`
-	ReviewStatus  string                `json:"reviewStatus"`
-	ImageURLs     []string              `json:"imageUrls"`
-	Comments      []SocialCommentOutput `json:"comments"`
-	Entities      []SocialEntityOutput  `json:"entities"`
+	PostID             string                `json:"postId"`
+	GroupID            string                `json:"groupId"`
+	AuthorName         string                `json:"authorName"`
+	Message            string                `json:"message"`
+	PermalinkURL       string                `json:"permalinkUrl"`
+	CreationTime       string                `json:"creationTime,omitempty"`
+	ReactionCount      int                   `json:"reactionCount"`
+	CommentCount       int                   `json:"commentCount"`
+	ImageCount         int                   `json:"imageCount"`
+	PersonCount        int                   `json:"personCount"`
+	ReviewStatus       string                `json:"reviewStatus"`
+	PostType           string                `json:"postType"`
+	PostTypeConfidence string                `json:"postTypeConfidence"`
+	PostTypeReason     string                `json:"postTypeReason"`
+	ImageURLs          []string              `json:"imageUrls"`
+	Comments           []SocialCommentOutput `json:"comments"`
+	Entities           []SocialEntityOutput  `json:"entities"`
 }
 
 type SocialEntityOutput struct {

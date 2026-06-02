@@ -110,9 +110,18 @@ class PlaywrightHelper:
         await self._page.route("**/scontent*.fbcdn.net/**", _block_handler)
         await self._page.route("**/video*.fbcdn.net/**", _block_handler)
         await self._page.route("**/*.{woff,woff2,ttf,otf}", _block_handler)
+
+        # ซ่อน comments + reactions ลด DOM size
+        await self._page.add_style_tag(content="""
+            ul[role="list"] { display: none !important; }
+            form[role="presentation"] { display: none !important; }
+            [aria-label*="comment" i] { display: none !important; }
+            [aria-label*="Comment" i] { display: none !important; }
+        """)
+
         self._resources_blocked = True
-        logger.info("heavy_resources_blocked (fbcdn images/video/fonts)")
-        print("    (blocked FB images/video/fonts for faster scroll)")
+        logger.info("heavy_resources_blocked (images/video/fonts/comments)")
+        print("    (blocked FB images/video/fonts/comments for faster scroll)")
 
     async def unblock_resources(self):
         """เปิด resources กลับ (สำหรับ download images)"""
@@ -327,14 +336,15 @@ class PlaywrightHelper:
                 from infrastructure.utils.graphql_parser import split_multiline_response, detect_response_shape
                 for json_obj in split_multiline_response(body):
                     shape = detect_response_shape(json_obj)
-                    if shape.type == "feed_posts":
+                    if shape.type in ("feed_posts", "story_node"):
                         for node in shape.nodes:
                             pid = node.get("post_id", "")
                             if pid:
                                 if pid in self._known_post_ids:
                                     self._skipped_post_ids.add(pid)
-                                else:
+                                elif pid not in self._new_post_ids:
                                     self._new_post_ids.add(pid)
+                                    self._known_post_ids.add(pid)
                                     # Append known_ids ทันที — resume ได้ถ้าพัง
                                     try:
                                         with open("known_post_ids.txt", "a") as _f:
@@ -421,9 +431,9 @@ class PlaywrightHelper:
         logger.info("scroll_feed_start", extra={"mode": mode})
 
         scroll_count = 0
-        prev_dom_count = 0
         stale_count = 0
-        total_posts_seen = 0  # นับสะสม (ไม่ reset เมื่อลบ DOM)
+        prev_graphql_new = 0
+        prev_graphql_skip = 0
 
         while True:
             scroll_count += 1
@@ -437,70 +447,67 @@ class PlaywrightHelper:
             await self.wait(int(delay * 1000))
 
             # Human-like pause
-            if scroll_count % random.randint(8, 15) == 0:
+            if scroll_count % random.randint(10, 20) == 0:
                 pause = random.uniform(3, 7)
                 logger.info("human_pause", extra={"seconds": round(pause, 1)})
                 await self.wait(int(pause * 1000))
 
-            # นับ posts จาก DOM
-            dom_count = await self.page.evaluate("""
-                () => document.querySelectorAll('[role="article"]').length
-            """)
+            # เช็ค stale จาก GraphQL activity (ไม่ใช่ DOM count)
+            curr_new = len(self._new_post_ids)
+            curr_skip = len(self._skipped_post_ids)
+            has_graphql_activity = (curr_new > prev_graphql_new) or (curr_skip > prev_graphql_skip)
 
-            # นับสะสม: ถ้า DOM เพิ่ม = มี post ใหม่
-            new_posts = max(0, dom_count - prev_dom_count)
-            total_posts_seen += new_posts
-
-            # เช็ค stale (ไม่มี post ใหม่)
-            if new_posts == 0:
-                stale_count += 1
+            if has_graphql_activity:
+                stale_count = 0
+                prev_graphql_new = curr_new
+                prev_graphql_skip = curr_skip
             else:
-                stale_count = 0
-            prev_dom_count = dom_count
+                stale_count += 1
 
-            # Auto-reload เมื่อค้าง (stale 8 ครั้ง แต่ยังไม่ครบ posts)
-            if stale_count == 8 and (max_posts == 0 or new_count < max_posts):
-                print(f"    ⟳ FB feed ค้าง — reload หน้า (new: {new_count}, skip: {skip_count})...")
+            # ลบ DOM เก่า ทุก 5 scrolls (ลด RAM แต่ไม่ทำ feed พัง)
+            if scroll_count % 5 == 0:
                 try:
-                    await self.page.reload(wait_until="domcontentloaded", timeout=15000)
-                except Exception:
-                    pass
-                await self.wait(5000)
-                # scroll กลับไปล่างสุด
-                await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await self.wait(3000)
-                stale_count = 0
-                reload_count = getattr(self, '_reload_count', 0) + 1
-                self._reload_count = reload_count
-                if reload_count >= 3:
-                    print(f"    ✗ reload 3 ครั้งแล้ว ยังค้าง — หยุด ({total_posts_seen} posts)")
-                    break
-                continue
-
-            # ลบ DOM เก่า ทุก 10 scrolls (ลด RAM)
-            if dom_count > 30 and scroll_count % 10 == 0:
-                try:
-                    removed = await self.page.evaluate("""
+                    cleanup_result = await self.page.evaluate("""
                         () => {
-                            const articles = document.querySelectorAll('[role="article"]');
-                            const keep = 15;
                             let removed = 0;
-                            if (articles.length > keep) {
-                                for (let i = 0; i < articles.length - keep; i++) {
-                                    articles[i].remove();
-                                    removed++;
+                            const before = document.querySelectorAll('div').length;
+
+                            // ลบ content ข้างใน feed children เก่า (เก็บ container ไว้ให้ FB scroll ต่อได้)
+                            const feed = document.querySelector('[role="feed"]');
+                            if (feed) {
+                                const children = [...feed.children];
+                                const keep = 20;
+                                if (children.length > keep) {
+                                    for (let i = 0; i < children.length - keep; i++) {
+                                        // ลบ content ข้างใน แต่เก็บ div เปล่าไว้
+                                        children[i].innerHTML = '';
+                                        children[i].style.height = '1px';
+                                        children[i].style.overflow = 'hidden';
+                                        removed++;
+                                    }
                                 }
                             }
-                            return removed;
+
+                            // ลบ sidebar
+                            document.querySelectorAll('[role="complementary"]').forEach(el => { el.remove(); removed++; });
+
+                            const after = document.querySelectorAll('div').length;
+                            const feedChildren = feed ? feed.children.length : -1;
+                            return {
+                                removed: removed,
+                                feed_children: feedChildren,
+                                divs_before: before,
+                                divs_after: after
+                            };
                         }
                     """)
-                    if removed > 0:
-                        logger.info("dom_cleanup", extra={"removed": removed, "kept": 15})
-                except Exception:
-                    pass
+                    r = cleanup_result or {}
+                    print(f"    DOM: divs {r.get('divs_before',0)} -> {r.get('divs_after',0)} | feed: {r.get('feed_children',-1)} | cleaned: {r.get('removed',0)}")
+                except Exception as e:
+                    print(f"    DOM cleanup ERROR: {e}")
 
-            # Smart count: ใช้ parsed post_ids ถ้ามี, fallback DOM count
-            new_count = len(self._new_post_ids) if self._new_post_ids or self._skipped_post_ids else total_posts_seen
+            # Count จาก GraphQL tracking
+            new_count = len(self._new_post_ids)
             skip_count = len(self._skipped_post_ids)
 
             # Log progress
@@ -509,27 +516,26 @@ class PlaywrightHelper:
                     "scroll": scroll_count,
                     "new_posts": new_count,
                     "skipped": skip_count,
-                    "dom": dom_count,
                     "captured": self._capture_stats["responses"],
                 })
                 if skip_count > 0:
-                    print(f"    scroll {scroll_count} | new: {new_count} skip: {skip_count} (DOM: {dom_count}) | captured: {self._capture_stats['responses']}")
+                    print(f"    scroll {scroll_count} | new: {new_count} skip: {skip_count} | captured: {self._capture_stats['responses']}")
                 else:
-                    print(f"    scroll {scroll_count} | posts: {new_count} (DOM: {dom_count}) | captured: {self._capture_stats['responses']}")
+                    print(f"    scroll {scroll_count} | posts: {new_count} | captured: {self._capture_stats['responses']}")
 
-            # หยุดเมื่อ: ครบ posts ใหม่ / ครบ scrolls / stale 15 ครั้ง (หมด feed)
+            # หยุดเมื่อ: ครบ posts ใหม่ / ครบ scrolls / stale 30 ครั้ง (หมด feed)
             if max_posts > 0 and new_count >= max_posts:
                 logger.info("scroll_feed_done_by_posts", extra={"new": new_count, "skipped": skip_count, "scrolls": scroll_count})
                 print(f"    ✓ ครบ {new_count} posts ใหม่ (ข้าม {skip_count} ซ้ำ, scroll {scroll_count} ครั้ง)")
                 break
             if max_posts == 0 and scroll_count >= max_scrolls:
                 break
-            if stale_count >= 15:
-                logger.info("scroll_feed_done_by_stale", extra={"posts": total_posts_seen, "scrolls": scroll_count})
-                print(f"    ✓ หมด feed ({total_posts_seen} posts, stale {stale_count} ครั้ง)")
+            if stale_count >= 30:
+                logger.info("scroll_feed_done_by_stale", extra={"new": new_count, "skip": skip_count, "scrolls": scroll_count})
+                print(f"    ✓ หมด feed (new: {new_count}, skip: {skip_count}, stale {stale_count} ครั้ง)")
                 break
 
-        logger.info("scroll_feed_done", extra={"posts": total_posts_seen, "scrolls": scroll_count, "captured": self._capture_stats["responses"]})
+        logger.info("scroll_feed_done", extra={"new": len(self._new_post_ids), "skip": len(self._skipped_post_ids), "scrolls": scroll_count, "captured": self._capture_stats["responses"]})
 
     async def scroll_comments(self, max_rounds: int = 50, stale_limit: int = 8,
                               budget_seconds: int = 300):
@@ -762,11 +768,11 @@ class PlaywrightHelper:
 
 
 def human_delay() -> float:
-    """Weighted delay — เร็วขึ้นเหมือนคนเลื่อน feed จริง"""
+    """Weighted delay — เร็วเพราะ DOM เล็ก (cleanup ทุก 5 scrolls)"""
     roll = random.random()
     if roll < 0.80:
         return random.uniform(1, 3)     # 80% = เลื่อนเร็ว
     elif roll < 0.95:
         return random.uniform(3, 6)     # 15% = หยุดดูโพส
     else:
-        return random.uniform(6, 12)    # 5% = อ่านโพส
+        return random.uniform(6, 10)    # 5% = พักนิด

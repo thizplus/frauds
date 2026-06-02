@@ -85,6 +85,28 @@ export function SocialPostCard({ post, onApprove, onReject, onArchive, isApprovi
           )}
         </div>
 
+        {/* Post Type Badge */}
+        {post.postType && (
+          <div className="px-4 py-1.5 flex items-center gap-2">
+            <Badge className={
+              post.postType === 'fraud_report' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+              post.postType === 'fraud_warning' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+              post.postType === 'search_person' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+              post.postType === 'advertisement' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' :
+              'bg-muted text-muted-foreground'
+            }>
+              {post.postType === 'fraud_report' ? 'ร้องเรียนโกง' :
+               post.postType === 'fraud_warning' ? 'แจ้งเตือนมิจฉาชีพ' :
+               post.postType === 'search_person' ? 'ตามหาคนโกง' :
+               post.postType === 'advertisement' ? 'โฆษณา' :
+               post.postType === 'unrelated' ? 'ไม่เกี่ยว' : post.postType}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">
+              ({post.postTypeConfidence}) {post.postTypeReason}
+            </span>
+          </div>
+        )}
+
         {/* Message */}
         <div className="px-4 py-2">
           <p className="text-sm whitespace-pre-line leading-relaxed">{message}</p>

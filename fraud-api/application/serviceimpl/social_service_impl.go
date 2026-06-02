@@ -62,17 +62,22 @@ func (s *socialServiceImpl) IngestBatch(ctx context.Context, req *dto.SocialBatc
 				INSERT INTO social_posts (id, group_id, author_name, author_id, message,
 					permalink_url, creation_time, reaction_count, comment_count,
 					share_count, image_count, pipeline_version, pipeline_run_id, review_status,
+					post_type, post_type_confidence, post_type_reason,
 					image_urls, comments_json)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, ?, ?, ?)
 				ON CONFLICT (id) DO UPDATE SET
 					pipeline_version = EXCLUDED.pipeline_version,
 					pipeline_run_id = EXCLUDED.pipeline_run_id,
+					post_type = EXCLUDED.post_type,
+					post_type_confidence = EXCLUDED.post_type_confidence,
+					post_type_reason = EXCLUDED.post_type_reason,
 					image_urls = EXCLUDED.image_urls,
 					comments_json = EXCLUDED.comments_json
 			`,
 				post.PostID, req.GroupID, post.AuthorName, post.AuthorID, post.Message,
 				post.PermalinkURL, creationTime, post.ReactionCount, post.CommentCount,
 				post.ShareCount, post.ImageCount, req.PipelineVersion, req.PipelineRunID,
+				post.PostType, post.PostTypeConfidence, post.PostTypeReason,
 				string(imageURLsJSON), string(commentsJSON),
 			)
 			if result.Error != nil {
@@ -180,16 +185,19 @@ func (s *socialServiceImpl) ListPendingPosts(ctx context.Context, page, limit in
 	items := make([]dto.SocialPostResponse, 0, len(posts))
 	for _, p := range posts {
 		item := dto.SocialPostResponse{
-			PostID:        p.ID,
-			GroupID:       p.GroupID,
-			AuthorName:    p.AuthorName,
-			Message:       p.Message,
-			PermalinkURL:  p.PermalinkURL,
-			ReactionCount: p.ReactionCount,
-			CommentCount:  p.CommentCount,
-			ImageCount:    p.ImageCount,
-			PersonCount:   p.PersonCount,
-			ReviewStatus:  p.ReviewStatus,
+			PostID:             p.ID,
+			GroupID:            p.GroupID,
+			AuthorName:         p.AuthorName,
+			Message:            p.Message,
+			PermalinkURL:       p.PermalinkURL,
+			ReactionCount:      p.ReactionCount,
+			CommentCount:       p.CommentCount,
+			ImageCount:         p.ImageCount,
+			PersonCount:        p.PersonCount,
+			ReviewStatus:       p.ReviewStatus,
+			PostType:           p.PostType,
+			PostTypeConfidence: p.PostTypeConfidence,
+			PostTypeReason:     p.PostTypeReason,
 		}
 		if p.CreationTime != nil {
 			item.CreationTime = p.CreationTime.Format(time.RFC3339)

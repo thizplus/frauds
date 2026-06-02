@@ -784,6 +784,98 @@ async def _collect_v4(group_url: str, max_posts: int = 500, max_scrolls: int = 2
     print(f"{'='*60}")
 
 
+async def _collect_v5(group_url: str, max_posts: int = 500, max_scrolls: int = 2000):
+    """V5: แยก 2 ขั้น — ขั้น 1 เก็บ posts + images (ไม่ต้อง LLM)
+
+    ขั้น 1: python run.py collect-v5 --group URL --max-posts 500
+        → scroll + extract + download images → จบ (ไม่รัน pipeline)
+        → รันกี่รอบก็ได้ เก็บเยอะๆ
+
+    ขั้น 2: python run.py pipeline --api
+        → เปิด Vast.ai/Ollama → LLM + normalize + validate + API → ปิด Vast.ai
+    """
+    from application.usecases.cleanup import load_known_post_ids
+
+    group_id = parse_group_id(group_url)
+    if "sorting_setting" not in group_url:
+        group_url = group_url.rstrip('/') + "/?sorting_setting=CHRONOLOGICAL"
+
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = Path(f"raw/{group_id}/run_{run_id}")
+
+    known_ids = load_known_post_ids()
+    print(f"\n{'='*60}")
+    print(f"  Collect V5 (Capture Only): {group_id}")
+    print(f"  Known posts: {len(known_ids)} (จะข้าม)")
+    print(f"  Target: {max_posts} posts ใหม่")
+    print(f"  ขั้น 1: เก็บ posts + images (ไม่รัน LLM)")
+    print(f"{'='*60}")
+
+    async with PlaywrightHelper(
+        profile_dir="./pw_chrome_data",
+        headless=False,
+    ) as pw:
+        pw.worker_id = "collector_v5"
+        pw.account_id = "default"
+
+        # === [1/3] Login ===
+        print(f"\n  [1/3] Login check...")
+        await pw.goto("https://www.facebook.com")
+        await pw.wait(3000)
+        if not await pw.check_facebook_login():
+            await pw.wait_for_login()
+
+        # === [2/3] Smart scroll feed ===
+        print(f"\n  [2/3] Scroll feed (smart — ข้ามซ้ำ)...")
+        pw.job_type = "feed"
+        pw.job_id = f"feed_{group_id}_{run_id}"
+
+        await pw.block_heavy_resources()
+        await pw.goto(group_url)
+        await pw.wait(5000)
+
+        await pw.start_capture(run_dir, known_post_ids=known_ids)
+        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
+        await pw.stop_capture()
+
+        new_post_ids = list(pw._new_post_ids)
+        new_post_ids_set = set(new_post_ids)
+        skip_count = len(pw._skipped_post_ids)
+        print(f"\n  Feed done: {len(new_post_ids)} new, {skip_count} skipped")
+
+        if not new_post_ids:
+            print(f"  ไม่มี posts ใหม่ — หยุด")
+            return
+
+        # === [3/3] Extract + Download images ===
+        print(f"\n  [3/3] Extract + Download images...")
+        try:
+            report = extract_run(run_dir)
+        except Exception as e:
+            print(f"  ✗ Extract error: {e}")
+            report = {"output_dir": str(run_dir)}
+
+        try:
+            await pw.unblock_resources()
+            await _download_images_via_browser(pw, report, only_post_ids=new_post_ids_set)
+        except Exception as e:
+            print(f"  ✗ Image download error: {e}")
+
+    # เขียน filter file สำหรับ pipeline ขั้น 2
+    filter_file = Path("golden/.process_post_ids")
+    # Append ไม่ใช่ overwrite (เพราะอาจรันหลายรอบก่อน pipeline)
+    with open(filter_file, 'a') as f:
+        for pid in new_post_ids:
+            f.write(pid + "\n")
+
+    print(f"\n{'='*60}")
+    print(f"  V5 ขั้น 1 เสร็จ!")
+    print(f"  เก็บได้: {len(new_post_ids)} posts + images")
+    print(f"  รันเก็บเพิ่มได้อีก หรือทำขั้น 2:")
+    print(f"  python run.py pipeline --api")
+    print(f"{'='*60}")
+
+
 # === CLI ===
 
 def main():
@@ -819,6 +911,12 @@ def main():
     v4_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ (default 500)")
     v4_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
     v4_cmd.add_argument("--no-cleanup", action="store_true", help="ไม่ลบ temp data")
+
+    # collect-v5 — capture only (ไม่รัน LLM)
+    v5_cmd = sub.add_parser("collect-v5", help="V5: เก็บ posts + images เท่านั้น (ไม่รัน LLM — ทำขั้น 2 ทีหลัง)")
+    v5_cmd.add_argument("--group", required=True, help="Facebook group URL")
+    v5_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ (default 500)")
+    v5_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
 
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
@@ -865,6 +963,15 @@ def main():
             max_posts=args.max_posts,
             max_scrolls=args.max_scrolls,
             cleanup=not args.no_cleanup,
+        ))
+
+    elif args.command == "collect-v5":
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(_collect_v5(
+            group_url=args.group,
+            max_posts=args.max_posts,
+            max_scrolls=args.max_scrolls,
         ))
 
     elif args.command == "auto":

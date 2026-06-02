@@ -213,6 +213,9 @@ def validate_post(normalized_post: dict) -> dict:
     result = {
         "post_id": normalized_post["post_id"],
         "post_url": normalized_post.get("post_url", ""),
+        "post_type": normalized_post.get("post_type", "unknown"),
+        "post_type_confidence": normalized_post.get("post_type_confidence", "low"),
+        "post_type_reason": normalized_post.get("post_type_reason", ""),
         "persons": [],
         "unresolved_entities": {},
         "warnings": normalized_post.get("warnings", []),
