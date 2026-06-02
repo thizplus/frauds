@@ -110,7 +110,7 @@ class OllamaAdapter(LLMPort):
                 "format": "json",
                 "options": {
                     "temperature": 0.1,
-                    "num_predict": 512,
+                    "num_predict": 4096,
                 },
             },
         )
