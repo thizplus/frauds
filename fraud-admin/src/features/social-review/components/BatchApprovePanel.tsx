@@ -39,8 +39,8 @@ export function BatchApprovePanel() {
   if (counts.total === 0) return null
 
   const selectedCount = counts.counts
-    .filter(c => selectedTypes.has(c.postType))
-    .reduce((sum, c) => sum + c.count, 0)
+    .filter((c: { postType: string; count: number }) => selectedTypes.has(c.postType))
+    .reduce((sum: number, c: { count: number }) => sum + c.count, 0)
 
   const toggleType = (type: string) => {
     const next = new Set(selectedTypes)
@@ -83,7 +83,7 @@ export function BatchApprovePanel() {
         {!isRunning && !isCompleted && (
           <>
             <div className="flex flex-wrap gap-3">
-              {counts.counts.map(c => (
+              {counts.counts.map((c: { postType: string; count: number }) => (
                 <label key={c.postType} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
                     checked={selectedTypes.has(c.postType)}

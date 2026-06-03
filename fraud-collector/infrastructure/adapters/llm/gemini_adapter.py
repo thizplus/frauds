@@ -121,6 +121,8 @@ class GeminiAdapter(LLMPort):
         return result
 
     def _safe_parse(self, text: str) -> dict | list:
+        if not text:
+            raise ValueError("Empty response text")
         text = text.strip().replace("```json", "").replace("```", "")
         try:
             return json.loads(text)

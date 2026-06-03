@@ -235,12 +235,54 @@ groups/{group_id}/
 
 ---
 
+## 7. V6 เพิ่มเติม (หลัง Phase 4)
+
+### GUI ปรับปรุง
+- แยก step 1 / step 2 ชัดเจน (LabelFrame แยก)
+- เพิ่ม Ollama Model field + ปุ่ม "ติดตั้ง Model" + "เช็ค" (pull via API)
+- เพิ่ม checkbox "ไม่ส่งเข้าระบบ": [x] โฆษณา [ ] ไม่เกี่ยว
+- `LLM_BATCH_SIZE=1` auto set เมื่อใช้ Ollama
+- default model: `qwen3.5:35b`
+
+### ingest_to_api.py — Duplicate Prevention
+- `.ingest_done_posts` — track posts ที่ ingest สำเร็จ (append ทีละ batch)
+- `build_batch_payload()` — skip done posts **ก่อน** R2 upload
+- `.process_post_ids` — ลบหลัง ingest สำเร็จ (กัน re-process รอบถัดไป)
+- `--skip-types advertisement` — default ไม่ส่งโฆษณา
+
+### Rate Limit ครบทุกจุด
+| จุด | Protection |
+|-----|-----------|
+| R2 upload | 0.7s/image + retry 3x + 429 backoff |
+| API batch | 1s delay ระหว่าง batch + retry 3x |
+| Ollama | LLM_BATCH_SIZE=1 |
+| httpx client | persistent (ไม่สร้างใหม่ทุกรูป) |
+
+### download_images.py (script แยก)
+- `golden/download_images.py --group {gid}`
+- ใช้เมื่อ collect-v6 download images fail (เช่น timeout หลัง scroll)
+- เปิด browser + FB cookies + download ทุกรูปจาก extracted.json
+- เขียน image_manifest.json (append + dedup)
+
+### Commits
+- `6e25e4c` — feat: collector session 3 Jun (ollama adapter + plans)
+- `47a553f` — feat: collector V6 (folder restructure + rate limit + duplicate prevention)
+
+## V6 Status — READY
+
+```
+collect-v6:    ทดสอบแล้ว (กลุ่ม 1282156685557379 — 1,954 posts + 2,516 images)
+pipeline-v6:   implement เสร็จ รอทดสอบ (ต้องเปิด Ollama)
+GUI:           ปรับแล้ว (step 1/2 แยก + Ollama model + skip types)
+V5:            ยังทำงานได้ (backward compatible)
+```
+
 ## TODO (Next Session)
+- ทดสอบ pipeline-v6 end-to-end (เปิด Ollama → LLM → ingest)
 - ตรวจ unrelated 865 posts ใน admin UI
-- ทดสอบ V6 end-to-end (collect-v6 + pipeline-v6 กลุ่มใหม่)
-- commit V6 code
+- เก็บข้อมูลเพิ่มอีกหลายกลุ่ม → pipeline-v6 --all
 - Phase 4 polish: .dockerignore, resource limits
 
 ---
 
-*สรุป session 3 มิ.ย. 2569*
+*สรุป session 3 มิ.ย. 2569 — อัพเดทล่าสุด*

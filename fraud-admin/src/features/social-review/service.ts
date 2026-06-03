@@ -18,16 +18,16 @@ export const socialReviewService = {
   async batchApprove(postIds: string[]) {
     return apiClient.patch(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE, { postIds })
   },
-  async getCountsByType() {
-    const res = await apiClient.get<{ data: PostTypeCountsResponse }>(SOCIAL_REVIEW_ROUTES.COUNTS_BY_TYPE)
-    return res.data.data
+  async getCountsByType(): Promise<PostTypeCountsResponse> {
+    const res = await apiClient.get(SOCIAL_REVIEW_ROUTES.COUNTS_BY_TYPE)
+    return (res.data as { data: PostTypeCountsResponse }).data
   },
-  async startBatchApproveByType(postTypes: string[]) {
-    const res = await apiClient.post<{ data: { jobId: string } }>(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE_BY_TYPE, { postTypes })
-    return res.data.data.jobId
+  async startBatchApproveByType(postTypes: string[]): Promise<string> {
+    const res = await apiClient.post(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE_BY_TYPE, { postTypes })
+    return (res.data as { data: { jobId: string } }).data.jobId
   },
-  async getBatchApproveProgress(jobId: string) {
-    const res = await apiClient.get<{ data: BatchJobProgress }>(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE_PROGRESS(jobId))
-    return res.data.data
+  async getBatchApproveProgress(jobId: string): Promise<BatchJobProgress> {
+    const res = await apiClient.get(SOCIAL_REVIEW_ROUTES.BATCH_APPROVE_PROGRESS(jobId))
+    return (res.data as { data: BatchJobProgress }).data
   },
 }
