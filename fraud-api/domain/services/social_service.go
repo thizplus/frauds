@@ -13,4 +13,7 @@ type SocialService interface {
 	RejectPost(ctx context.Context, postID string) error
 	ArchivePost(ctx context.Context, postID string) error
 	BatchApprove(ctx context.Context, postIDs []string) (*dto.SocialBatchApproveResponse, error)
+	CountPendingByPostType(ctx context.Context) (*dto.SocialPostTypeCountsResponse, error)
+	StartBatchApproveByType(ctx context.Context, postTypes []string) (string, error)
+	GetBatchApproveProgress(jobID string) *dto.BatchJobProgress
 }

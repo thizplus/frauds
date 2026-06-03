@@ -30,3 +30,8 @@ type SocialPost struct {
 }
 
 func (SocialPost) TableName() string { return "social_posts" }
+
+type PostTypeCount struct {
+	PostType string `gorm:"column:post_type"`
+	Count    int64  `gorm:"column:count"`
+}

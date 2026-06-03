@@ -123,3 +123,32 @@ type SocialBatchApproveResponse struct {
 	Approved int `json:"approved"`
 	Failed   int `json:"failed"`
 }
+
+// === Batch Approve by Post Type ===
+
+type SocialBatchApproveByTypeRequest struct {
+	PostTypes []string `json:"postTypes" validate:"required,min=1"`
+}
+
+type SocialPostTypeCount struct {
+	PostType string `json:"postType"`
+	Count    int64  `json:"count"`
+}
+
+type SocialPostTypeCountsResponse struct {
+	Counts []SocialPostTypeCount `json:"counts"`
+	Total  int64                 `json:"total"`
+}
+
+type BatchJobProgress struct {
+	JobID        string  `json:"jobId"`
+	Status       string  `json:"status"` // running, completed, failed
+	TotalFound   int     `json:"totalFound"`
+	Approved     int     `json:"approved"`
+	Failed       int     `json:"failed"`
+	FaceIngested int     `json:"faceIngested"`
+	BatchesTotal int     `json:"batchesTotal"`
+	BatchesDone  int     `json:"batchesDone"`
+	StartedAt    string  `json:"startedAt"`
+	FinishedAt   *string `json:"finishedAt,omitempty"`
+}

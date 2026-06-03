@@ -66,6 +66,9 @@ export const SOCIAL_REVIEW_ROUTES = {
   REJECT: (id: string) => `/admin/social/posts/${id}/reject`,
   ARCHIVE: (id: string) => `/admin/social/posts/${id}/archive`,
   BATCH_APPROVE: '/admin/social/posts/batch-approve',
+  COUNTS_BY_TYPE: '/admin/social/posts/counts-by-type',
+  BATCH_APPROVE_BY_TYPE: '/admin/social/posts/batch-approve-by-type',
+  BATCH_APPROVE_PROGRESS: (jobId: string) => `/admin/social/posts/batch-approve-by-type/${jobId}`,
 }
 
 export const SERVICE_PAYMENT_ROUTES = {

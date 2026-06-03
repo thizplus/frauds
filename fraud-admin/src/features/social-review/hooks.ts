@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { socialReviewService } from './service'
 
 const LIMIT = 20
@@ -6,6 +6,8 @@ const LIMIT = 20
 export const socialReviewKeys = {
   all: ['social-review'] as const,
   list: () => [...socialReviewKeys.all, 'list'] as const,
+  countsByType: () => [...socialReviewKeys.all, 'counts-by-type'] as const,
+  batchProgress: (jobId: string) => [...socialReviewKeys.all, 'batch-progress', jobId] as const,
 }
 
 export function useSocialReviewFeed() {
@@ -49,5 +51,31 @@ export function useBatchApproveSocialPosts() {
   return useMutation({
     mutationFn: (postIds: string[]) => socialReviewService.batchApprove(postIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: socialReviewKeys.all }),
+  })
+}
+
+export function usePostTypeCounts() {
+  return useQuery({
+    queryKey: socialReviewKeys.countsByType(),
+    queryFn: () => socialReviewService.getCountsByType(),
+  })
+}
+
+export function useStartBatchApproveByType() {
+  return useMutation({
+    mutationFn: (postTypes: string[]) => socialReviewService.startBatchApproveByType(postTypes),
+  })
+}
+
+export function useBatchApproveProgress(jobId: string | null) {
+  return useQuery({
+    queryKey: socialReviewKeys.batchProgress(jobId ?? ''),
+    queryFn: () => socialReviewService.getBatchApproveProgress(jobId!),
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (data && data.status !== 'running') return false
+      return 2000
+    },
   })
 }

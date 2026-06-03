@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SocialPostCard } from '../components/SocialPostCard'
+import { BatchApprovePanel } from '../components/BatchApprovePanel'
 import {
   useSocialReviewFeed,
   useApproveSocialPost,
@@ -120,6 +121,11 @@ export function SocialReviewPage() {
             {batchApprove.isPending ? 'กำลังอนุมัติ...' : `อนุมัติทั้งหมด (${allPosts.length})`}
           </Button>
         )}
+      </div>
+
+      {/* Batch Approve by Type */}
+      <div className="max-w-2xl mx-auto">
+        <BatchApprovePanel />
       </div>
 
       {/* Feed */}

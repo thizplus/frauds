@@ -144,6 +144,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 
 	// Social Review
 	admin.Get("/social/posts", h.SocialHandler.ListPending)
+	admin.Get("/social/posts/counts-by-type", h.SocialHandler.CountPendingByType)
+	admin.Post("/social/posts/batch-approve-by-type", h.SocialHandler.StartBatchApproveByType)
+	admin.Get("/social/posts/batch-approve-by-type/:jobId", h.SocialHandler.GetBatchApproveProgress)
 	admin.Patch("/social/posts/batch-approve", h.SocialHandler.BatchApprove)
 	admin.Patch("/social/posts/:id/approve", h.SocialHandler.ApprovePost)
 	admin.Patch("/social/posts/:id/reject", h.SocialHandler.RejectPost)

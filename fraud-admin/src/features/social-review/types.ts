@@ -31,3 +31,26 @@ export interface SocialEntity {
   confidenceScore: number
   sourceType?: string
 }
+
+export interface PostTypeCount {
+  postType: string
+  count: number
+}
+
+export interface PostTypeCountsResponse {
+  counts: PostTypeCount[]
+  total: number
+}
+
+export interface BatchJobProgress {
+  jobId: string
+  status: 'running' | 'completed' | 'failed'
+  totalFound: number
+  approved: number
+  failed: number
+  faceIngested: number
+  batchesTotal: number
+  batchesDone: number
+  startedAt: string
+  finishedAt?: string
+}

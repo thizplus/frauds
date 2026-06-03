@@ -21,4 +21,8 @@ type SocialSearchRepository interface {
 	ListPostsByReviewStatus(ctx context.Context, status string, page, limit int) ([]models.SocialPost, int64, error)
 	UpdatePostReviewStatus(ctx context.Context, postID string, status string) error
 	UpdateEntitiesReviewStatus(ctx context.Context, postID string, status string) error
+
+	// Batch approve by type
+	CountPendingByPostType(ctx context.Context) ([]models.PostTypeCount, error)
+	ListPendingPostIDsByTypes(ctx context.Context, postTypes []string) ([]string, error)
 }

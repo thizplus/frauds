@@ -98,6 +98,50 @@ func (h *SocialHandler) ArchivePost(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, fiber.Map{"postId": postID, "status": "archived"})
 }
 
+// CountPendingByType GET /admin/social/posts/counts-by-type
+func (h *SocialHandler) CountPendingByType(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	result, err := h.socialService.CountPendingByPostType(ctx)
+	if err != nil {
+		return utils.InternalServerErrorResponse(c)
+	}
+	return utils.SuccessResponse(c, result)
+}
+
+// StartBatchApproveByType POST /admin/social/posts/batch-approve-by-type
+func (h *SocialHandler) StartBatchApproveByType(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	var req dto.SocialBatchApproveByTypeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequestResponse(c, "Invalid request body")
+	}
+	if err := utils.ValidateStruct(&req); err != nil {
+		return utils.ValidationErrorResponse(c, utils.GetValidationErrors(err))
+	}
+
+	jobID, err := h.socialService.StartBatchApproveByType(ctx, req.PostTypes)
+	if err != nil {
+		logger.WarnContext(ctx, "Batch approve by type failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{"jobId": jobID})
+}
+
+// GetBatchApproveProgress GET /admin/social/posts/batch-approve-by-type/:jobId
+func (h *SocialHandler) GetBatchApproveProgress(c *fiber.Ctx) error {
+	jobID := c.Params("jobId")
+
+	progress := h.socialService.GetBatchApproveProgress(jobID)
+	if progress == nil {
+		return utils.NotFoundResponse(c, "Job not found")
+	}
+
+	return utils.SuccessResponse(c, progress)
+}
+
 // BatchApprove PATCH /admin/social/posts/batch-approve
 func (h *SocialHandler) BatchApprove(c *fiber.Ctx) error {
 	ctx := c.UserContext()

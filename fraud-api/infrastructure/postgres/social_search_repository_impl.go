@@ -246,3 +246,25 @@ func rowsToEntities(rows []socialSearchRow) []models.SearchableEntity {
 	}
 	return entities
 }
+
+func (r *socialSearchRepository) CountPendingByPostType(ctx context.Context) ([]models.PostTypeCount, error) {
+	var counts []models.PostTypeCount
+	err := r.db.WithContext(ctx).
+		Model(&models.SocialPost{}).
+		Select("post_type, COUNT(*) as count").
+		Where("review_status = ?", "pending_review").
+		Group("post_type").
+		Order("count DESC").
+		Find(&counts).Error
+	return counts, err
+}
+
+func (r *socialSearchRepository) ListPendingPostIDsByTypes(ctx context.Context, postTypes []string) ([]string, error) {
+	var ids []string
+	err := r.db.WithContext(ctx).
+		Model(&models.SocialPost{}).
+		Select("id").
+		Where("review_status = ? AND post_type IN ?", "pending_review", postTypes).
+		Pluck("id", &ids).Error
+	return ids, err
+}

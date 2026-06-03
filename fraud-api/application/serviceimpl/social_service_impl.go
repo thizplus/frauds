@@ -399,3 +399,137 @@ func downloadImageFromURL(imageURL string) ([]byte, error) {
 
 	return io.ReadAll(resp.Body)
 }
+
+// === Batch Approve by Post Type ===
+
+var batchApproveRunning bool
+
+func (s *socialServiceImpl) CountPendingByPostType(ctx context.Context) (*dto.SocialPostTypeCountsResponse, error) {
+	counts, err := s.repo.CountPendingByPostType(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var total int64
+	result := &dto.SocialPostTypeCountsResponse{}
+	for _, c := range counts {
+		result.Counts = append(result.Counts, dto.SocialPostTypeCount{
+			PostType: c.PostType,
+			Count:    c.Count,
+		})
+		total += c.Count
+	}
+	result.Total = total
+	return result, nil
+}
+
+func (s *socialServiceImpl) StartBatchApproveByType(ctx context.Context, postTypes []string) (string, error) {
+	if batchApproveRunning {
+		return "", fmt.Errorf("batch approve กำลังทำงานอยู่")
+	}
+
+	ids, err := s.repo.ListPendingPostIDsByTypes(ctx, postTypes)
+	if err != nil {
+		return "", err
+	}
+	if len(ids) == 0 {
+		return "", fmt.Errorf("ไม่มี posts ที่ตรงกับ post_type ที่เลือก")
+	}
+
+	jobID := fmt.Sprintf("job_%s", time.Now().Format("20060102_150405"))
+	store := GetBatchJobStore()
+	store.Create(jobID, len(ids))
+
+	batchApproveRunning = true
+	go s.runBatchApproveJob(jobID, ids)
+
+	logger.Info("Batch approve by type started", "jobId", jobID, "postTypes", postTypes, "total", len(ids))
+	return jobID, nil
+}
+
+func (s *socialServiceImpl) GetBatchApproveProgress(jobID string) *dto.BatchJobProgress {
+	return GetBatchJobStore().Get(jobID)
+}
+
+func (s *socialServiceImpl) runBatchApproveJob(jobID string, postIDs []string) {
+	defer func() { batchApproveRunning = false }()
+
+	store := GetBatchJobStore()
+	ctx := context.Background()
+	batchSize := 50
+
+	approved := 0
+	failed := 0
+	faceIngested := 0
+
+	for i := 0; i < len(postIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(postIDs) {
+			end = len(postIDs)
+		}
+		batch := postIDs[i:end]
+		batchNum := i/batchSize + 1
+
+		for _, postID := range batch {
+			// Approve (sync)
+			if err := s.repo.UpdatePostReviewStatus(ctx, postID, "approved"); err != nil {
+				failed++
+				continue
+			}
+			if err := s.repo.UpdateEntitiesReviewStatus(ctx, postID, "approved"); err != nil {
+				failed++
+				continue
+			}
+
+			// Face ingest (sync — นับผลได้)
+			ingested := s.faceIngestForPostSync(postID)
+			faceIngested += ingested
+			approved++
+		}
+
+		store.Update(jobID, approved, failed, faceIngested, batchNum)
+
+		// Pause ระหว่าง batch กัน face-service overload
+		if end < len(postIDs) {
+			time.Sleep(30 * time.Second)
+		}
+	}
+
+	store.Complete(jobID)
+	logger.Info("Batch approve by type completed", "jobId", jobID, "approved", approved, "failed", failed, "faceIngested", faceIngested)
+}
+
+func (s *socialServiceImpl) faceIngestForPostSync(postID string) int {
+	ctx := context.Background()
+
+	post, err := s.repo.GetPostByID(ctx, postID)
+	if err != nil || post == nil {
+		return 0
+	}
+
+	var imageURLs []string
+	if post.ImageURLs != nil {
+		if err := json.Unmarshal(post.ImageURLs, &imageURLs); err != nil {
+			return 0
+		}
+	}
+	if len(imageURLs) == 0 {
+		return 0
+	}
+
+	ingested := 0
+	for _, url := range imageURLs {
+		imageBytes, err := downloadImageFromURL(url)
+		if err != nil {
+			continue
+		}
+		if len(imageBytes) < 5000 {
+			continue
+		}
+		_, err = s.faceClient.Ingest(ctx, imageBytes, "social_post", postID)
+		if err == nil {
+			ingested++
+		}
+	}
+	return ingested
+}
