@@ -186,7 +186,7 @@ def run_db_only(use_api: bool = False, skip_face: bool = False):
     return results
 
 
-def _run_script(script_path: str):
+def _run_script(script_path: str, extra_args: list = None):
     """Run a Python script as subprocess"""
     import subprocess
     env = {**os.environ}
@@ -195,14 +195,97 @@ def _run_script(script_path: str):
     if "DATABASE_URL" not in env:
         env["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/fraud_checker"
 
+    cmd = [sys.executable, script_path] + (extra_args or [])
     result = subprocess.run(
-        [sys.executable, script_path],
+        cmd,
         cwd=str(Path(__file__).parent.parent.parent),
         env=env,
         capture_output=False,
     )
     if result.returncode != 0:
         raise RuntimeError(f"{script_path} exited with code {result.returncode}")
+
+
+def run_pipeline_v6(group_id: str = None, all_groups: bool = False, use_api: bool = True, skip_types: str = "advertisement"):
+    """V6 Pipeline — แยกตาม group_id
+
+    Args:
+        group_id: ระบุ group เดียว
+        all_groups: scan groups/ ที่มี .process_post_ids
+        use_api: ส่งผ่าน HTTP API (default True)
+        skip_types: post_types ที่ไม่ ingest (comma separated)
+    """
+    start = time.time()
+
+    if all_groups:
+        groups_dir = Path("groups")
+        if not groups_dir.exists():
+            print("No groups/ directory found")
+            return
+        group_ids = [d.name for d in sorted(groups_dir.iterdir())
+                     if d.is_dir() and (d / ".process_post_ids").exists()]
+        if not group_ids:
+            print("No groups with .process_post_ids found")
+            return
+        print(f"Found {len(group_ids)} groups to process")
+    elif group_id:
+        group_ids = [group_id]
+    else:
+        print("ERROR: --group or --all required")
+        return
+
+    total_results = {}
+    for gid in group_ids:
+        print(f"\n{'='*60}")
+        print(f"  Pipeline V6: {gid}")
+        print(f"{'='*60}")
+
+        results = {"llm": False, "normalize": False, "validate": False, "ingest": False}
+
+        try:
+            print(f"\n  [1/4] LLM Extract...")
+            _run_script("golden/llm_propose.py", ["--group", gid])
+            results["llm"] = True
+        except Exception as e:
+            print(f"    ERROR: {e}")
+
+        try:
+            print(f"\n  [2/4] Normalize...")
+            _run_script("golden/normalize_all.py", ["--group", gid])
+            results["normalize"] = True
+        except Exception as e:
+            print(f"    ERROR: {e}")
+
+        try:
+            print(f"\n  [3/4] Validate...")
+            _run_script("golden/validate_all.py", ["--group", gid])
+            results["validate"] = True
+        except Exception as e:
+            print(f"    ERROR: {e}")
+
+        if use_api:
+            try:
+                print(f"\n  [4/4] Ingest (API + R2)...")
+                ingest_args = ["--group", gid]
+                if skip_types:
+                    ingest_args += ["--skip-types", skip_types]
+                _run_script("golden/ingest_to_api.py", ingest_args)
+                results["ingest"] = True
+            except Exception as e:
+                print(f"    ERROR: {e}")
+
+        total_results[gid] = results
+
+    duration = time.time() - start
+    print(f"\n{'='*60}")
+    print(f"  Pipeline V6 Done! ({duration:.0f}s)")
+    print(f"{'='*60}")
+    for gid, results in total_results.items():
+        ok = sum(1 for v in results.values() if v)
+        print(f"  {gid}: {ok}/{len(results)} steps OK")
+    print(f"{'='*60}")
+
+    return total_results
 
 
 if __name__ == "__main__":

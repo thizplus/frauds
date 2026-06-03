@@ -57,6 +57,8 @@ fraud-collector/pw_chrome_data/
 fraud-collector/golden/
 fraud-collector/extracted/
 fraud-collector/raw/
+fraud-collector/groups/
+fraud-collector/images/
 fraud-collector/archive/
 
 # Next.js

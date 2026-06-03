@@ -176,12 +176,13 @@ async def collect(group_url: str, max_posts: int = 0, max_scrolls: int = 1000, m
         run_pipeline(no_db=no_db)
 
 
-async def _download_images_via_browser(pw, report, only_post_ids: set = None):
+async def _download_images_via_browser(pw, report, only_post_ids: set = None, group_id: str = None):
     """Download images ผ่าน Playwright browser (มี FB cookies)
     ใช้ page.goto(url) + resp.body() — ต้อง run ก่อน browser ปิด
 
     Args:
-        only_post_ids: ถ้าระบุ → download เฉพาะ posts เหล่านี้ (สำหรับ V3)
+        only_post_ids: ถ้าระบุ → download เฉพาะ posts เหล่านี้
+        group_id: V6 — save ไป groups/{gid}/images/ + manifest
     """
     import hashlib
 
@@ -218,7 +219,10 @@ async def _download_images_via_browser(pw, report, only_post_ids: set = None):
     for i, img in enumerate(images):
         # sha256 จาก URL เพื่อ dedupe
         url_hash = hashlib.sha256(img["url"].encode()).hexdigest()
-        save_path = f"images/{url_hash[:2]}/{url_hash}.jpg"
+        if group_id:
+            save_path = f"groups/{group_id}/images/{url_hash[:2]}/{url_hash}.jpg"
+        else:
+            save_path = f"images/{url_hash[:2]}/{url_hash}.jpg"
 
         # Skip if already exists
         if Path(save_path).exists():
@@ -253,10 +257,27 @@ async def _download_images_via_browser(pw, report, only_post_ids: set = None):
         else:
             await pw.wait(300)
 
-    # Save manifest
-    Path("golden").mkdir(exist_ok=True)
-    with open("golden/image_manifest.json", "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    # Save manifest (append + dedup)
+    if group_id:
+        manifest_path = Path(f"groups/{group_id}/image_manifest.json")
+    else:
+        manifest_path = Path("golden/image_manifest.json")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing = []
+    if manifest_path.exists():
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                existing = json.load(f)
+        except Exception:
+            pass
+    existing_keys = {f"{e['post_id']}_{e['image_index']}" for e in existing}
+    for item in manifest:
+        key = f"{item['post_id']}_{item['image_index']}"
+        if key not in existing_keys:
+            existing.append(item)
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
 
     failed = len(images) - ok_count
     print(f"  → Downloaded: {ok_count}/{len(images)} | Failed: {failed}")
@@ -876,6 +897,99 @@ async def _collect_v5(group_url: str, max_posts: int = 500, max_scrolls: int = 2
     print(f"{'='*60}")
 
 
+async def _collect_v6(group_url: str, max_posts: int = 500, max_scrolls: int = 2000):
+    """V6: เหมือน V5 แต่แยก folder ตาม group_id
+
+    ทุกอย่างอยู่ใต้ groups/{group_id}/
+    """
+    from application.usecases.cleanup import load_known_post_ids
+
+    group_id = parse_group_id(group_url)
+    if "sorting_setting" not in group_url:
+        group_url = group_url.rstrip('/') + "/?sorting_setting=CHRONOLOGICAL"
+
+    group_dir = Path(f"groups/{group_id}")
+    group_dir.mkdir(parents=True, exist_ok=True)
+
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = group_dir / "raw" / f"run_{run_id}"
+
+    known_ids = load_known_post_ids(group_id)
+    print(f"\n{'='*60}")
+    print(f"  Collect V6: {group_id}")
+    print(f"  Known posts: {len(known_ids)} (จะข้าม)")
+    print(f"  Target: {max_posts} posts ใหม่")
+    print(f"  Data: groups/{group_id}/")
+    print(f"{'='*60}")
+
+    async with PlaywrightHelper(
+        profile_dir="./pw_chrome_data",
+        headless=False,
+    ) as pw:
+        pw.worker_id = "collector_v6"
+        pw.account_id = "default"
+
+        # === [1/3] Login ===
+        print(f"\n  [1/3] Login check...")
+        await pw.goto("https://www.facebook.com")
+        await pw.wait(3000)
+        if not await pw.check_facebook_login():
+            await pw.wait_for_login()
+
+        # === [2/3] Smart scroll feed ===
+        print(f"\n  [2/3] Scroll feed (smart — ข้ามซ้ำ)...")
+        pw.job_type = "feed"
+        pw.job_id = f"feed_{group_id}_{run_id}"
+
+        await pw.block_heavy_resources()
+        await pw.goto(group_url)
+        await pw.wait(5000)
+
+        await pw.start_capture(run_dir, known_post_ids=known_ids, group_id=group_id)
+        await pw.scroll_feed(max_scrolls=max_scrolls, max_posts=max_posts)
+        await pw.stop_capture()
+
+        new_post_ids = list(pw._new_post_ids)
+        new_post_ids_set = set(new_post_ids)
+        skip_count = len(pw._skipped_post_ids)
+        print(f"\n  Feed done: {len(new_post_ids)} new, {skip_count} skipped")
+
+        if not new_post_ids:
+            print(f"  ไม่มี posts ใหม่ — หยุด")
+            return
+
+        # === [3/3] Extract + Download images ===
+        print(f"\n  [3/3] Extract + Download images...")
+        try:
+            report = extract_run(run_dir)
+        except Exception as e:
+            print(f"  ✗ Extract error: {e}")
+            report = {"output_dir": str(run_dir)}
+
+        try:
+            # Clear DOM ก่อน download — ป้องกัน timeout หลัง scroll หลายร้อยรอบ
+            await pw.goto("about:blank")
+            await pw.wait(1000)
+            await pw.unblock_resources()
+            await _download_images_via_browser(pw, report, only_post_ids=new_post_ids_set, group_id=group_id)
+        except Exception as e:
+            print(f"  ✗ Image download error: {e}")
+
+    # เขียน .process_post_ids (append)
+    filter_file = group_dir / ".process_post_ids"
+    with open(filter_file, 'a') as f:
+        for pid in new_post_ids:
+            f.write(pid + "\n")
+
+    print(f"\n{'='*60}")
+    print(f"  V6 ขั้น 1 เสร็จ!")
+    print(f"  เก็บได้: {len(new_post_ids)} posts + images")
+    print(f"  Data: groups/{group_id}/")
+    print(f"  รันเก็บเพิ่มได้อีก หรือทำขั้น 2:")
+    print(f"  python run.py pipeline-v6 --group {group_id} --api")
+    print(f"{'='*60}")
+
+
 # === CLI ===
 
 def main():
@@ -918,18 +1032,32 @@ def main():
     v5_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ (default 500)")
     v5_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
 
+    # collect-v6 — V6 folder restructure
+    v6_cmd = sub.add_parser("collect-v6", help="V6: เก็บ posts + images แยก folder ตาม group")
+    v6_cmd.add_argument("--group", required=True, help="Facebook group URL")
+    v6_cmd.add_argument("--max-posts", type=int, default=500, help="จำนวน posts ใหม่ (default 500)")
+    v6_cmd.add_argument("--max-scrolls", type=int, default=2000, help="จำนวน scroll สูงสุด")
+
     # extract
     extract_cmd = sub.add_parser("extract", help="Extract จาก raw data ที่ capture ไว้แล้ว")
     extract_cmd.add_argument("--run", type=str, help="Extract specific run")
     extract_cmd.add_argument("--all", action="store_true", help="Extract all runs")
     extract_cmd.add_argument("--force", action="store_true", help="Force re-extract")
 
-    # pipeline
-    pipeline_cmd = sub.add_parser("pipeline", help="Run LLM → Normalize → Validate → DB → Face (ไม่ capture)")
+    # pipeline (V5)
+    pipeline_cmd = sub.add_parser("pipeline", help="V5: Run LLM → Normalize → Validate → DB (ไม่ capture)")
     pipeline_cmd.add_argument("--no-db", action="store_true", help="หยุดหลัง validate ไม่เข้า DB")
     pipeline_cmd.add_argument("--db-only", action="store_true", help="รัน DB + Face เท่านั้น (หลังตรวจ validated/ แล้ว)")
     pipeline_cmd.add_argument("--api", action="store_true", help="ส่งผ่าน HTTP API แทน psycopg2 (สำหรับ distributed)")
     pipeline_cmd.add_argument("--skip-face", action="store_true", help="ไม่ ingest face (รอ admin approve)")
+
+    # pipeline-v6 — แยกตาม group
+    pv6_cmd = sub.add_parser("pipeline-v6", help="V6: Pipeline แยกตาม group (LLM → Normalize → Validate → API)")
+    pv6_cmd.add_argument("--group", type=str, help="Group ID")
+    pv6_cmd.add_argument("--all", action="store_true", help="Process ทุก group ที่มี .process_post_ids")
+    pv6_cmd.add_argument("--api", action="store_true", default=True, help="ส่งผ่าน HTTP API (default)")
+    pv6_cmd.add_argument("--skip-types", type=str, default="advertisement",
+                         help="post_types ที่ไม่ ingest (default: advertisement,unrelated)")
 
     args = parser.parse_args()
 
@@ -974,6 +1102,15 @@ def main():
             max_scrolls=args.max_scrolls,
         ))
 
+    elif args.command == "collect-v6":
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.run(_collect_v6(
+            group_url=args.group,
+            max_posts=args.max_posts,
+            max_scrolls=args.max_scrolls,
+        ))
+
     elif args.command == "auto":
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -990,6 +1127,15 @@ def main():
             run_db_only(use_api=args.api, skip_face=skip_face)
         else:
             run_pipeline(no_db=args.no_db, use_api=args.api)
+
+    elif args.command == "pipeline-v6":
+        from application.usecases.run_pipeline import run_pipeline_v6
+        run_pipeline_v6(
+            group_id=args.group,
+            all_groups=args.all,
+            use_api=args.api,
+            skip_types=args.skip_types,
+        )
 
     elif args.command == "extract":
         if args.run:

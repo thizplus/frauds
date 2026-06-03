@@ -46,12 +46,19 @@ def extract_run(run_dir: Path, output_base: Path | None = None) -> dict:
         logger.error("stream_dir_not_found", extra={"path": str(stream_dir)})
         return {"error": "stream_dir_not_found"}
 
-    # Derive group_id from path: raw/{group_id}/run_{timestamp}
-    group_id = run_dir.parent.name
+    # Derive group_id from path:
+    #   V6: groups/{group_id}/raw/run_{ts} → parent.name = "raw"
+    #   V5: raw/{group_id}/run_{ts} → parent.name = group_id
+    if run_dir.parent.name == "raw":
+        group_id = run_dir.parent.parent.name
+        default_output = run_dir.parent.parent / "extracted"
+    else:
+        group_id = run_dir.parent.name
+        default_output = Path("extracted") / group_id
     run_id = run_dir.name
 
     if output_base is None:
-        output_base = Path("extracted") / group_id
+        output_base = default_output
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     output_dir = output_base / date_str
@@ -309,15 +316,28 @@ def _rate(count: int, total: int) -> float:
 # === CLI ===
 
 def find_all_runs(raw_base: Path = Path("raw")) -> list[Path]:
-    """Find all run directories under raw/"""
+    """Find all run directories under raw/ (V5) + groups/*/raw/ (V6)"""
     runs = []
-    for group_dir in raw_base.iterdir():
-        if not group_dir.is_dir():
-            continue
-        for run_dir in group_dir.iterdir():
-            if run_dir.is_dir() and run_dir.name.startswith("run_"):
-                if (run_dir / "graphql_stream").exists():
-                    runs.append(run_dir)
+    # V5: raw/{group_id}/run_*
+    if raw_base.exists():
+        for group_dir in raw_base.iterdir():
+            if not group_dir.is_dir():
+                continue
+            for run_dir in group_dir.iterdir():
+                if run_dir.is_dir() and run_dir.name.startswith("run_"):
+                    if (run_dir / "graphql_stream").exists():
+                        runs.append(run_dir)
+    # V6: groups/{group_id}/raw/run_*
+    groups_dir = Path("groups")
+    if groups_dir.exists():
+        for group_dir in groups_dir.iterdir():
+            raw_dir = group_dir / "raw"
+            if not raw_dir.exists():
+                continue
+            for run_dir in raw_dir.iterdir():
+                if run_dir.is_dir() and run_dir.name.startswith("run_"):
+                    if (run_dir / "graphql_stream").exists():
+                        runs.append(run_dir)
     return sorted(runs)
 
 

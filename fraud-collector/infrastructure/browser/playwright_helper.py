@@ -193,13 +193,15 @@ class PlaywrightHelper:
 
     # --- Capture Layer (Dumb Recorder) ---
 
-    async def start_capture(self, run_dir: str | Path, known_post_ids: set = None):
+    async def start_capture(self, run_dir: str | Path, known_post_ids: set = None, group_id: str = None):
         """Start capturing GraphQL responses to chunked stream files
 
         Args:
-            run_dir: directory to store raw data (e.g. raw/{group_id}/run_{timestamp}/)
+            run_dir: directory to store raw data
             known_post_ids: set of post_ids ที่เก็บแล้ว (สำหรับ smart scroll skip)
+            group_id: V6 — เขียน known_ids ไป groups/{gid}/known_post_ids.txt
         """
+        self._group_id = group_id
         self._run_dir = Path(run_dir)
         self._stream_dir = self._run_dir / "graphql_stream"
         self._stream_dir.mkdir(parents=True, exist_ok=True)
@@ -347,7 +349,13 @@ class PlaywrightHelper:
                                     self._known_post_ids.add(pid)
                                     # Append known_ids ทันที — resume ได้ถ้าพัง
                                     try:
-                                        with open("known_post_ids.txt", "a") as _f:
+                                        if getattr(self, '_group_id', None):
+                                            from pathlib import Path as _P
+                                            _kp = _P(f"groups/{self._group_id}/known_post_ids.txt")
+                                            _kp.parent.mkdir(parents=True, exist_ok=True)
+                                        else:
+                                            _kp = "known_post_ids.txt"
+                                        with open(_kp, "a") as _f:
                                             _f.write(pid + "\n")
                                     except Exception:
                                         pass
