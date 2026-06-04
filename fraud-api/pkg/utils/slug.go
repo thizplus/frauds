@@ -10,7 +10,7 @@ import (
 
 var (
 	slugSeparator  = regexp.MustCompile(`[\s_/\\]+`)
-	slugNonAllowed = regexp.MustCompile(`[^\p{L}\p{N}\-]+`)
+	slugNonAllowed = regexp.MustCompile(`[^\p{L}\p{M}\p{N}\-]+`)
 	slugMultiDash  = regexp.MustCompile(`-{2,}`)
 )
 
