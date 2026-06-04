@@ -48,7 +48,9 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning lang="th" className={`${googleSans.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-      <head />
+      <head>
+        <link rel="alternate" type="application/rss+xml" title="เช็กคนโกง — บทความ" href="/feed.xml" />
+      </head>
       <body suppressHydrationWarning className="flex flex-col min-h-screen" style={{ fontFamily: `var(--font-google-sans), var(--font-inter), system-ui, sans-serif` }}>
         <QueryProvider>
           <ClientLiffProvider>
