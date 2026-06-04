@@ -120,22 +120,23 @@ export function CommentSection({ articleSlug }: CommentSectionProps) {
           </div>
         )}
         {isLoggedIn ? (
-          <div className="comment-input-row">
+          <div className="comment-input-col">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="เขียนความคิดเห็น..."
-              rows={2}
+              rows={3}
               maxLength={1000}
               className="comment-textarea"
             />
             <button
               onClick={handleSubmit}
               disabled={submitting || !content.trim()}
-              className="btn btn-primary btn-icon comment-send-btn"
+              className="btn btn-primary btn-sm comment-send-btn"
             >
               <Send className="w-4 h-4" />
+              {submitting ? 'กำลังส่ง...' : 'ส่งความคิดเห็น'}
             </button>
           </div>
         ) : (

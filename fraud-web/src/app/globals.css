@@ -3132,12 +3132,10 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-secondary);
   margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .toc-list {
@@ -3151,9 +3149,9 @@ body {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
   color: var(--text-muted);
   border: none;
   background: transparent;
@@ -3167,7 +3165,7 @@ body {
 }
 .toc-link-sub {
   padding-left: 1.5rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 .toc-link-active {
   color: var(--accent);
@@ -3246,10 +3244,10 @@ body {
   display: flex;
   align-items: center;
 }
-.comment-input-row {
+.comment-input-col {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  align-items: flex-end;
 }
 .comment-textarea {
   flex: 1;
@@ -3267,9 +3265,7 @@ body {
   border-color: var(--accent);
 }
 .comment-send-btn {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  align-self: flex-end;
 }
 
 .comment-list {
@@ -3453,14 +3449,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all .2s;
+}
+.share-btn svg {
+  flex-shrink: 0;
 }
 .share-btn:hover {
   color: var(--share-color, var(--accent));
