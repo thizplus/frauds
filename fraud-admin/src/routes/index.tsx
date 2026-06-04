@@ -21,6 +21,7 @@ const SocialReviewPage = lazy(() => import('@/features/social-review').then((m) 
 const ArticleListPage = lazy(() => import('@/features/articles').then((m) => ({ default: m.ArticleListPage })))
 const ArticleEditorPage = lazy(() => import('@/features/articles').then((m) => ({ default: m.ArticleEditorPage })))
 const CommentModerationPage = lazy(() => import('@/features/articles').then((m) => ({ default: m.CommentModerationPage })))
+const ProfilePage = lazy(() => import('@/features/auth').then((m) => ({ default: m.ProfilePage })))
 
 export default function AppRoutes() {
   return (
@@ -48,6 +49,7 @@ export default function AppRoutes() {
               <Route path="/articles/new" element={<ArticleEditorPage />} />
               <Route path="/articles/:id/edit" element={<ArticleEditorPage />} />
               <Route path="/comments" element={<CommentModerationPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/social-review" element={<SocialReviewPage />} />
               <Route path="/settings/:section" element={<SettingsPage />} />
               <Route path="/settings" element={<Navigate to="/settings/quota" replace />} />

@@ -1,4 +1,5 @@
-import { Bell, ChevronsUpDown, LogOut, Settings, UserCircle } from 'lucide-react'
+import { ChevronsUpDown, LogOut, Settings, UserCircle } from 'lucide-react'
+import { useNavigate } from 'react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
   const logout = useLogout()
+  const navigate = useNavigate()
 
   const initials = user.name
     .split(' ')
@@ -71,15 +73,11 @@ export function NavUser({ user }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <UserCircle />
                 โปรไฟล์
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                การแจ้งเตือน
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings/system')}>
                 <Settings />
                 ตั้งค่า
               </DropdownMenuItem>

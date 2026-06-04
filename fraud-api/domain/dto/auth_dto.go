@@ -26,6 +26,12 @@ type LineLoginRequest struct {
 	RedirectURI string `json:"redirectUri" validate:"required"`
 }
 
+type UpdateProfileRequest struct {
+	Name      *string `json:"name" validate:"omitempty,max=100"`
+	AvatarURL *string `json:"avatarUrl" validate:"omitempty,max=500"`
+	Password  *string `json:"password" validate:"omitempty,min=8,max=72"`
+}
+
 type UserResponse struct {
 	ID        string `json:"id"`
 	Email     string `json:"email"`

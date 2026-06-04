@@ -141,3 +141,30 @@ func (h *AuthHandler) Profile(c *fiber.Ctx) error {
 
 	return utils.SuccessResponse(c, user)
 }
+
+// UpdateProfile PATCH /admin/auth/profile
+func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	authUser, err := middleware.GetAuthUser(c)
+	if err != nil {
+		return utils.UnauthorizedResponse(c, "")
+	}
+
+	var req dto.UpdateProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequestResponse(c, "Invalid request body")
+	}
+
+	if err := utils.ValidateStruct(&req); err != nil {
+		return utils.ValidationErrorResponse(c, utils.GetValidationErrors(err))
+	}
+
+	user, err := h.authService.UpdateProfile(ctx, authUser.ID, &req)
+	if err != nil {
+		logger.WarnContext(ctx, "Update profile failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, user)
+}

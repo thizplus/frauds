@@ -1,5 +1,6 @@
 // Barrel exports for auth feature
 export { LoginPage } from './pages/LoginPage'
+export { ProfilePage } from './pages/ProfilePage'
 export { RegisterPage } from './pages/RegisterPage'
 export { LoginForm } from './components/LoginForm'
 export { RegisterForm } from './components/RegisterForm'

@@ -138,6 +138,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Use(middleware.AdminOnly())
 
 	admin.Get("/auth/profile", h.AuthHandler.Profile)
+	admin.Patch("/auth/profile", h.AuthHandler.UpdateProfile)
 	admin.Get("/frauds", h.FraudHandler.List)
 	admin.Get("/frauds/:id", h.FraudHandler.GetByID)
 	admin.Put("/frauds/:id", h.FraudHandler.Update)

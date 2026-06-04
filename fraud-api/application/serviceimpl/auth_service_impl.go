@@ -214,3 +214,32 @@ func (s *authServiceImpl) GetProfile(ctx context.Context, userID uuid.UUID) (*dt
 	}
 	return mappers.UserToResponse(user), nil
 }
+
+func (s *authServiceImpl) UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateProfileRequest) (*dto.UserResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.Name != nil {
+		user.Name = *req.Name
+	}
+	if req.AvatarURL != nil {
+		user.AvatarURL = *req.AvatarURL
+	}
+	if req.Password != nil {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, errors.New("failed to hash password")
+		}
+		user.Password = string(hashed)
+	}
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		logger.ErrorContext(ctx, "Failed to update profile", "error", err)
+		return nil, err
+	}
+
+	logger.InfoContext(ctx, "Profile updated", "user_id", userID)
+	return mappers.UserToResponse(user), nil
+}

@@ -5,6 +5,8 @@ export const AUTH_ROUTES = {
   REGISTER: '/auth/register',
   REFRESH: '/auth/refresh',
   PROFILE: '/admin/auth/profile',
+  UPDATE_PROFILE: '/admin/auth/profile',
+  UPLOAD: '/uploads',
 }
 
 export const FRAUD_ROUTES = {

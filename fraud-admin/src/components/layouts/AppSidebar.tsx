@@ -17,12 +17,9 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((s) => s.user)
 
-  // Default user สำหรับกรณียังไม่ได้ login
-  const displayUser = user ?? {
-    name: 'Guest',
-    email: 'guest@example.com',
-    avatar: '/avatars/default.jpg',
-  }
+  const displayUser = user
+    ? { name: user.name, email: user.email, avatar: user.avatarUrl }
+    : { name: 'Guest', email: 'guest@example.com', avatar: undefined }
 
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -15,4 +15,5 @@ type AuthService interface {
 	LiffLogin(ctx context.Context, liffAccessToken string) (*dto.AuthResponse, error)
 	RefreshToken(ctx context.Context, req *dto.RefreshRequest) (*dto.AuthResponse, error)
 	GetProfile(ctx context.Context, userID uuid.UUID) (*dto.UserResponse, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateProfileRequest) (*dto.UserResponse, error)
 }
