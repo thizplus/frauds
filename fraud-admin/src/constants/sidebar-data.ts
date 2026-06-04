@@ -45,8 +45,12 @@ export const NAV_MAIN: NavItem[] = [
   },
   {
     title: 'บทความ',
-    url: '/articles',
+    url: '#',
     icon: FileText,
+    items: [
+      { title: 'รายการบทความ', url: '/articles' },
+      { title: 'ความคิดเห็น', url: '/comments' },
+    ],
   },
   {
     title: 'หมวดหมู่',

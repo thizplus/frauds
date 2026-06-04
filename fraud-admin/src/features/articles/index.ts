@@ -1,4 +1,5 @@
 export { ArticleListPage } from './pages/ArticleListPage'
 export { ArticleEditorPage } from './pages/ArticleEditorPage'
+export { CommentModerationPage } from './components/CommentModerationPage'
 export { useArticleList, useArticleDetail, useArticleCategories } from './hooks'
 export type { Article, ArticleDetail, ArticleCategory } from './types'

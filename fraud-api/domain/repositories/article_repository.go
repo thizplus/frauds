@@ -36,4 +36,13 @@ type ArticleRepository interface {
 
 	// Counts
 	CountByCategory(ctx context.Context) (map[string]int64, error)
+
+	// Comments
+	CreateComment(ctx context.Context, comment *models.ArticleComment) error
+	GetCommentByID(ctx context.Context, id uuid.UUID) (*models.ArticleComment, error)
+	ListCommentsByArticle(ctx context.Context, articleID uuid.UUID, limit, offset int) ([]models.ArticleComment, int64, error)
+	ListAllComments(ctx context.Context, status string, page, limit int) ([]models.ArticleComment, int64, error)
+	UpdateCommentStatus(ctx context.Context, id uuid.UUID, status models.CommentStatus) error
+	DeleteComment(ctx context.Context, id uuid.UUID) error
+	CountCommentsByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
 }

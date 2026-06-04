@@ -66,6 +66,7 @@ func Migrate(db *gorm.DB) error {
 		&models.LenderAdmin{},
 		&models.ArticleCategory{},
 		&models.Article{},
+		&models.ArticleComment{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
@@ -108,6 +109,10 @@ func Migrate(db *gorm.DB) error {
 		"ALTER TABLE articles ADD CONSTRAINT fk_articles_category FOREIGN KEY (category_id) REFERENCES article_categories(id) ON DELETE SET NULL",
 		"ALTER TABLE articles DROP CONSTRAINT IF EXISTS fk_articles_author",
 		"ALTER TABLE articles ADD CONSTRAINT fk_articles_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE",
+		"ALTER TABLE article_comments DROP CONSTRAINT IF EXISTS fk_article_comments_article",
+		"ALTER TABLE article_comments ADD CONSTRAINT fk_article_comments_article FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE",
+		"ALTER TABLE article_comments DROP CONSTRAINT IF EXISTS fk_article_comments_user",
+		"ALTER TABLE article_comments ADD CONSTRAINT fk_article_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
 	}
 	for _, sql := range cascades {
 		db.Exec(sql)

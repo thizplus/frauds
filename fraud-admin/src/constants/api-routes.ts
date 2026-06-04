@@ -71,6 +71,13 @@ export const SOCIAL_REVIEW_ROUTES = {
   BATCH_APPROVE_PROGRESS: (jobId: string) => `/admin/social/posts/batch-approve-by-type/${jobId}`,
 }
 
+export const COMMENT_ROUTES = {
+  LIST: '/admin/comments',
+  APPROVE: (id: string) => `/admin/comments/${id}/approve`,
+  HIDE: (id: string) => `/admin/comments/${id}/hide`,
+  BY_ID: (id: string) => `/admin/comments/${id}`,
+}
+
 export const ARTICLE_ROUTES = {
   LIST: '/admin/articles',
   BY_ID: (id: string) => `/admin/articles/${id}`,

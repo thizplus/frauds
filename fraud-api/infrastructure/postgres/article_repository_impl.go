@@ -232,3 +232,79 @@ func (r *articleRepository) CountByCategory(ctx context.Context) (map[string]int
 	}
 	return counts, nil
 }
+
+// === Comments ===
+
+func (r *articleRepository) CreateComment(ctx context.Context, comment *models.ArticleComment) error {
+	return r.db.WithContext(ctx).Create(comment).Error
+}
+
+func (r *articleRepository) GetCommentByID(ctx context.Context, id uuid.UUID) (*models.ArticleComment, error) {
+	var comment models.ArticleComment
+	err := r.db.WithContext(ctx).Preload("User").First(&comment, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &comment, nil
+}
+
+func (r *articleRepository) ListCommentsByArticle(ctx context.Context, articleID uuid.UUID, limit, offset int) ([]models.ArticleComment, int64, error) {
+	var comments []models.ArticleComment
+	var total int64
+
+	// นับเฉพาะ top-level comments ที่ approved
+	r.db.WithContext(ctx).Model(&models.ArticleComment{}).
+		Where("article_id = ? AND parent_id IS NULL AND status = ?", articleID, models.CommentApproved).
+		Count(&total)
+
+	// ดึง top-level + preload replies (approved only)
+	err := r.db.WithContext(ctx).Preload("User").
+		Preload("Replies", "status = ?", models.CommentApproved).
+		Preload("Replies.User").
+		Where("article_id = ? AND parent_id IS NULL AND status = ?", articleID, models.CommentApproved).
+		Order("created_at DESC").
+		Offset(offset).Limit(limit).
+		Find(&comments).Error
+
+	return comments, total, err
+}
+
+func (r *articleRepository) ListAllComments(ctx context.Context, status string, page, limit int) ([]models.ArticleComment, int64, error) {
+	var comments []models.ArticleComment
+	var total int64
+
+	q := r.db.WithContext(ctx).Model(&models.ArticleComment{})
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	q.Count(&total)
+
+	query := r.db.WithContext(ctx).Preload("User").Preload("Article")
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	offset := (page - 1) * limit
+	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&comments).Error
+	return comments, total, err
+}
+
+func (r *articleRepository) UpdateCommentStatus(ctx context.Context, id uuid.UUID, status models.CommentStatus) error {
+	return r.db.WithContext(ctx).Model(&models.ArticleComment{}).
+		Where("id = ?", id).
+		Update("status", status).Error
+}
+
+func (r *articleRepository) DeleteComment(ctx context.Context, id uuid.UUID) error {
+	// ลบ replies ก่อน แล้วลบ comment
+	r.db.WithContext(ctx).Where("parent_id = ?", id).Delete(&models.ArticleComment{})
+	return r.db.WithContext(ctx).Delete(&models.ArticleComment{}, "id = ?", id).Error
+}
+
+func (r *articleRepository) CountCommentsByArticle(ctx context.Context, articleID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.ArticleComment{}).
+		Where("article_id = ? AND status = ?", articleID, models.CommentApproved).
+		Count(&count).Error
+	return count, err
+}

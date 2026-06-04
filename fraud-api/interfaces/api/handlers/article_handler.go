@@ -357,3 +357,131 @@ func (h *ArticleHandler) AdminReorderCategories(c *fiber.Ctx) error {
 
 	return utils.SuccessResponse(c, fiber.Map{"message": "บันทึกลำดับสำเร็จ"})
 }
+
+// === Comments ===
+
+// ListComments GET /articles/slug/:slug/comments
+func (h *ArticleHandler) ListComments(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	slug := c.Params("slug")
+	if slug == "" {
+		return utils.BadRequestResponse(c, "Slug is required")
+	}
+
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+
+	comments, total, err := h.articleService.ListComments(ctx, slug, limit, offset)
+	if err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{
+		"comments": comments,
+		"total":    total,
+	})
+}
+
+// CreateComment POST /articles/slug/:slug/comments
+func (h *ArticleHandler) CreateComment(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	slug := c.Params("slug")
+	if slug == "" {
+		return utils.BadRequestResponse(c, "Slug is required")
+	}
+
+	user, err := middleware.GetAuthUser(c)
+	if err != nil {
+		return utils.UnauthorizedResponse(c, "")
+	}
+
+	var req dto.CreateCommentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequestResponse(c, "Invalid request body")
+	}
+
+	if err := utils.ValidateStruct(&req); err != nil {
+		return utils.ValidationErrorResponse(c, utils.GetValidationErrors(err))
+	}
+
+	comment, err := h.articleService.CreateComment(ctx, slug, user.ID, &req)
+	if err != nil {
+		logger.WarnContext(ctx, "Create comment failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.CreatedResponse(c, comment)
+}
+
+// AdminListComments GET /admin/comments
+func (h *ArticleHandler) AdminListComments(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	status := c.Query("status", "")
+
+	if page < 1 {
+		page = 1
+	}
+
+	comments, total, err := h.articleService.AdminListComments(ctx, status, page, limit)
+	if err != nil {
+		return utils.InternalServerErrorResponse(c)
+	}
+
+	return utils.PaginatedSuccessResponse(c, comments, total, page, limit)
+}
+
+// AdminApproveComment PATCH /admin/comments/:id/approve
+func (h *ArticleHandler) AdminApproveComment(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid comment ID")
+	}
+
+	if err := h.articleService.ApproveComment(ctx, id); err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{"message": "อนุมัติความคิดเห็นสำเร็จ"})
+}
+
+// AdminHideComment PATCH /admin/comments/:id/hide
+func (h *ArticleHandler) AdminHideComment(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid comment ID")
+	}
+
+	if err := h.articleService.HideComment(ctx, id); err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, fiber.Map{"message": "ซ่อนความคิดเห็นสำเร็จ"})
+}
+
+// AdminDeleteComment DELETE /admin/comments/:id
+func (h *ArticleHandler) AdminDeleteComment(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid comment ID")
+	}
+
+	if err := h.articleService.DeleteComment(ctx, id); err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.NoContentResponse(c)
+}

@@ -86,3 +86,23 @@ type ArticleCategoryResponse struct {
 	SortOrder    int    `json:"sortOrder"`
 	ArticleCount int64  `json:"articleCount"`
 }
+
+// === Comment Request ===
+
+type CreateCommentRequest struct {
+	Content  string `json:"content" validate:"required,max=1000"`
+	ParentID string `json:"parentId" validate:"omitempty"`
+}
+
+// === Comment Response ===
+
+type CommentResponse struct {
+	ID        string            `json:"id"`
+	Content   string            `json:"content"`
+	Status    string            `json:"status"`
+	ParentID  string            `json:"parentId,omitempty"`
+	UserName  string            `json:"userName"`
+	UserAvatar string           `json:"userAvatar,omitempty"`
+	CreatedAt string            `json:"createdAt"`
+	Replies   []CommentResponse `json:"replies,omitempty"`
+}

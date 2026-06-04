@@ -386,6 +386,113 @@ func (s *articleServiceImpl) ReorderCategories(ctx context.Context, ids []string
 	return nil
 }
 
+// === Comments ===
+
+func (s *articleServiceImpl) ListComments(ctx context.Context, slug string, limit, offset int) ([]dto.CommentResponse, int64, error) {
+	article, err := s.articleRepo.GetBySlug(ctx, slug)
+	if err != nil {
+		return nil, 0, errors.New("article not found")
+	}
+
+	comments, total, err := s.articleRepo.ListCommentsByArticle(ctx, article.ID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return mappers.CommentsToResponses(comments), total, nil
+}
+
+func (s *articleServiceImpl) CreateComment(ctx context.Context, articleSlug string, userID uuid.UUID, req *dto.CreateCommentRequest) (*dto.CommentResponse, error) {
+	article, err := s.articleRepo.GetBySlug(ctx, articleSlug)
+	if err != nil {
+		return nil, errors.New("article not found")
+	}
+
+	var parentID *uuid.UUID
+	if req.ParentID != "" {
+		pid, err := uuid.Parse(req.ParentID)
+		if err != nil {
+			return nil, errors.New("invalid parent comment ID")
+		}
+		// เช็คว่า parent เป็น top-level comment (ไม่ซ้อนลึกกว่า 1 ระดับ)
+		parent, err := s.articleRepo.GetCommentByID(ctx, pid)
+		if err != nil {
+			return nil, errors.New("parent comment not found")
+		}
+		if parent.ParentID != nil {
+			return nil, errors.New("cannot reply to a reply")
+		}
+		parentID = &pid
+	}
+
+	// Default status = approved (เปลี่ยนเป็น pending ได้ผ่าน settings ในอนาคต)
+	comment := &models.ArticleComment{
+		ID:        uuid.New(),
+		ArticleID: article.ID,
+		UserID:    userID,
+		ParentID:  parentID,
+		Content:   req.Content,
+		Status:    models.CommentApproved,
+	}
+
+	if err := s.articleRepo.CreateComment(ctx, comment); err != nil {
+		logger.ErrorContext(ctx, "Failed to create comment", "error", err)
+		return nil, err
+	}
+
+	logger.InfoContext(ctx, "Comment created", "comment_id", comment.ID, "article_id", article.ID)
+
+	created, err := s.articleRepo.GetCommentByID(ctx, comment.ID)
+	if err != nil {
+		return nil, err
+	}
+	return mappers.CommentToResponse(created), nil
+}
+
+func (s *articleServiceImpl) AdminListComments(ctx context.Context, status string, page, limit int) ([]dto.CommentResponse, int64, error) {
+	comments, total, err := s.articleRepo.ListAllComments(ctx, status, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	return mappers.CommentsToResponses(comments), total, nil
+}
+
+func (s *articleServiceImpl) ApproveComment(ctx context.Context, id uuid.UUID) error {
+	_, err := s.articleRepo.GetCommentByID(ctx, id)
+	if err != nil {
+		return errors.New("comment not found")
+	}
+	if err := s.articleRepo.UpdateCommentStatus(ctx, id, models.CommentApproved); err != nil {
+		return err
+	}
+	logger.InfoContext(ctx, "Comment approved", "comment_id", id)
+	return nil
+}
+
+func (s *articleServiceImpl) HideComment(ctx context.Context, id uuid.UUID) error {
+	_, err := s.articleRepo.GetCommentByID(ctx, id)
+	if err != nil {
+		return errors.New("comment not found")
+	}
+	if err := s.articleRepo.UpdateCommentStatus(ctx, id, models.CommentHidden); err != nil {
+		return err
+	}
+	logger.InfoContext(ctx, "Comment hidden", "comment_id", id)
+	return nil
+}
+
+func (s *articleServiceImpl) DeleteComment(ctx context.Context, id uuid.UUID) error {
+	_, err := s.articleRepo.GetCommentByID(ctx, id)
+	if err != nil {
+		return errors.New("comment not found")
+	}
+	if err := s.articleRepo.DeleteComment(ctx, id); err != nil {
+		return err
+	}
+	logger.InfoContext(ctx, "Comment deleted", "comment_id", id)
+	return nil
+}
+
 // === Helpers ===
 
 func (s *articleServiceImpl) ensureUniqueSlug(ctx context.Context, slug string, excludeID *uuid.UUID) (string, error) {

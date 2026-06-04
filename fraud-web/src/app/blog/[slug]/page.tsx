@@ -5,6 +5,7 @@ import { blogService } from '@/features/blog'
 import { estimateReadingTime } from '@/features/blog/utils'
 import { ArticleContent } from '@/features/blog/components/ArticleContent'
 import { ShareButtons } from '@/features/blog/components/ShareButtons'
+import { CommentSection } from '@/features/blog/components/CommentSection'
 import { ArticleCard } from '@/features/blog/components/ArticleCard'
 import { notFound } from 'next/navigation'
 
@@ -175,6 +176,9 @@ export default async function BlogArticlePage({
         <div className="mt-6 pt-6 border-t border-[var(--border)]">
           <ShareButtons url={articleUrl} title={article.title} />
         </div>
+
+        {/* Comments */}
+        <CommentSection articleSlug={article.slug} />
 
         {/* Related */}
         {relatedArticles.length > 0 && (

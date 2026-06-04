@@ -90,6 +90,44 @@ func ArticleCategoryToResponse(cat *models.ArticleCategory, count int64) *dto.Ar
 	}
 }
 
+func CommentToResponse(c *models.ArticleComment) *dto.CommentResponse {
+	if c == nil {
+		return nil
+	}
+	resp := &dto.CommentResponse{
+		ID:         c.ID.String(),
+		Content:    c.Content,
+		Status:     string(c.Status),
+		UserName:   c.User.Name,
+		UserAvatar: c.User.AvatarURL,
+		CreatedAt:  c.CreatedAt.Format(time.RFC3339),
+	}
+	if c.ParentID != nil {
+		resp.ParentID = c.ParentID.String()
+	}
+	if len(c.Replies) > 0 {
+		resp.Replies = make([]dto.CommentResponse, 0, len(c.Replies))
+		for i := range c.Replies {
+			r := CommentToResponse(&c.Replies[i])
+			if r != nil {
+				resp.Replies = append(resp.Replies, *r)
+			}
+		}
+	}
+	return resp
+}
+
+func CommentsToResponses(comments []models.ArticleComment) []dto.CommentResponse {
+	responses := make([]dto.CommentResponse, 0, len(comments))
+	for i := range comments {
+		resp := CommentToResponse(&comments[i])
+		if resp != nil {
+			responses = append(responses, *resp)
+		}
+	}
+	return responses
+}
+
 func ArticleCategoriesToResponses(cats []models.ArticleCategory, counts map[string]int64) []dto.ArticleCategoryResponse {
 	responses := make([]dto.ArticleCategoryResponse, 0, len(cats))
 	for i := range cats {

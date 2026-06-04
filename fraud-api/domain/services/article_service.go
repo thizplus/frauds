@@ -31,4 +31,12 @@ type ArticleService interface {
 	UpdateCategory(ctx context.Context, id uuid.UUID, req *dto.UpdateArticleCategoryRequest) (*dto.ArticleCategoryResponse, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	ReorderCategories(ctx context.Context, ids []string) error
+
+	// Comments
+	ListComments(ctx context.Context, slug string, limit, offset int) ([]dto.CommentResponse, int64, error)
+	CreateComment(ctx context.Context, articleSlug string, userID uuid.UUID, req *dto.CreateCommentRequest) (*dto.CommentResponse, error)
+	AdminListComments(ctx context.Context, status string, page, limit int) ([]dto.CommentResponse, int64, error)
+	ApproveComment(ctx context.Context, id uuid.UUID) error
+	HideComment(ctx context.Context, id uuid.UUID) error
+	DeleteComment(ctx context.Context, id uuid.UUID) error
 }

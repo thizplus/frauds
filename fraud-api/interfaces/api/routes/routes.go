@@ -62,6 +62,8 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	articles.Get("/sitemap", h.ArticleHandler.ListSitemap)
 	articles.Get("/categories", h.ArticleHandler.ListPublicCategories)
 	articles.Get("/slug/:slug", h.ArticleHandler.GetBySlug)
+	articles.Get("/slug/:slug/comments", h.ArticleHandler.ListComments)
+	articles.Post("/slug/:slug/comments", middleware.JWTMiddleware(jwtSecret), h.ArticleHandler.CreateComment)
 	articles.Patch("/:id/view", h.ArticleHandler.IncrementViewCount)
 
 	// User routes (JWT auth, ไม่ต้องเป็น admin)
@@ -161,6 +163,12 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Patch("/social/posts/:id/approve", h.SocialHandler.ApprovePost)
 	admin.Patch("/social/posts/:id/reject", h.SocialHandler.RejectPost)
 	admin.Patch("/social/posts/:id/archive", h.SocialHandler.ArchivePost)
+
+	// Comments
+	admin.Get("/comments", h.ArticleHandler.AdminListComments)
+	admin.Patch("/comments/:id/approve", h.ArticleHandler.AdminApproveComment)
+	admin.Patch("/comments/:id/hide", h.ArticleHandler.AdminHideComment)
+	admin.Delete("/comments/:id", h.ArticleHandler.AdminDeleteComment)
 
 	// Settings
 	admin.Get("/settings", h.SettingsHandler.GetAll)
