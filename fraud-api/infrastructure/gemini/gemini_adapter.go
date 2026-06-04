@@ -21,7 +21,7 @@ type GeminiAdapter struct {
 
 func NewGeminiAdapter(apiKey, model string) ports.ImageGenPort {
 	if model == "" {
-		model = "gemini-2.0-flash-preview-image-generation"
+		model = "gemini-2.0-flash-exp"
 	}
 	return &GeminiAdapter{
 		apiKey: apiKey,

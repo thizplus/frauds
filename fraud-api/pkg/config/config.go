@@ -170,7 +170,7 @@ func LoadConfig() (*Config, error) {
 		},
 		Gemini: GeminiConfig{
 			APIKey: getEnv("GEMINI_API_KEY", ""),
-			Model:  getEnv("GEMINI_IMAGE_MODEL", "gemini-2.0-flash-preview-image-generation"),
+			Model:  getEnv("GEMINI_IMAGE_MODEL", "gemini-2.0-flash-exp"),
 		},
 		RedisURL: getEnv("REDIS_URL", ""),
 		LINE: LINEConfig{
