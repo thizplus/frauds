@@ -42,7 +42,11 @@ func ArticleToResponse(a *models.Article) *dto.ArticleResponse {
 	} else {
 		resp.AuthorName = a.Author.Name
 	}
-	resp.AuthorBio = a.AuthorBio
+	if a.AuthorBio != "" {
+		resp.AuthorBio = a.AuthorBio
+	} else {
+		resp.AuthorBio = a.Author.Bio
+	}
 	if a.AuthorAvatar != "" {
 		resp.AuthorAvatar = a.AuthorAvatar
 	} else {
