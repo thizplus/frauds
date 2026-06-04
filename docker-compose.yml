@@ -44,6 +44,10 @@ services:
       - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
       - STORAGE_REGION=${STORAGE_REGION}
       - STORAGE_PUBLIC_URL=${STORAGE_PUBLIC_URL}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - CLAUDE_MODEL=${CLAUDE_MODEL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
     volumes:
       - ./fraud-api:/app
     depends_on:
