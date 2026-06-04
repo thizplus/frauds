@@ -24,3 +24,18 @@ type LLMArticleResult struct {
 type LLMPort interface {
 	GenerateArticle(ctx context.Context, req *LLMArticleRequest) (*LLMArticleResult, error)
 }
+
+// === Image Generation ===
+
+type ImageGenRequest struct {
+	Prompt string // คำอธิบายภาพที่ต้องการ
+}
+
+type ImageGenResult struct {
+	ImageBase64 string // base64 encoded image
+	MimeType    string // image/png, image/jpeg
+}
+
+type ImageGenPort interface {
+	GenerateImage(ctx context.Context, req *ImageGenRequest) (*ImageGenResult, error)
+}

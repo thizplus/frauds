@@ -36,7 +36,18 @@ func ArticleToResponse(a *models.Article) *dto.ArticleResponse {
 	if a.Category != nil {
 		resp.CategoryName = a.Category.Name
 	}
-	resp.AuthorName = a.Author.Name
+	// Author: ใช้ override fields ถ้ามี, fallback เป็น User data
+	if a.AuthorDisplayName != "" {
+		resp.AuthorName = a.AuthorDisplayName
+	} else {
+		resp.AuthorName = a.Author.Name
+	}
+	resp.AuthorBio = a.AuthorBio
+	if a.AuthorAvatar != "" {
+		resp.AuthorAvatar = a.AuthorAvatar
+	} else {
+		resp.AuthorAvatar = a.Author.AvatarURL
+	}
 	if a.PublishedAt != nil {
 		resp.PublishedAt = a.PublishedAt.Format(time.RFC3339)
 	}

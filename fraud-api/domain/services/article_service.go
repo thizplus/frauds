@@ -38,6 +38,7 @@ type ArticleService interface {
 
 	// AI Generate
 	GenerateArticle(ctx context.Context, req *dto.GenerateArticleRequest) (*dto.GenerateArticleResponse, error)
+	GenerateCoverImage(ctx context.Context, articleID uuid.UUID) (*dto.GenerateCoverImageResponse, error)
 
 	// Comments
 	ListComments(ctx context.Context, slug string, limit, offset int) ([]dto.CommentResponse, int64, error)

@@ -12,8 +12,11 @@ type CreateArticleRequest struct {
 	Status          string   `json:"status" validate:"omitempty,oneof=draft published"`
 	MetaTitle       string   `json:"metaTitle" validate:"omitempty,max=200"`
 	MetaDescription string   `json:"metaDescription" validate:"omitempty,max=500"`
-	Tags            []string `json:"tags"`
-	IsFeatured      bool     `json:"isFeatured"`
+	Tags              []string `json:"tags"`
+	IsFeatured        bool     `json:"isFeatured"`
+	AuthorDisplayName string   `json:"authorDisplayName" validate:"omitempty,max=100"`
+	AuthorBio         string   `json:"authorBio"`
+	AuthorAvatar      string   `json:"authorAvatar" validate:"omitempty,max=1000"`
 }
 
 type UpdateArticleRequest struct {
@@ -26,8 +29,11 @@ type UpdateArticleRequest struct {
 	Status          *string  `json:"status" validate:"omitempty,oneof=draft published archived"`
 	MetaTitle       *string  `json:"metaTitle" validate:"omitempty,max=200"`
 	MetaDescription *string  `json:"metaDescription" validate:"omitempty,max=500"`
-	Tags            []string `json:"tags"`
-	IsFeatured      *bool    `json:"isFeatured"`
+	Tags              []string `json:"tags"`
+	IsFeatured        *bool    `json:"isFeatured"`
+	AuthorDisplayName *string  `json:"authorDisplayName" validate:"omitempty,max=100"`
+	AuthorBio         *string  `json:"authorBio"`
+	AuthorAvatar      *string  `json:"authorAvatar" validate:"omitempty,max=1000"`
 }
 
 // === Article Response ===
@@ -41,6 +47,8 @@ type ArticleResponse struct {
 	CategoryID   string   `json:"categoryId,omitempty"`
 	CategoryName string   `json:"categoryName,omitempty"`
 	AuthorName   string   `json:"authorName"`
+	AuthorBio    string   `json:"authorBio,omitempty"`
+	AuthorAvatar string   `json:"authorAvatar,omitempty"`
 	Status       string   `json:"status"`
 	PublishedAt  string   `json:"publishedAt,omitempty"`
 	Tags         []string `json:"tags"`
@@ -85,6 +93,16 @@ type ArticleCategoryResponse struct {
 	Description  string `json:"description,omitempty"`
 	SortOrder    int    `json:"sortOrder"`
 	ArticleCount int64  `json:"articleCount"`
+}
+
+// === Cover Image Generate Request ===
+
+type GenerateCoverImageRequest struct {
+	ArticleID string `json:"articleId" validate:"required"`
+}
+
+type GenerateCoverImageResponse struct {
+	ImageURL string `json:"imageUrl"`
 }
 
 // === Blog Stats Response ===

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronRight, Clock, Eye, User, Tag, BookOpen } from 'lucide-react'
+import { ChevronRight, Clock, Eye, Tag, BookOpen } from 'lucide-react'
 import { blogService } from '@/features/blog'
 import { estimateReadingTime } from '@/features/blog/utils'
 import { ArticleContent } from '@/features/blog/components/ArticleContent'
@@ -134,11 +134,23 @@ export default async function BlogArticlePage({
           <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
             {article.title}
           </h1>
+
+          {/* Author card */}
+          <div className="author-card mb-4">
+            <div className="author-avatar">
+              {article.authorAvatar ? (
+                <img src={article.authorAvatar} alt={article.authorName} />
+              ) : (
+                <span>{article.authorName?.charAt(0)?.toUpperCase() || 'A'}</span>
+              )}
+            </div>
+            <div>
+              <div className="author-name">{article.authorName}</div>
+              {article.authorBio && <div className="author-bio">{article.authorBio}</div>}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-4 text-sm text-secondary">
-            <span className="flex items-center gap-1.5">
-              <User className="w-4 h-4" />
-              {article.authorName}
-            </span>
             <span className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
               {date}

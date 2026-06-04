@@ -29,7 +29,10 @@ type Article struct {
 	MetaTitle       string         `gorm:"size:200"`
 	MetaDescription string         `gorm:"size:500"`
 	Tags            pq.StringArray `gorm:"type:text[]"`
-	ViewCount       int            `gorm:"default:0"`
+	AuthorDisplayName string       `gorm:"size:100"`
+	AuthorBio         string       `gorm:"type:text"`
+	AuthorAvatar      string       `gorm:"size:1000"`
+	ViewCount         int          `gorm:"default:0"`
 	IsFeatured      bool           `gorm:"default:false"`
 	SortOrder       int            `gorm:"default:0"`
 	CreatedAt       time.Time

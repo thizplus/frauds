@@ -210,6 +210,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Delete("/articles/:id", h.ArticleHandler.AdminDelete)
 	admin.Patch("/articles/:id/publish", h.ArticleHandler.AdminPublish)
 	admin.Patch("/articles/:id/unpublish", h.ArticleHandler.AdminUnpublish)
+	admin.Post("/articles/:id/generate-cover", h.ArticleHandler.AdminGenerateCoverImage)
 
 	// Article Categories
 	admin.Get("/article-categories", h.ArticleHandler.AdminListCategories)

@@ -35,6 +35,9 @@ export function ArticleEditorPage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
+  const [authorDisplayName, setAuthorDisplayName] = useState('')
+  const [authorBio, setAuthorBio] = useState('')
+  const [authorAvatar, setAuthorAvatar] = useState('')
 
   useEffect(() => {
     if (article && !isNew) {
@@ -48,6 +51,9 @@ export function ArticleEditorPage() {
       setMetaDescription(article.metaDescription || '')
       setTags(article.tags || [])
       setIsFeatured(article.isFeatured)
+      setAuthorDisplayName(article.authorName || '')
+      setAuthorBio(article.authorBio || '')
+      setAuthorAvatar(article.authorAvatar || '')
     }
   }, [article, isNew])
 
@@ -73,6 +79,9 @@ export function ArticleEditorPage() {
       metaDescription: metaDescription || undefined,
       tags,
       isFeatured,
+      authorDisplayName: authorDisplayName || undefined,
+      authorBio: authorBio || undefined,
+      authorAvatar: authorAvatar || undefined,
     }
 
     if (isNew) {
@@ -219,6 +228,29 @@ export function ArticleEditorPage() {
                 <Label htmlFor="metaDesc">Meta Description</Label>
                 <Textarea id="metaDesc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} placeholder="ถ้าไม่กรอก ใช้ excerpt" rows={3} />
                 <p className="text-xs text-muted-foreground mt-1">{metaDescription.length}/500</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">ผู้เขียน</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="authorName">ชื่อผู้เขียน</Label>
+                <Input id="authorName" value={authorDisplayName} onChange={(e) => setAuthorDisplayName(e.target.value)} placeholder="ถ้าไม่กรอก ใช้ชื่อ admin" />
+              </div>
+              <div>
+                <Label htmlFor="authorBio">Bio</Label>
+                <Textarea id="authorBio" value={authorBio} onChange={(e) => setAuthorBio(e.target.value)} placeholder="คำอธิบายสั้นๆ เกี่ยวกับผู้เขียน" rows={2} />
+              </div>
+              <div>
+                <Label htmlFor="authorAvatar">รูปผู้เขียน (URL)</Label>
+                <Input id="authorAvatar" value={authorAvatar} onChange={(e) => setAuthorAvatar(e.target.value)} placeholder="https://..." />
+                {authorAvatar && (
+                  <img src={authorAvatar} alt="Author" className="mt-2 w-12 h-12 rounded-full object-cover" />
+                )}
               </div>
             </CardContent>
           </Card>

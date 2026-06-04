@@ -18,6 +18,7 @@ type Config struct {
 	LINE        LINEConfig
 	FaceService FaceServiceConfig
 	Claude      ClaudeConfig
+	Gemini      GeminiConfig
 	RedisURL    string
 }
 
@@ -100,6 +101,11 @@ type ClaudeConfig struct {
 	Model   string
 }
 
+type GeminiConfig struct {
+	APIKey string
+	Model  string
+}
+
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -161,6 +167,10 @@ func LoadConfig() (*Config, error) {
 			APIKey:  getEnv("CLAUDE_API_KEY", ""),
 			BaseURL: getEnv("CLAUDE_BASE_URL", "https://api.anthropic.com"),
 			Model:   getEnv("CLAUDE_MODEL", "claude-sonnet-4-6"),
+		},
+		Gemini: GeminiConfig{
+			APIKey: getEnv("GEMINI_API_KEY", ""),
+			Model:  getEnv("GEMINI_IMAGE_MODEL", "gemini-2.0-flash-preview-image-generation"),
 		},
 		RedisURL: getEnv("REDIS_URL", ""),
 		LINE: LINEConfig{

@@ -3355,3 +3355,75 @@ body {
 .comment-item-reply {
   gap: 0.5rem;
 }
+
+/* ===== Author Card ===== */
+
+.author-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.author-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.author-bio {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-top: 0.1rem;
+}
+
+/* ===== Share Buttons ===== */
+
+.share-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.share-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.share-icons {
+  display: flex;
+  gap: 0.5rem;
+}
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all .2s;
+}
+.share-btn:hover {
+  color: var(--share-color, var(--accent));
+  border-color: var(--share-color, var(--accent));
+  transform: translateY(-1px);
+}

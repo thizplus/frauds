@@ -7,6 +7,8 @@ export interface Article {
   categoryId: string
   categoryName: string
   authorName: string
+  authorBio: string
+  authorAvatar: string
   status: string
   publishedAt: string
   tags: string[]

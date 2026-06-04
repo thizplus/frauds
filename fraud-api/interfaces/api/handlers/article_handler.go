@@ -418,6 +418,24 @@ func (h *ArticleHandler) AdminGenerateArticle(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, result)
 }
 
+// AdminGenerateCoverImage POST /admin/articles/:id/generate-cover
+func (h *ArticleHandler) AdminGenerateCoverImage(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.BadRequestResponse(c, "Invalid article ID")
+	}
+
+	result, err := h.articleService.GenerateCoverImage(ctx, id)
+	if err != nil {
+		logger.WarnContext(ctx, "Generate cover image failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, result)
+}
+
 // === Comments ===
 
 // ListComments GET /articles/slug/:slug/comments

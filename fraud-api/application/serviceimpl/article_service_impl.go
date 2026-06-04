@@ -1,9 +1,12 @@
 package serviceimpl
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,15 +25,21 @@ import (
 type articleServiceImpl struct {
 	articleRepo repositories.ArticleRepository
 	llm         ports.LLMPort
+	imageGen    ports.ImageGenPort
+	storage     ports.StoragePort
 }
 
 func NewArticleService(
 	articleRepo repositories.ArticleRepository,
 	llm ports.LLMPort,
+	imageGen ports.ImageGenPort,
+	storage ports.StoragePort,
 ) services.ArticleService {
 	return &articleServiceImpl{
 		articleRepo: articleRepo,
 		llm:         llm,
+		imageGen:    imageGen,
+		storage:     storage,
 	}
 }
 
@@ -143,8 +152,11 @@ func (s *articleServiceImpl) Create(ctx context.Context, authorID uuid.UUID, req
 		PublishedAt:     publishedAt,
 		MetaTitle:       req.MetaTitle,
 		MetaDescription: req.MetaDescription,
-		Tags:            pq.StringArray(req.Tags),
-		IsFeatured:      req.IsFeatured,
+		Tags:              pq.StringArray(req.Tags),
+		IsFeatured:        req.IsFeatured,
+		AuthorDisplayName: req.AuthorDisplayName,
+		AuthorBio:         req.AuthorBio,
+		AuthorAvatar:      req.AuthorAvatar,
 	}
 
 	if err := s.articleRepo.Create(ctx, article); err != nil {
@@ -218,6 +230,15 @@ func (s *articleServiceImpl) Update(ctx context.Context, id uuid.UUID, req *dto.
 	}
 	if req.IsFeatured != nil {
 		article.IsFeatured = *req.IsFeatured
+	}
+	if req.AuthorDisplayName != nil {
+		article.AuthorDisplayName = *req.AuthorDisplayName
+	}
+	if req.AuthorBio != nil {
+		article.AuthorBio = *req.AuthorBio
+	}
+	if req.AuthorAvatar != nil {
+		article.AuthorAvatar = *req.AuthorAvatar
 	}
 
 	if err := s.articleRepo.Update(ctx, article); err != nil {
@@ -460,6 +481,85 @@ func (s *articleServiceImpl) GenerateArticle(ctx context.Context, req *dto.Gener
 		SuggestedTags:   result.SuggestedTags,
 		SuggestedSlug:   result.SuggestedSlug,
 	}, nil
+}
+
+func (s *articleServiceImpl) GenerateCoverImage(ctx context.Context, articleID uuid.UUID) (*dto.GenerateCoverImageResponse, error) {
+	if s.imageGen == nil {
+		return nil, errors.New("image generation is not configured")
+	}
+	if s.storage == nil {
+		return nil, errors.New("storage is not configured")
+	}
+
+	article, err := s.articleRepo.GetByID(ctx, articleID)
+	if err != nil {
+		return nil, errors.New("article not found")
+	}
+
+	// สร้าง prompt จาก article content
+	plainText := stripHTML(article.Content)
+	if len([]rune(plainText)) > 500 {
+		plainText = string([]rune(plainText)[:500])
+	}
+
+	prompt := fmt.Sprintf(
+		"Create a modern, professional blog cover image for an article titled \"%s\". "+
+			"The article is about: %s. "+
+			"Style: Clean, minimal, modern illustration with subtle gradients. "+
+			"Color palette: dark navy (#0f172a) background with green (#00d492) accents. "+
+			"Do NOT include any text in the image. Landscape orientation 16:9.",
+		article.Title, plainText,
+	)
+
+	result, err := s.imageGen.GenerateImage(ctx, &ports.ImageGenRequest{Prompt: prompt})
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to generate cover image", "error", err)
+		return nil, fmt.Errorf("image generation failed: %w", err)
+	}
+
+	// Decode base64 → upload to R2
+	imageBytes, err := base64.StdEncoding.DecodeString(result.ImageBase64)
+	if err != nil {
+		return nil, fmt.Errorf("decode image: %w", err)
+	}
+
+	ext := "png"
+	if strings.Contains(result.MimeType, "jpeg") || strings.Contains(result.MimeType, "jpg") {
+		ext = "jpg"
+	}
+	key := fmt.Sprintf("articles/covers/%s.%s", uuid.New().String(), ext)
+
+	imageURL, err := s.storage.Upload(ctx, key, bytes.NewReader(imageBytes), result.MimeType)
+	if err != nil {
+		return nil, fmt.Errorf("upload image: %w", err)
+	}
+
+	// Update article cover image
+	article.CoverImage = imageURL
+	if err := s.articleRepo.Update(ctx, article); err != nil {
+		return nil, err
+	}
+
+	logger.InfoContext(ctx, "Cover image generated", "article_id", articleID, "url", imageURL)
+
+	return &dto.GenerateCoverImageResponse{ImageURL: imageURL}, nil
+}
+
+func stripHTML(html string) string {
+	// Simple HTML tag stripper
+	result := html
+	for {
+		start := strings.Index(result, "<")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(result[start:], ">")
+		if end == -1 {
+			break
+		}
+		result = result[:start] + " " + result[start+end+1:]
+	}
+	return strings.TrimSpace(result)
 }
 
 // === Comments ===

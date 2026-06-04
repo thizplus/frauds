@@ -7,6 +7,8 @@ export interface Article {
   categoryId: string
   categoryName: string
   authorName: string
+  authorBio: string
+  authorAvatar: string
   status: ArticleStatus
   publishedAt: string
   tags: string[]
@@ -43,6 +45,9 @@ export interface CreateArticleRequest {
   metaDescription?: string
   tags?: string[]
   isFeatured?: boolean
+  authorDisplayName?: string
+  authorBio?: string
+  authorAvatar?: string
 }
 
 export interface UpdateArticleRequest {
@@ -57,6 +62,9 @@ export interface UpdateArticleRequest {
   metaDescription?: string
   tags?: string[]
   isFeatured?: boolean
+  authorDisplayName?: string
+  authorBio?: string
+  authorAvatar?: string
 }
 
 export interface CreateArticleCategoryRequest {

@@ -6,6 +6,7 @@ import (
 	"fraud-api/domain/repositories"
 	"fraud-api/domain/services"
 	"fraud-api/infrastructure/claude"
+	"fraud-api/infrastructure/gemini"
 	"fraud-api/infrastructure/line"
 	"fraud-api/infrastructure/notification"
 	"fraud-api/infrastructure/postgres"
@@ -188,7 +189,8 @@ func (c *Container) Initialize() error {
 	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
 	llmAdapter := claude.NewClaudeAdapter(cfg.Claude.APIKey, cfg.Claude.BaseURL, cfg.Claude.Model)
-	c.ArticleService = serviceimpl.NewArticleService(c.ArticleRepo, llmAdapter)
+	imageGenAdapter := gemini.NewGeminiAdapter(cfg.Gemini.APIKey, cfg.Gemini.Model)
+	c.ArticleService = serviceimpl.NewArticleService(c.ArticleRepo, llmAdapter, imageGenAdapter, c.Storage)
 
 	// FaceSearchService ต้องการ FaceClient + FraudService + SocialSearchRepo (resolve social_post)
 	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService, c.SocialSearchRepo)
