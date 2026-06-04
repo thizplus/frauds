@@ -189,7 +189,17 @@ func (c *Container) Initialize() error {
 	c.ServicePaymentService = serviceimpl.NewServicePaymentService(c.ServicePaymentRepo, c.ServiceRepo, c.SettingsRepo)
 	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
-	llmAdapter := claude.NewClaudeAdapter(cfg.Claude.APIKey, cfg.Claude.BaseURL, cfg.Claude.Model)
+	// LLM: ใช้ OpenAI GPT (primary), fallback Claude
+	var llmAdapter ports.LLMPort
+	if cfg.OpenAI.APIKey != "" {
+		llmAdapter = openaiAdapter.NewGPTArticleAdapter(cfg.OpenAI.APIKey, "gpt-4o-mini")
+		logger.Info("Article generation adapter: OpenAI GPT-4o-mini")
+	} else if cfg.Claude.APIKey != "" {
+		llmAdapter = claude.NewClaudeAdapter(cfg.Claude.APIKey, cfg.Claude.BaseURL, cfg.Claude.Model)
+		logger.Info("Article generation adapter: Claude")
+	} else {
+		logger.Info("Article generation: not configured (no API key)")
+	}
 
 	// ImageGen: ใช้ OpenAI DALL-E (primary), fallback Gemini
 	var imageGenAdapter ports.ImageGenPort
