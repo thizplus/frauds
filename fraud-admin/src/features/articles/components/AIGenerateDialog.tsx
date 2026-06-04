@@ -70,7 +70,15 @@ export function AIGenerateDialog({ categories }: AIGenerateDialogProps) {
         status: 'draft',
       })
 
-      toast.success('สร้างบทความด้วย AI สำเร็จ')
+      // สร้างรูปปกอัตโนมัติ
+      toast.success('สร้างบทความสำเร็จ กำลังสร้างรูปปก...')
+      try {
+        await apiClient.post(ARTICLE_ROUTES.GENERATE_COVER(article.id))
+        toast.success('สร้างรูปปกสำเร็จ')
+      } catch {
+        toast.info('สร้างรูปปกไม่สำเร็จ สามารถสร้างใหม่ได้ภายหลัง')
+      }
+
       setOpen(false)
       navigate(`/articles/${article.id}/edit`)
     } catch (err) {
