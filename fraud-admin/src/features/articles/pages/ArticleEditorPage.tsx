@@ -73,7 +73,7 @@ export function ArticleEditorPage() {
       excerpt,
       content,
       coverImage: coverImage || undefined,
-      categoryId: categoryId || undefined,
+      categoryId: categoryId && categoryId !== 'none' ? categoryId : undefined,
       status,
       metaTitle: metaTitle || undefined,
       metaDescription: metaDescription || undefined,
@@ -175,7 +175,7 @@ export function ArticleEditorPage() {
                     <SelectValue placeholder="เลือกหมวดหมู่" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">ไม่ระบุ</SelectItem>
+                    <SelectItem value="none">ไม่ระบุ</SelectItem>
                     {categories?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}

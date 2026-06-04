@@ -52,7 +52,7 @@ const axiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor - attach token
+// Request interceptor - attach token + handle FormData
 axiosInstance.interceptors.request.use((config) => {
   // อ่าน token จาก Zustand persist storage
   const authStorage = localStorage.getItem('auth-storage')
@@ -66,6 +66,12 @@ axiosInstance.interceptors.request.use((config) => {
       // Invalid JSON, ignore
     }
   }
+
+  // ถ้า data เป็น FormData ให้ลบ Content-Type เพื่อให้ browser set multipart/form-data + boundary อัตโนมัติ
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   return config
 })
 
