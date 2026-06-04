@@ -3,6 +3,7 @@ package openai
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,11 +39,10 @@ func (d *DallEAdapter) GenerateImage(ctx context.Context, req *ports.ImageGenReq
 	}
 
 	body := map[string]any{
-		"model":           d.model,
-		"prompt":          req.Prompt,
-		"n":               1,
-		"size":            "1792x1024",
-		"response_format": "b64_json",
+		"model":  d.model,
+		"prompt": req.Prompt,
+		"n":      1,
+		"size":   "1792x1024",
 	}
 
 	bodyBytes, err := json.Marshal(body)
@@ -76,6 +76,7 @@ func (d *DallEAdapter) GenerateImage(ctx context.Context, req *ports.ImageGenReq
 
 	var dalleResp struct {
 		Data []struct {
+			URL     string `json:"url"`
 			B64JSON string `json:"b64_json"`
 		} `json:"data"`
 	}
@@ -84,12 +85,37 @@ func (d *DallEAdapter) GenerateImage(ctx context.Context, req *ports.ImageGenReq
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	if len(dalleResp.Data) == 0 || dalleResp.Data[0].B64JSON == "" {
+	if len(dalleResp.Data) == 0 {
 		return nil, fmt.Errorf("no image generated from DALL-E")
 	}
 
-	return &ports.ImageGenResult{
-		ImageBase64: dalleResp.Data[0].B64JSON,
-		MimeType:    "image/png",
-	}, nil
+	// ถ้ามี b64_json ใช้เลย
+	if dalleResp.Data[0].B64JSON != "" {
+		return &ports.ImageGenResult{
+			ImageBase64: dalleResp.Data[0].B64JSON,
+			MimeType:    "image/png",
+		}, nil
+	}
+
+	// ถ้าเป็น URL ต้องดาวน์โหลดมาแปลง base64
+	if dalleResp.Data[0].URL != "" {
+		imgResp, err := d.httpClient.Get(dalleResp.Data[0].URL)
+		if err != nil {
+			return nil, fmt.Errorf("download DALL-E image: %w", err)
+		}
+		defer imgResp.Body.Close()
+
+		imgBytes, err := io.ReadAll(imgResp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("read DALL-E image: %w", err)
+		}
+
+		encoded := base64.StdEncoding.EncodeToString(imgBytes)
+		return &ports.ImageGenResult{
+			ImageBase64: encoded,
+			MimeType:    "image/png",
+		}, nil
+	}
+
+	return nil, fmt.Errorf("no image data from DALL-E")
 }

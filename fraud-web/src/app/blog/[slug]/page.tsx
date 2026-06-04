@@ -135,21 +135,6 @@ export default async function BlogArticlePage({
             {article.title}
           </h1>
 
-          {/* Author card */}
-          <div className="author-card mb-4">
-            <div className="author-avatar">
-              {article.authorAvatar ? (
-                <img src={article.authorAvatar} alt={article.authorName} />
-              ) : (
-                <span>{article.authorName?.charAt(0)?.toUpperCase() || 'A'}</span>
-              )}
-            </div>
-            <div>
-              <div className="author-name">{article.authorName}</div>
-              {article.authorBio && <div className="author-bio">{article.authorBio}</div>}
-            </div>
-          </div>
-
           <div className="flex flex-wrap items-center gap-4 text-sm text-secondary">
             <span className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
@@ -168,6 +153,22 @@ export default async function BlogArticlePage({
 
         {/* Content */}
         <ArticleContent html={article.content} articleId={article.id} />
+
+        {/* Author */}
+        <div className="author-box mt-8 pt-6 border-t border-[var(--border)]">
+          <div className="author-avatar-lg">
+            {article.authorAvatar ? (
+              <img src={article.authorAvatar} alt={article.authorName} />
+            ) : (
+              <span>{article.authorName?.charAt(0)?.toUpperCase() || 'A'}</span>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-secondary mb-0.5">เขียนโดย</p>
+            <div className="author-name-lg">{article.authorName}</div>
+            {article.authorBio && <div className="author-bio-lg">{article.authorBio}</div>}
+          </div>
+        </div>
 
         {/* Tags */}
         {article.tags && article.tags.length > 0 && (
