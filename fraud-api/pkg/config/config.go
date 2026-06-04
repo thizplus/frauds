@@ -19,6 +19,7 @@ type Config struct {
 	FaceService FaceServiceConfig
 	Claude      ClaudeConfig
 	Gemini      GeminiConfig
+	OpenAI      OpenAIConfig
 	RedisURL    string
 }
 
@@ -106,6 +107,11 @@ type GeminiConfig struct {
 	Model  string
 }
 
+type OpenAIConfig struct {
+	APIKey string
+	Model  string // dall-e-3
+}
+
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -167,6 +173,10 @@ func LoadConfig() (*Config, error) {
 			APIKey:  getEnv("CLAUDE_API_KEY", ""),
 			BaseURL: getEnv("CLAUDE_BASE_URL", "https://api.anthropic.com"),
 			Model:   getEnv("CLAUDE_MODEL", "claude-sonnet-4-6"),
+		},
+		OpenAI: OpenAIConfig{
+			APIKey: getEnv("OPENAI_API_KEY", ""),
+			Model:  getEnv("OPENAI_IMAGE_MODEL", "dall-e-3"),
 		},
 		Gemini: GeminiConfig{
 			APIKey: getEnv("GEMINI_API_KEY", ""),

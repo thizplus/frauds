@@ -8,6 +8,7 @@ import (
 	"fraud-api/infrastructure/claude"
 	"fraud-api/infrastructure/gemini"
 	"fraud-api/infrastructure/line"
+	openaiAdapter "fraud-api/infrastructure/openai"
 	"fraud-api/infrastructure/notification"
 	"fraud-api/infrastructure/postgres"
 	"fraud-api/infrastructure/session"
@@ -189,7 +190,18 @@ func (c *Container) Initialize() error {
 	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
 	llmAdapter := claude.NewClaudeAdapter(cfg.Claude.APIKey, cfg.Claude.BaseURL, cfg.Claude.Model)
-	imageGenAdapter := gemini.NewGeminiAdapter(cfg.Gemini.APIKey, cfg.Gemini.Model)
+
+	// ImageGen: ใช้ OpenAI DALL-E (primary), fallback Gemini
+	var imageGenAdapter ports.ImageGenPort
+	if cfg.OpenAI.APIKey != "" {
+		imageGenAdapter = openaiAdapter.NewDallEAdapter(cfg.OpenAI.APIKey, cfg.OpenAI.Model)
+		logger.Info("Image generation adapter: OpenAI DALL-E")
+	} else if cfg.Gemini.APIKey != "" {
+		imageGenAdapter = gemini.NewGeminiAdapter(cfg.Gemini.APIKey, cfg.Gemini.Model)
+		logger.Info("Image generation adapter: Gemini")
+	} else {
+		logger.Info("Image generation: not configured (no API key)")
+	}
 	c.ArticleService = serviceimpl.NewArticleService(c.ArticleRepo, llmAdapter, imageGenAdapter, c.Storage)
 
 	// FaceSearchService ต้องการ FaceClient + FraudService + SocialSearchRepo (resolve social_post)

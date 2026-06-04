@@ -48,6 +48,8 @@ services:
       - CLAUDE_MODEL=${CLAUDE_MODEL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL}
     volumes:
       - ./fraud-api:/app
     depends_on:
