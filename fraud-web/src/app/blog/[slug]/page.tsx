@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronRight, Clock, Eye, User, Tag } from 'lucide-react'
+import { ChevronRight, Clock, Eye, User, Tag, BookOpen } from 'lucide-react'
 import { blogService } from '@/features/blog'
+import { estimateReadingTime } from '@/features/blog/utils'
 import { ArticleContent } from '@/features/blog/components/ArticleContent'
 import { ShareButtons } from '@/features/blog/components/ShareButtons'
 import { ArticleCard } from '@/features/blog/components/ArticleCard'
@@ -68,6 +69,7 @@ export default async function BlogArticlePage({
     ? new Date(article.publishedAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
     : ''
 
+  const readingTime = estimateReadingTime(article.content)
   const articleUrl = `${SITE_URL}/blog/${article.slug}`
 
   // JSON-LD structured data
@@ -142,6 +144,10 @@ export default async function BlogArticlePage({
             <span className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
               {date}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" />
+              อ่าน {readingTime} นาที
             </span>
             <span className="flex items-center gap-1.5">
               <Eye className="w-4 h-4" />

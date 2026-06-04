@@ -3090,3 +3090,132 @@ body {
     text-align: center;
   }
 }
+
+/* ===== Article Layout with TOC ===== */
+
+.article-with-toc {
+  position: relative;
+}
+.article-main {
+  min-width: 0;
+}
+.article-sidebar {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .article-with-toc {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 2rem;
+  }
+  .article-sidebar {
+    display: block;
+  }
+}
+
+/* TOC — Desktop (sticky sidebar) */
+.toc-desktop {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .toc-desktop {
+    display: block;
+    position: sticky;
+    top: 5rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+}
+
+.toc-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-left: 2px solid var(--border);
+}
+
+.toc-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  margin-left: -2px;
+  transition: color .15s, border-color .15s;
+}
+.toc-link:hover {
+  color: var(--text);
+}
+.toc-link-sub {
+  padding-left: 1.5rem;
+  font-size: 0.75rem;
+}
+.toc-link-active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+/* TOC — Mobile (collapsible) */
+.toc-mobile {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.toc-mobile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: none;
+  cursor: pointer;
+}
+.toc-chevron {
+  margin-left: auto;
+  transition: transform .2s;
+}
+.toc-chevron.open {
+  transform: rotate(180deg);
+}
+.toc-mobile .toc-list {
+  padding: 0.5rem 1rem 0.75rem;
+  border-left: none;
+}
+.toc-mobile .toc-link {
+  border-left: none;
+  margin-left: 0;
+  padding: 0.3rem 0;
+}
+.toc-mobile .toc-link-sub {
+  padding-left: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .toc-mobile {
+    display: none;
+  }
+}
