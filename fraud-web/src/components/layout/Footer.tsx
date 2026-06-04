@@ -8,6 +8,7 @@ export function Footer() {
             <a href="/blog" className="hover:text-accent transition-colors">บทความ</a>
             <a href="/pricing" className="hover:text-accent transition-colors">สมัครสมาชิก</a>
             <a href="/report" className="hover:text-accent transition-colors">แจ้งข้อมูล</a>
+            <a href="/privacy" className="hover:text-accent transition-colors">นโยบายความเป็นส่วนตัว</a>
           </div>
         </div>
       </div>

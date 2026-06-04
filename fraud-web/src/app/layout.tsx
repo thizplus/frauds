@@ -7,6 +7,8 @@ import { ClientLiffProvider } from '@/components/layout/ClientLiffProvider'
 import { ClientFooter } from '@/components/layout/ClientFooter'
 import { ClientFloatingUser } from '@/components/layout/ClientFloatingUser'
 import { getPageMetadata } from '@/lib/seo/metadata'
+import { GTMScript } from '@/lib/gtm/GTMScript'
+import { CookieConsent } from '@/components/shared/CookieConsent'
 
 const googleSans = Google_Sans({
   subsets: ['latin', 'thai'],
@@ -53,6 +55,8 @@ export default function RootLayout({
             <ClientNavbar />
             <main className="flex-1 flex flex-col tech-grid">{children}</main>
             <ClientFooter />
+            <CookieConsent />
+            <GTMScript />
             {/* <ClientFloatingUser /> — ปิดไว้ก่อน ดูรก */}
           </ClientLiffProvider>
         </QueryProvider>
