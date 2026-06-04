@@ -227,6 +227,9 @@ func (s *authServiceImpl) UpdateProfile(ctx context.Context, userID uuid.UUID, r
 	if req.AvatarURL != nil {
 		user.AvatarURL = *req.AvatarURL
 	}
+	if req.Bio != nil {
+		user.Bio = *req.Bio
+	}
 	if req.Password != nil {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		if err != nil {

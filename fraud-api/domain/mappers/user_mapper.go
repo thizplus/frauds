@@ -17,6 +17,7 @@ func UserToResponse(user *models.User) *dto.UserResponse {
 		Name:      user.Name,
 		Role:      string(user.Role),
 		AvatarURL: user.AvatarURL,
+		Bio:       user.Bio,
 		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 	}

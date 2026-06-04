@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/auth-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ImageUpload } from '@/components/ui/image-upload'
@@ -23,18 +24,20 @@ export function ProfilePage() {
   })
 
   const [name, setName] = useState('')
+  const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [password, setPassword] = useState('')
 
   useEffect(() => {
     if (profile) {
       setName(profile.name)
+      setBio(profile.bio || '')
       setAvatarUrl(profile.avatarUrl || '')
     }
   }, [profile])
 
   const updateMutation = useMutation({
-    mutationFn: (data: { name?: string; avatarUrl?: string; password?: string }) =>
+    mutationFn: (data: { name?: string; bio?: string; avatarUrl?: string; password?: string }) =>
       apiClient.patch<User>(AUTH_ROUTES.UPDATE_PROFILE, data),
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ['profile'] })
@@ -46,8 +49,9 @@ export function ProfilePage() {
   })
 
   const handleSave = () => {
-    const data: { name?: string; avatarUrl?: string; password?: string } = {}
+    const data: { name?: string; bio?: string; avatarUrl?: string; password?: string } = {}
     if (name !== profile?.name) data.name = name
+    if (bio !== (profile?.bio || '')) data.bio = bio
     if (avatarUrl !== (profile?.avatarUrl || '')) data.avatarUrl = avatarUrl
     if (password) data.password = password
 
@@ -90,6 +94,12 @@ export function ProfilePage() {
           <div className="space-y-2">
             <Label htmlFor="name">ชื่อ</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อที่แสดง" />
+          </div>
+
+          {/* Bio */}
+          <div className="space-y-2">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="แนะนำตัวสั้นๆ เช่น นักเขียนด้านความปลอดภัยออนไลน์" rows={3} />
           </div>
 
           <Separator />

@@ -29,6 +29,7 @@ type LineLoginRequest struct {
 type UpdateProfileRequest struct {
 	Name      *string `json:"name" validate:"omitempty,max=100"`
 	AvatarURL *string `json:"avatarUrl" validate:"omitempty,max=500"`
+	Bio       *string `json:"bio"`
 	Password  *string `json:"password" validate:"omitempty,min=8,max=72"`
 }
 
@@ -38,6 +39,7 @@ type UserResponse struct {
 	Name      string `json:"name"`
 	Role      string `json:"role"`
 	AvatarURL string `json:"avatarUrl,omitempty"`
+	Bio       string `json:"bio,omitempty"`
 	IsActive  bool   `json:"isActive"`
 	CreatedAt string `json:"createdAt,omitempty"`
 }

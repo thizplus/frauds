@@ -20,6 +20,7 @@ type User struct {
 	Name       string    `gorm:"size:100;not null"`
 	LineUserID string    `gorm:"size:100;uniqueIndex"`
 	AvatarURL  string    `gorm:"size:500"`
+	Bio        string    `gorm:"type:text"`
 	Role       UserRole  `gorm:"size:20;default:'member'"`
 	IsActive   bool      `gorm:"default:true"`
 	CreatedAt  time.Time
