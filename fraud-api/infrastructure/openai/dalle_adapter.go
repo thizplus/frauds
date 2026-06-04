@@ -21,7 +21,7 @@ type DallEAdapter struct {
 }
 
 func NewDallEAdapter(apiKey, model string) ports.ImageGenPort {
-	if model == "" {
+	if model == "" || model == "dall-e-3" {
 		model = "gpt-image-1"
 	}
 	return &DallEAdapter{
