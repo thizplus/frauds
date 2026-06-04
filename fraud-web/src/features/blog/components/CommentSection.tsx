@@ -37,15 +37,17 @@ export function CommentSection({ articleSlug }: CommentSectionProps) {
       setLoading(true)
       const newOffset = reset ? 0 : offset
       const res = await apiClient.get(`/articles/slug/${articleSlug}/comments?limit=20&offset=${newOffset}`)
-      const data = (res.data as { comments: Comment[]; total: number })
+      const wrapper = res.data as { success: boolean; data: { comments: Comment[]; total: number } }
+      const comments = wrapper.data?.comments ?? []
+      const total = wrapper.data?.total ?? 0
       if (reset) {
-        setComments(data.comments)
+        setComments(comments)
         setOffset(20)
       } else {
-        setComments((prev) => [...prev, ...data.comments])
+        setComments((prev) => [...prev, ...comments])
         setOffset((prev) => prev + 20)
       }
-      setTotal(data.total)
+      setTotal(total)
     } catch {
       // ไม่ต้องแสดง error — ถ้า API ยังไม่พร้อม
     } finally {

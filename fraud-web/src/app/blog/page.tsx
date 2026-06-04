@@ -25,14 +25,23 @@ export default async function BlogPage({
   const page = Number(params.page) || 1
   const category = params.category || ''
 
-  const [articlesResult, featured, categories] = await Promise.all([
-    blogService.getArticles(page, 12, category || undefined),
-    page === 1 && !category ? blogService.getFeatured(1) : Promise.resolve([]),
-    blogService.getCategories(),
-  ])
+  let articles: Awaited<ReturnType<typeof blogService.getArticles>>['data'] = []
+  let meta: Awaited<ReturnType<typeof blogService.getArticles>>['meta'] | null = null
+  let featured: Awaited<ReturnType<typeof blogService.getFeatured>> = []
+  let categories: Awaited<ReturnType<typeof blogService.getCategories>> = []
 
-  const articles = articlesResult.data
-  const meta = articlesResult.meta
+  try {
+    const [articlesResult, featuredResult, categoriesResult] = await Promise.all([
+      blogService.getArticles(page, 12, category || undefined),
+      page === 1 && !category ? blogService.getFeatured(1) : Promise.resolve([]),
+      blogService.getCategories(),
+    ])
+    articles = articlesResult.data ?? []
+    meta = articlesResult.meta ?? null
+    featured = featuredResult ?? []
+    categories = categoriesResult ?? []
+  } catch {}
+
   const heroArticle = featured[0]
 
   return (

@@ -95,7 +95,7 @@ export default async function BlogArticlePage({
   // Fetch related articles (tag overlap + same category)
   let relatedArticles: Awaited<ReturnType<typeof blogService.getRelated>> = []
   try {
-    relatedArticles = await blogService.getRelated(article.slug, 3)
+    relatedArticles = (await blogService.getRelated(article.slug, 3)) ?? []
   } catch {}
 
   return (
