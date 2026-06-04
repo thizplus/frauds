@@ -358,6 +358,30 @@ func (h *ArticleHandler) AdminReorderCategories(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, fiber.Map{"message": "บันทึกลำดับสำเร็จ"})
 }
 
+// === AI Generate ===
+
+// AdminGenerateArticle POST /admin/articles/generate
+func (h *ArticleHandler) AdminGenerateArticle(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	var req dto.GenerateArticleRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequestResponse(c, "Invalid request body")
+	}
+
+	if err := utils.ValidateStruct(&req); err != nil {
+		return utils.ValidationErrorResponse(c, utils.GetValidationErrors(err))
+	}
+
+	result, err := h.articleService.GenerateArticle(ctx, &req)
+	if err != nil {
+		logger.WarnContext(ctx, "Generate article failed", "error", err)
+		return utils.BadRequestResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, result)
+}
+
 // === Comments ===
 
 // ListComments GET /articles/slug/:slug/comments

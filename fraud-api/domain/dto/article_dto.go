@@ -87,6 +87,27 @@ type ArticleCategoryResponse struct {
 	ArticleCount int64  `json:"articleCount"`
 }
 
+// === AI Generate Request ===
+
+type GenerateArticleRequest struct {
+	Topic    string   `json:"topic" validate:"required,max=500"`
+	Category string   `json:"category"`
+	Tone     string   `json:"tone" validate:"omitempty,oneof=formal casual educational"`
+	Length   string   `json:"length" validate:"omitempty,oneof=short medium long"`
+	Keywords []string `json:"keywords"`
+	Outline  []string `json:"outline"`
+}
+
+type GenerateArticleResponse struct {
+	Title           string   `json:"title"`
+	Content         string   `json:"content"`
+	Excerpt         string   `json:"excerpt"`
+	MetaTitle       string   `json:"metaTitle"`
+	MetaDescription string   `json:"metaDescription"`
+	SuggestedTags   []string `json:"suggestedTags"`
+	SuggestedSlug   string   `json:"suggestedSlug"`
+}
+
 // === Comment Request ===
 
 type CreateCommentRequest struct {

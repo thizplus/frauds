@@ -32,6 +32,9 @@ type ArticleService interface {
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	ReorderCategories(ctx context.Context, ids []string) error
 
+	// AI Generate
+	GenerateArticle(ctx context.Context, req *dto.GenerateArticleRequest) (*dto.GenerateArticleResponse, error)
+
 	// Comments
 	ListComments(ctx context.Context, slug string, limit, offset int) ([]dto.CommentResponse, int64, error)
 	CreateComment(ctx context.Context, articleSlug string, userID uuid.UUID, req *dto.CreateCommentRequest) (*dto.CommentResponse, error)

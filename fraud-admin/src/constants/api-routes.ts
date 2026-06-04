@@ -81,6 +81,7 @@ export const COMMENT_ROUTES = {
 export const ARTICLE_ROUTES = {
   LIST: '/admin/articles',
   BY_ID: (id: string) => `/admin/articles/${id}`,
+  GENERATE: '/admin/articles/generate',
   PUBLISH: (id: string) => `/admin/articles/${id}/publish`,
   UNPUBLISH: (id: string) => `/admin/articles/${id}/unpublish`,
   CATEGORIES: '/admin/article-categories',

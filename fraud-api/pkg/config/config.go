@@ -17,6 +17,7 @@ type Config struct {
 	Storage     StorageConfig
 	LINE        LINEConfig
 	FaceService FaceServiceConfig
+	Claude      ClaudeConfig
 	RedisURL    string
 }
 
@@ -93,6 +94,12 @@ type AdminSeedConfig struct {
 	Password string
 }
 
+type ClaudeConfig struct {
+	APIKey  string
+	BaseURL string
+	Model   string
+}
+
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -149,6 +156,11 @@ func LoadConfig() (*Config, error) {
 		FaceService: FaceServiceConfig{
 			URL:    getEnv("FACE_SERVICE_URL", "http://face-service:3002"),
 			APIKey: getEnv("FACE_API_KEY", ""),
+		},
+		Claude: ClaudeConfig{
+			APIKey:  getEnv("CLAUDE_API_KEY", ""),
+			BaseURL: getEnv("CLAUDE_BASE_URL", "https://api.anthropic.com"),
+			Model:   getEnv("CLAUDE_MODEL", "claude-sonnet-4-6"),
 		},
 		RedisURL: getEnv("REDIS_URL", ""),
 		LINE: LINEConfig{

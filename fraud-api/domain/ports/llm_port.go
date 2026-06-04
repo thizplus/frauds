@@ -1,0 +1,26 @@
+package ports
+
+import "context"
+
+type LLMArticleRequest struct {
+	Topic    string   `json:"topic"`
+	Category string   `json:"category"`
+	Tone     string   `json:"tone"`     // formal / casual / educational
+	Length   string   `json:"length"`   // short / medium / long
+	Keywords []string `json:"keywords"`
+	Outline  []string `json:"outline"`
+}
+
+type LLMArticleResult struct {
+	Title           string   `json:"title"`
+	Content         string   `json:"content"`
+	Excerpt         string   `json:"excerpt"`
+	MetaTitle       string   `json:"metaTitle"`
+	MetaDescription string   `json:"metaDescription"`
+	SuggestedTags   []string `json:"suggestedTags"`
+	SuggestedSlug   string   `json:"suggestedSlug"`
+}
+
+type LLMPort interface {
+	GenerateArticle(ctx context.Context, req *LLMArticleRequest) (*LLMArticleResult, error)
+}

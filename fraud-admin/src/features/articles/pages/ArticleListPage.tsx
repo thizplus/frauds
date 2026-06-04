@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArticleStatusBadge } from '../components/ArticleStatusBadge'
-import { useArticleList, useDeleteArticle, usePublishArticle, useUnpublishArticle } from '../hooks'
+import { AIGenerateDialog } from '../components/AIGenerateDialog'
+import { useArticleList, useDeleteArticle, usePublishArticle, useUnpublishArticle, useArticleCategories } from '../hooks'
 
 export function ArticleListPage() {
   const navigate = useNavigate()
@@ -18,6 +19,7 @@ export function ArticleListPage() {
   const [search, setSearch] = useState('')
 
   const { data, isLoading } = useArticleList({ page, limit: 20, status: status || undefined, search: search || undefined })
+  const { data: categories } = useArticleCategories()
   const deleteMutation = useDeleteArticle()
   const publishMutation = usePublishArticle()
   const unpublishMutation = useUnpublishArticle()
@@ -49,10 +51,13 @@ export function ArticleListPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>บทความ</CardTitle>
-        <Button onClick={() => navigate('/articles/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          สร้างบทความ
-        </Button>
+        <div className="flex gap-2">
+          <AIGenerateDialog categories={categories ?? []} />
+          <Button onClick={() => navigate('/articles/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            สร้างบทความ
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-4 flex gap-3">

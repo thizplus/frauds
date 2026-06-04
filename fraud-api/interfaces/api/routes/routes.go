@@ -201,6 +201,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 
 	// Articles
 	admin.Get("/articles", h.ArticleHandler.AdminList)
+	admin.Post("/articles/generate", h.ArticleHandler.AdminGenerateArticle)
 	admin.Get("/articles/:id", h.ArticleHandler.AdminGetByID)
 	admin.Post("/articles", h.ArticleHandler.AdminCreate)
 	admin.Put("/articles/:id", h.ArticleHandler.AdminUpdate)
