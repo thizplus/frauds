@@ -78,6 +78,20 @@ func (s *articleServiceImpl) IncrementViewCount(ctx context.Context, id uuid.UUI
 	return s.articleRepo.IncrementViewCount(ctx, id)
 }
 
+func (s *articleServiceImpl) ListRelated(ctx context.Context, slug string, limit int) ([]dto.ArticleResponse, error) {
+	article, err := s.articleRepo.GetBySlug(ctx, slug)
+	if err != nil {
+		return nil, errors.New("article not found")
+	}
+
+	related, err := s.articleRepo.ListRelated(ctx, article.ID, article.CategoryID, []string(article.Tags), limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return mappers.ArticlesToResponses(related), nil
+}
+
 // === Admin ===
 
 func (s *articleServiceImpl) Create(ctx context.Context, authorID uuid.UUID, req *dto.CreateArticleRequest) (*dto.ArticleDetailResponse, error) {
@@ -388,6 +402,29 @@ func (s *articleServiceImpl) ReorderCategories(ctx context.Context, ids []string
 	}
 	logger.InfoContext(ctx, "Article categories reordered", "count", len(ids))
 	return nil
+}
+
+// === Stats ===
+
+func (s *articleServiceImpl) GetBlogStats(ctx context.Context) (*dto.BlogStatsResponse, error) {
+	statusCounts, _ := s.articleRepo.CountByStatus(ctx)
+	totalViews, _ := s.articleRepo.SumViewCount(ctx)
+	totalComments, _ := s.articleRepo.CountAllComments(ctx)
+	topArticles, _ := s.articleRepo.ListTopByViews(ctx, 5)
+
+	var total int64
+	for _, c := range statusCounts {
+		total += c
+	}
+
+	return &dto.BlogStatsResponse{
+		TotalArticles:     total,
+		PublishedArticles: statusCounts[string(models.ArticlePublished)],
+		DraftArticles:     statusCounts[string(models.ArticleDraft)],
+		TotalViews:        totalViews,
+		TotalComments:     totalComments,
+		TopArticles:       mappers.ArticlesToResponses(topArticles),
+	}, nil
 }
 
 // === AI Generate ===

@@ -87,6 +87,17 @@ type ArticleCategoryResponse struct {
 	ArticleCount int64  `json:"articleCount"`
 }
 
+// === Blog Stats Response ===
+
+type BlogStatsResponse struct {
+	TotalArticles     int64              `json:"totalArticles"`
+	PublishedArticles int64              `json:"publishedArticles"`
+	DraftArticles     int64              `json:"draftArticles"`
+	TotalViews        int64              `json:"totalViews"`
+	TotalComments     int64              `json:"totalComments"`
+	TopArticles       []ArticleResponse  `json:"topArticles"`
+}
+
 // === AI Generate Request ===
 
 type GenerateArticleRequest struct {

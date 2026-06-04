@@ -92,13 +92,10 @@ export default async function BlogArticlePage({
     keywords: article.tags?.join(', '),
   }
 
-  // Fetch related articles (same category)
-  let relatedArticles: Awaited<ReturnType<typeof blogService.getArticles>>['data'] = []
+  // Fetch related articles (tag overlap + same category)
+  let relatedArticles: Awaited<ReturnType<typeof blogService.getRelated>> = []
   try {
-    if (article.categoryName) {
-      const result = await blogService.getArticles(1, 3, article.categoryName)
-      relatedArticles = result.data.filter((a) => a.slug !== article.slug).slice(0, 3)
-    }
+    relatedArticles = await blogService.getRelated(article.slug, 3)
   } catch {}
 
   return (

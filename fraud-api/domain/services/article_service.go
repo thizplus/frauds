@@ -15,6 +15,7 @@ type ArticleService interface {
 	ListFeatured(ctx context.Context, limit int) ([]dto.ArticleResponse, error)
 	ListSitemap(ctx context.Context) ([]dto.ArticleSitemapItem, error)
 	IncrementViewCount(ctx context.Context, id uuid.UUID) error
+	ListRelated(ctx context.Context, slug string, limit int) ([]dto.ArticleResponse, error)
 
 	// Admin
 	Create(ctx context.Context, authorID uuid.UUID, req *dto.CreateArticleRequest) (*dto.ArticleDetailResponse, error)
@@ -31,6 +32,9 @@ type ArticleService interface {
 	UpdateCategory(ctx context.Context, id uuid.UUID, req *dto.UpdateArticleCategoryRequest) (*dto.ArticleCategoryResponse, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	ReorderCategories(ctx context.Context, ids []string) error
+
+	// Stats
+	GetBlogStats(ctx context.Context) (*dto.BlogStatsResponse, error)
 
 	// AI Generate
 	GenerateArticle(ctx context.Context, req *dto.GenerateArticleRequest) (*dto.GenerateArticleResponse, error)

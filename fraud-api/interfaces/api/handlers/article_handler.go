@@ -92,6 +92,28 @@ func (h *ArticleHandler) ListSitemap(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, items)
 }
 
+// ListRelated GET /articles/slug/:slug/related
+func (h *ArticleHandler) ListRelated(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	slug := c.Params("slug")
+	if slug == "" {
+		return utils.BadRequestResponse(c, "Slug is required")
+	}
+
+	limit, _ := strconv.Atoi(c.Query("limit", "3"))
+	if limit < 1 || limit > 10 {
+		limit = 3
+	}
+
+	articles, err := h.articleService.ListRelated(ctx, slug, limit)
+	if err != nil {
+		return utils.NotFoundResponse(c, err.Error())
+	}
+
+	return utils.SuccessResponse(c, articles)
+}
+
 // IncrementViewCount PATCH /articles/:id/view
 func (h *ArticleHandler) IncrementViewCount(c *fiber.Ctx) error {
 	ctx := c.UserContext()
@@ -356,6 +378,20 @@ func (h *ArticleHandler) AdminReorderCategories(c *fiber.Ctx) error {
 	}
 
 	return utils.SuccessResponse(c, fiber.Map{"message": "บันทึกลำดับสำเร็จ"})
+}
+
+// === Blog Stats ===
+
+// AdminBlogStats GET /admin/articles/stats
+func (h *ArticleHandler) AdminBlogStats(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+
+	stats, err := h.articleService.GetBlogStats(ctx)
+	if err != nil {
+		return utils.InternalServerErrorResponse(c)
+	}
+
+	return utils.SuccessResponse(c, stats)
 }
 
 // === AI Generate ===

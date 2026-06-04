@@ -34,8 +34,15 @@ type ArticleRepository interface {
 	ListCategories(ctx context.Context) ([]models.ArticleCategory, error)
 	CategorySlugExists(ctx context.Context, slug string, excludeID *uuid.UUID) (bool, error)
 
+	// Related
+	ListRelated(ctx context.Context, articleID uuid.UUID, categoryID *uuid.UUID, tags []string, limit int) ([]models.Article, error)
+
 	// Counts
 	CountByCategory(ctx context.Context) (map[string]int64, error)
+	CountByStatus(ctx context.Context) (map[string]int64, error)
+	SumViewCount(ctx context.Context) (int64, error)
+	ListTopByViews(ctx context.Context, limit int) ([]models.Article, error)
+	CountAllComments(ctx context.Context) (int64, error)
 
 	// Comments
 	CreateComment(ctx context.Context, comment *models.ArticleComment) error

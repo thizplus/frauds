@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"fraud-api/domain/models"
@@ -70,7 +71,6 @@ func (r *articleRepository) ListPublished(ctx context.Context, categorySlug stri
 	var total int64
 
 	q := r.db.WithContext(ctx).Model(&models.Article{}).Where("status = ?", models.ArticlePublished)
-
 	if categorySlug != "" {
 		q = q.Joins("JOIN article_categories ON article_categories.id = articles.category_id").
 			Where("article_categories.slug = ?", categorySlug)
@@ -81,21 +81,14 @@ func (r *articleRepository) ListPublished(ctx context.Context, categorySlug stri
 	}
 
 	offset := (page - 1) * limit
-	err := r.db.WithContext(ctx).Preload("Category").Preload("Author").
-		Where("articles.status = ?", models.ArticlePublished).
-		Order("articles.published_at DESC").
-		Offset(offset).Limit(limit).
-		Find(&articles).Error
-
+	query := r.db.WithContext(ctx).Preload("Category").Preload("Author").
+		Where("articles.status = ?", models.ArticlePublished)
 	if categorySlug != "" {
-		err = r.db.WithContext(ctx).Preload("Category").Preload("Author").
-			Joins("JOIN article_categories ON article_categories.id = articles.category_id").
-			Where("articles.status = ? AND article_categories.slug = ?", models.ArticlePublished, categorySlug).
-			Order("articles.published_at DESC").
-			Offset(offset).Limit(limit).
-			Find(&articles).Error
+		query = query.Joins("JOIN article_categories ON article_categories.id = articles.category_id").
+			Where("article_categories.slug = ?", categorySlug)
 	}
 
+	err := query.Order("articles.published_at DESC").Offset(offset).Limit(limit).Find(&articles).Error
 	return articles, total, err
 }
 
@@ -135,9 +128,7 @@ func (r *articleRepository) ListFeatured(ctx context.Context, limit int) ([]mode
 	var articles []models.Article
 	err := r.db.WithContext(ctx).Preload("Category").Preload("Author").
 		Where("status = ? AND is_featured = ?", models.ArticlePublished, true).
-		Order("published_at DESC").
-		Limit(limit).
-		Find(&articles).Error
+		Order("published_at DESC").Limit(limit).Find(&articles).Error
 	return articles, err
 }
 
@@ -207,6 +198,65 @@ func (r *articleRepository) CategorySlugExists(ctx context.Context, slug string,
 	}
 	err := q.Count(&count).Error
 	return count > 0, err
+}
+
+func (r *articleRepository) CountByStatus(ctx context.Context) (map[string]int64, error) {
+	type result struct {
+		Status string
+		Count  int64
+	}
+	var results []result
+	err := r.db.WithContext(ctx).Model(&models.Article{}).
+		Select("status, count(*) as count").Group("status").Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[string]int64)
+	for _, r := range results {
+		counts[r.Status] = r.Count
+	}
+	return counts, nil
+}
+
+func (r *articleRepository) SumViewCount(ctx context.Context) (int64, error) {
+	var sum int64
+	err := r.db.WithContext(ctx).Model(&models.Article{}).Select("COALESCE(SUM(view_count), 0)").Row().Scan(&sum)
+	return sum, err
+}
+
+func (r *articleRepository) ListTopByViews(ctx context.Context, limit int) ([]models.Article, error) {
+	var articles []models.Article
+	err := r.db.WithContext(ctx).Preload("Category").Preload("Author").
+		Where("status = ?", models.ArticlePublished).
+		Order("view_count DESC").Limit(limit).Find(&articles).Error
+	return articles, err
+}
+
+func (r *articleRepository) CountAllComments(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.ArticleComment{}).Count(&count).Error
+	return count, err
+}
+
+// === Related ===
+
+func (r *articleRepository) ListRelated(ctx context.Context, articleID uuid.UUID, categoryID *uuid.UUID, tags []string, limit int) ([]models.Article, error) {
+	var articles []models.Article
+
+	q := r.db.WithContext(ctx).Preload("Category").Preload("Author").
+		Where("id != ? AND status = ?", articleID, models.ArticlePublished)
+
+	// Same category OR overlapping tags
+	if categoryID != nil && len(tags) > 0 {
+		q = q.Where("category_id = ? OR tags && ?", *categoryID, pq.StringArray(tags))
+	} else if categoryID != nil {
+		q = q.Where("category_id = ?", *categoryID)
+	} else if len(tags) > 0 {
+		q = q.Where("tags && ?", pq.StringArray(tags))
+	}
+
+	err := q.Order("published_at DESC").Limit(limit).Find(&articles).Error
+	return articles, err
 }
 
 // === Counts ===

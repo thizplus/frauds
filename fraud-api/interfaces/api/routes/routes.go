@@ -62,6 +62,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	articles.Get("/sitemap", h.ArticleHandler.ListSitemap)
 	articles.Get("/categories", h.ArticleHandler.ListPublicCategories)
 	articles.Get("/slug/:slug", h.ArticleHandler.GetBySlug)
+	articles.Get("/slug/:slug/related", h.ArticleHandler.ListRelated)
 	articles.Get("/slug/:slug/comments", h.ArticleHandler.ListComments)
 	articles.Post("/slug/:slug/comments", middleware.JWTMiddleware(jwtSecret), h.ArticleHandler.CreateComment)
 	articles.Patch("/:id/view", h.ArticleHandler.IncrementViewCount)
@@ -201,6 +202,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 
 	// Articles
 	admin.Get("/articles", h.ArticleHandler.AdminList)
+	admin.Get("/articles/stats", h.ArticleHandler.AdminBlogStats)
 	admin.Post("/articles/generate", h.ArticleHandler.AdminGenerateArticle)
 	admin.Get("/articles/:id", h.ArticleHandler.AdminGetByID)
 	admin.Post("/articles", h.ArticleHandler.AdminCreate)

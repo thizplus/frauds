@@ -37,6 +37,10 @@ export const blogService = {
     return fetchAPI<Article[]>(`/featured?limit=${limit}`, 60)
   },
 
+  async getRelated(slug: string, limit = 3): Promise<Article[]> {
+    return fetchAPI<Article[]>(`/slug/${slug}/related?limit=${limit}`, 60)
+  },
+
   async getCategories(): Promise<ArticleCategory[]> {
     return fetchAPI<ArticleCategory[]>('/categories', 300)
   },
