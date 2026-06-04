@@ -58,10 +58,14 @@ type Container struct {
 	ServicePaymentService services.ServicePaymentService
 	MemberService         services.MemberService
 	AdminService          services.AdminService
+	ArticleService        services.ArticleService
 	LineBotService        services.LineBotService
 
+	// Article Repository
+	ArticleRepo repositories.ArticleRepository
+
 	// Ports (additional)
-	SessionStore  ports.SessionStore
+	SessionStore ports.SessionStore
 	LineMessaging ports.LineMessagingPort
 }
 
@@ -112,6 +116,9 @@ func (c *Container) Initialize() error {
 	if err := postgres.SeedServices(db); err != nil {
 		logger.Warn("Services seed error", "error", err)
 	}
+	if err := postgres.SeedArticleCategories(db); err != nil {
+		logger.Warn("Article categories seed error", "error", err)
+	}
 	if err := postgres.SeedAdmin(db, cfg.Admin.Email, cfg.Admin.Password); err != nil {
 		logger.Warn("Admin seed skipped", "error", err)
 	}
@@ -130,6 +137,7 @@ func (c *Container) Initialize() error {
 	c.ServicePaymentRepo = postgres.NewServicePaymentRepository(db)
 	c.MemberRepo = postgres.NewMemberRepository(db)
 	c.AdminRepo = postgres.NewAdminRepository(db)
+	c.ArticleRepo = postgres.NewArticleRepository(db)
 
 	// 5. Ports (Adapters)
 	if cfg.Storage.Provider == "s3" {
@@ -178,6 +186,7 @@ func (c *Container) Initialize() error {
 	c.ServicePaymentService = serviceimpl.NewServicePaymentService(c.ServicePaymentRepo, c.ServiceRepo, c.SettingsRepo)
 	c.MemberService = serviceimpl.NewMemberService(c.MemberRepo, c.SearchLogRepo, c.MembershipRepo, c.SettingsRepo, c.FraudService)
 	c.AdminService = serviceimpl.NewAdminService(c.AdminRepo, c.Notifier)
+	c.ArticleService = serviceimpl.NewArticleService(c.ArticleRepo)
 
 	// FaceSearchService ต้องการ FaceClient + FraudService + SocialSearchRepo (resolve social_post)
 	c.FaceSearchService = serviceimpl.NewFaceSearchService(faceClient, c.FraudService, c.SocialSearchRepo)

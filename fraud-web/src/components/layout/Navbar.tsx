@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, Shield, Plus, Menu, X, LogIn, LogOut, Bot, LayoutDashboard, AlertTriangle, Database } from 'lucide-react'
+import { Search, Shield, Plus, Menu, X, LogIn, LogOut, Bot, LayoutDashboard, AlertTriangle, Database, BookOpen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useSubscription } from '@/lib/hooks/useSubscription'
@@ -65,6 +65,7 @@ function FullNavbar({ pathname }: { pathname: string }) {
       { href: '/dashboard', label: 'แดชบอร์ด', icon: LayoutDashboard },
       { href: '/lender', label: 'ระบบเก็บข้อมูล', icon: Database },
     ] : []),
+    { href: '/blog', label: 'บทความ', icon: BookOpen },
     { href: '/pricing', label: 'สมัครสมาชิก', icon: Shield },
   ]
 
@@ -85,7 +86,7 @@ function FullNavbar({ pathname }: { pathname: string }) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`nav-link ${pathname === link.href ? 'nav-link-active' : ''}`}
+                  className={`nav-link ${pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) ? 'nav-link-active' : ''}`}
                 >
                   <link.icon className="w-4 h-4" />
                   {link.label}
@@ -184,7 +185,7 @@ function FullNavbar({ pathname }: { pathname: string }) {
             <Link
               key={link.href}
               href={link.href}
-              className={`nav-link ${pathname === link.href ? 'nav-link-active' : ''}`}
+              className={`nav-link ${pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) ? 'nav-link-active' : ''}`}
               onClick={() => setMobileOpen(false)}
             >
               <link.icon className="w-5 h-5" />

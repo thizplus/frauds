@@ -9,6 +9,7 @@ import {
   Sparkles,
   Database,
   FileSearch,
+  FileText,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,11 @@ export const NAV_MAIN: NavItem[] = [
     title: 'ตรวจสอบ Social',
     url: '/social-review',
     icon: FileSearch,
+  },
+  {
+    title: 'บทความ',
+    url: '/articles',
+    icon: FileText,
   },
   {
     title: 'หมวดหมู่',

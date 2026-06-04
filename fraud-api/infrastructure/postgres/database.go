@@ -64,6 +64,8 @@ func Migrate(db *gorm.DB) error {
 		&models.LenderProfile{},
 		&models.Debtor{},
 		&models.LenderAdmin{},
+		&models.ArticleCategory{},
+		&models.Article{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
@@ -77,6 +79,8 @@ func Migrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status_end ON subscriptions(user_id, status, end_date)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_searchable_entities_normalized ON searchable_entities(normalized_value, entity_type)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_debtors_lender_status ON debtors(lender_id, status)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC) WHERE status = 'published'")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_articles_featured ON articles(is_featured) WHERE is_featured = true AND status = 'published'")
 
 	// Social review system — เพิ่ม review_status column (idempotent)
 	db.Exec("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS review_status VARCHAR(20) DEFAULT 'approved'")
@@ -100,6 +104,10 @@ func Migrate(db *gorm.DB) error {
 		"ALTER TABLE subscriptions ADD CONSTRAINT fk_subscriptions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
 		"ALTER TABLE debtors DROP CONSTRAINT IF EXISTS fk_debtors_lender",
 		"ALTER TABLE debtors ADD CONSTRAINT fk_debtors_lender FOREIGN KEY (lender_id) REFERENCES lender_profiles(id) ON DELETE CASCADE",
+		"ALTER TABLE articles DROP CONSTRAINT IF EXISTS fk_articles_category",
+		"ALTER TABLE articles ADD CONSTRAINT fk_articles_category FOREIGN KEY (category_id) REFERENCES article_categories(id) ON DELETE SET NULL",
+		"ALTER TABLE articles DROP CONSTRAINT IF EXISTS fk_articles_author",
+		"ALTER TABLE articles ADD CONSTRAINT fk_articles_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE",
 	}
 	for _, sql := range cascades {
 		db.Exec(sql)

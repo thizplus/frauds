@@ -54,6 +54,16 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	api.Get("/register/:code", h.LenderHandler.GetInviteInfo)
 	api.Post("/register/:code", middleware.RateLimitMiddleware(10, 1*time.Minute), h.LenderHandler.Register)
 
+	// === Articles (Public + rate limited) ===
+	articles := api.Group("/articles")
+	articles.Use(middleware.RateLimitMiddleware(60, 1*time.Minute))
+	articles.Get("", h.ArticleHandler.ListPublished)
+	articles.Get("/featured", h.ArticleHandler.ListFeatured)
+	articles.Get("/sitemap", h.ArticleHandler.ListSitemap)
+	articles.Get("/categories", h.ArticleHandler.ListPublicCategories)
+	articles.Get("/slug/:slug", h.ArticleHandler.GetBySlug)
+	articles.Patch("/:id/view", h.ArticleHandler.IncrementViewCount)
+
 	// User routes (JWT auth, ไม่ต้องเป็น admin)
 	user := api.Group("/me")
 	user.Use(middleware.JWTMiddleware(jwtSecret))
@@ -180,6 +190,22 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, apiKey string, jwtSecret 
 	admin.Get("/payments/:id", h.PaymentHandler.GetPayment)
 	admin.Patch("/payments/:id/approve", h.PaymentHandler.ApprovePayment)
 	admin.Patch("/payments/:id/reject", h.PaymentHandler.RejectPayment)
+
+	// Articles
+	admin.Get("/articles", h.ArticleHandler.AdminList)
+	admin.Get("/articles/:id", h.ArticleHandler.AdminGetByID)
+	admin.Post("/articles", h.ArticleHandler.AdminCreate)
+	admin.Put("/articles/:id", h.ArticleHandler.AdminUpdate)
+	admin.Delete("/articles/:id", h.ArticleHandler.AdminDelete)
+	admin.Patch("/articles/:id/publish", h.ArticleHandler.AdminPublish)
+	admin.Patch("/articles/:id/unpublish", h.ArticleHandler.AdminUnpublish)
+
+	// Article Categories
+	admin.Get("/article-categories", h.ArticleHandler.AdminListCategories)
+	admin.Post("/article-categories", h.ArticleHandler.AdminCreateCategory)
+	admin.Put("/article-categories/reorder", h.ArticleHandler.AdminReorderCategories)
+	admin.Put("/article-categories/:id", h.ArticleHandler.AdminUpdateCategory)
+	admin.Delete("/article-categories/:id", h.ArticleHandler.AdminDeleteCategory)
 
 	// Service Payments
 	admin.Get("/service-payments", h.ServicePaymentHandler.AdminList)

@@ -71,6 +71,16 @@ export const SOCIAL_REVIEW_ROUTES = {
   BATCH_APPROVE_PROGRESS: (jobId: string) => `/admin/social/posts/batch-approve-by-type/${jobId}`,
 }
 
+export const ARTICLE_ROUTES = {
+  LIST: '/admin/articles',
+  BY_ID: (id: string) => `/admin/articles/${id}`,
+  PUBLISH: (id: string) => `/admin/articles/${id}/publish`,
+  UNPUBLISH: (id: string) => `/admin/articles/${id}/unpublish`,
+  CATEGORIES: '/admin/article-categories',
+  CATEGORY_BY_ID: (id: string) => `/admin/article-categories/${id}`,
+  CATEGORY_REORDER: '/admin/article-categories/reorder',
+}
+
 export const SERVICE_PAYMENT_ROUTES = {
   LIST: '/admin/service-payments',
   BY_ID: (id: string) => `/admin/service-payments/${id}`,

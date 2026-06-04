@@ -78,6 +78,7 @@ func main() {
 		container.ServicePaymentService,
 		container.MemberService,
 		container.AdminService,
+		container.ArticleService,
 		container.Storage,
 	)
 
