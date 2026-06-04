@@ -22,7 +22,7 @@ type DallEAdapter struct {
 
 func NewDallEAdapter(apiKey, model string) ports.ImageGenPort {
 	if model == "" {
-		model = "dall-e-3"
+		model = "gpt-image-1"
 	}
 	return &DallEAdapter{
 		apiKey: apiKey,
@@ -42,7 +42,7 @@ func (d *DallEAdapter) GenerateImage(ctx context.Context, req *ports.ImageGenReq
 		"model":  d.model,
 		"prompt": req.Prompt,
 		"n":      1,
-		"size":   "1792x1024",
+		"size":   "1536x1024",
 	}
 
 	bodyBytes, err := json.Marshal(body)

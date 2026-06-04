@@ -176,7 +176,7 @@ func LoadConfig() (*Config, error) {
 		},
 		OpenAI: OpenAIConfig{
 			APIKey: getEnv("OPENAI_API_KEY", ""),
-			Model:  getEnv("OPENAI_IMAGE_MODEL", "dall-e-3"),
+			Model:  getEnv("OPENAI_IMAGE_MODEL", "gpt-image-1"),
 		},
 		Gemini: GeminiConfig{
 			APIKey: getEnv("GEMINI_API_KEY", ""),
