@@ -503,11 +503,14 @@ func (s *articleServiceImpl) GenerateCoverImage(ctx context.Context, articleID u
 	}
 
 	prompt := fmt.Sprintf(
-		"Create a modern, professional blog cover image for an article titled \"%s\". "+
-			"The article is about: %s. "+
-			"Style: Clean, minimal, modern illustration with subtle gradients. "+
-			"Color palette: dark navy (#0f172a) background with green (#00d492) accents. "+
-			"Do NOT include any text in the image. Landscape orientation 16:9.",
+		"Create a cinematic, photorealistic blog cover image for an article titled \"%s\". "+
+			"Context: %s. "+
+			"Style: Professional photography, dramatic lighting, shallow depth of field, editorial magazine quality. "+
+			"Mood: Serious, trustworthy, protective. "+
+			"Color grading: Dark moody tones with teal/cyan (#00d492) accent lighting, deep navy (#0f172a) shadows. "+
+			"NO text, NO words, NO letters, NO watermarks in the image. "+
+			"NO cartoon, NO vector, NO illustration, NO clip art. "+
+			"Photorealistic only. Landscape 3:2 ratio.",
 		article.Title, plainText,
 	)
 

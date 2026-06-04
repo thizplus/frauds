@@ -4,6 +4,8 @@ import { ChevronRight, Clock, Eye, Tag, BookOpen } from 'lucide-react'
 import { blogService } from '@/features/blog'
 import { estimateReadingTime } from '@/features/blog/utils'
 import { ArticleContent } from '@/features/blog/components/ArticleContent'
+import { ArticleHighlight } from '@/features/blog/components/ArticleHighlight'
+import { ArticleCTA } from '@/features/blog/components/ArticleCTA'
 import { ShareButtons } from '@/features/blog/components/ShareButtons'
 import { CommentSection } from '@/features/blog/components/CommentSection'
 import { ArticleCard } from '@/features/blog/components/ArticleCard'
@@ -29,20 +31,26 @@ export async function generateMetadata({
       description,
       keywords: article.tags?.join(', '),
       openGraph: {
-        title,
+        title: `${title} — เช็กคนโกง`,
         description,
+        siteName: 'เช็กคนโกง',
+        url: `${SITE_URL}/blog/${slug}`,
         type: 'article',
         publishedTime: article.publishedAt,
         modifiedTime: article.updatedAt,
         authors: [article.authorName],
         tags: article.tags,
-        images: article.coverImage ? [{ url: article.coverImage, width: 1200, height: 630 }] : [],
+        images: article.coverImage
+          ? [{ url: article.coverImage, width: 1536, height: 1024, alt: title }]
+          : [{ url: `${SITE_URL}/og-image.png`, width: 1200, height: 630, alt: 'เช็กคนโกง' }],
       },
       twitter: {
         card: 'summary_large_image',
-        title,
+        title: `${title} — เช็กคนโกง`,
         description,
-        images: article.coverImage ? [article.coverImage] : [],
+        images: article.coverImage
+          ? [{ url: article.coverImage, alt: title }]
+          : [`${SITE_URL}/og-image.png`],
       },
       alternates: {
         canonical: `${SITE_URL}/blog/${slug}`,
@@ -151,8 +159,14 @@ export default async function BlogArticlePage({
           </div>
         </header>
 
+        {/* Excerpt Highlight */}
+        <ArticleHighlight excerpt={article.excerpt} />
+
         {/* Content */}
-        <ArticleContent html={article.content} articleId={article.id} />
+        <ArticleContent html={article.content} articleId={article.id} categorySlug={article.categoryName} />
+
+        {/* Bottom CTA */}
+        <ArticleCTA variant="bottom" categorySlug={article.categoryName} />
 
         {/* Author */}
         <div className="author-box mt-8 pt-6 border-t border-[var(--border)]">
