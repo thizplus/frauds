@@ -505,6 +505,7 @@ func (s *articleServiceImpl) GenerateCoverImage(ctx context.Context, articleID u
 	prompt := fmt.Sprintf(
 		"Create a cinematic, photorealistic blog cover image for an article titled \"%s\". "+
 			"Context: %s. "+
+			"Setting: Southeast Asian / Thai context. If people appear, they must be Asian (Thai/Southeast Asian ethnicity). "+
 			"Style: Professional photography, dramatic lighting, shallow depth of field, editorial magazine quality. "+
 			"Mood: Serious, trustworthy, protective. "+
 			"Color grading: Dark moody tones with teal/cyan (#00d492) accent lighting, deep navy (#0f172a) shadows. "+
