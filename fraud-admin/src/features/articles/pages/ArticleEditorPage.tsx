@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ImageUpload } from '@/components/ui/image-upload'
 import { TipTapEditor } from '../components/TipTapEditor'
 import { useArticleDetail, useCreateArticle, useUpdateArticle, useArticleCategories } from '../hooks'
 
@@ -183,11 +184,8 @@ export function ArticleEditorPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="cover">รูปปก (URL)</Label>
-                <Input id="cover" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="https://..." />
-                {coverImage && (
-                  <img src={coverImage} alt="Cover" className="mt-2 rounded-md max-h-32 object-cover w-full" />
-                )}
+                <Label>รูปปก</Label>
+                <ImageUpload value={coverImage} onChange={setCoverImage} folder="articles/covers" variant="cover" placeholder="อัปโหลดรูปปกบทความ" />
               </div>
               <div>
                 <Label>Tags</Label>
@@ -246,11 +244,8 @@ export function ArticleEditorPage() {
                 <Textarea id="authorBio" value={authorBio} onChange={(e) => setAuthorBio(e.target.value)} placeholder="คำอธิบายสั้นๆ เกี่ยวกับผู้เขียน" rows={2} />
               </div>
               <div>
-                <Label htmlFor="authorAvatar">รูปผู้เขียน (URL)</Label>
-                <Input id="authorAvatar" value={authorAvatar} onChange={(e) => setAuthorAvatar(e.target.value)} placeholder="https://..." />
-                {authorAvatar && (
-                  <img src={authorAvatar} alt="Author" className="mt-2 w-12 h-12 rounded-full object-cover" />
-                )}
+                <Label>รูปผู้เขียน</Label>
+                <ImageUpload value={authorAvatar} onChange={setAuthorAvatar} folder="authors" variant="avatar" />
               </div>
             </CardContent>
           </Card>

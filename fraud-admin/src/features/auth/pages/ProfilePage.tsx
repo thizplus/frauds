@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Camera, Loader2, Save } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { AUTH_ROUTES } from '@/constants/api-routes'
@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { ImageUpload } from '@/components/ui/image-upload'
 import type { User } from '../types'
 
 export function ProfilePage() {
   const qc = useQueryClient()
   const setUser = useAuthStore((s) => s.setUser)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -25,7 +25,6 @@ export function ProfilePage() {
   const [name, setName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [password, setPassword] = useState('')
-  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -45,24 +44,6 @@ export function ProfilePage() {
     },
     onError: () => toast.error('บันทึกไม่สำเร็จ'),
   })
-
-  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await apiClient.post<{ url: string }>(AUTH_ROUTES.UPLOAD, formData)
-      setAvatarUrl(res.url)
-      toast.success('อัปโหลดรูปสำเร็จ')
-    } catch {
-      toast.error('อัปโหลดรูปไม่สำเร็จ')
-    } finally {
-      setUploading(false)
-    }
-  }
 
   const handleSave = () => {
     const data: { name?: string; avatarUrl?: string; password?: string } = {}
@@ -95,23 +76,7 @@ export function ProfilePage() {
         <CardContent className="space-y-6">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-muted overflow-hidden flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{name?.charAt(0)?.toUpperCase() || 'A'}</span>
-                )}
-              </div>
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-80 transition-opacity"
-              >
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadAvatar} />
-            </div>
+            <ImageUpload value={avatarUrl} onChange={setAvatarUrl} folder="avatars" variant="avatar" />
             <div>
               <p className="font-semibold">{profile?.name}</p>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
@@ -125,12 +90,6 @@ export function ProfilePage() {
           <div className="space-y-2">
             <Label htmlFor="name">ชื่อ</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อที่แสดง" />
-          </div>
-
-          {/* Avatar URL (manual) */}
-          <div className="space-y-2">
-            <Label htmlFor="avatar">URL รูปโปรไฟล์</Label>
-            <Input id="avatar" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." />
           </div>
 
           <Separator />

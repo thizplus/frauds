@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -37,6 +38,13 @@ export function TipTapEditor({ content, onChange, placeholder = 'เริ่ม
       },
     },
   })
+
+  // Sync content เมื่อ prop เปลี่ยน (async load article)
+  useEffect(() => {
+    if (editor && content && editor.getHTML() !== content) {
+      editor.commands.setContent(content)
+    }
+  }, [editor, content])
 
   return (
     <div className="rounded-md border border-input bg-background">
