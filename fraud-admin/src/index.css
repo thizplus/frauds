@@ -235,3 +235,141 @@
     color: var(--theme-toggle-icon);
   }
 }
+
+/* ===== TipTap Editor Styles ===== */
+
+.article-editor-content {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+
+.article-editor-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid hsl(var(--border));
+  line-height: 1.3;
+}
+
+.article-editor-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+.article-editor-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.article-editor-content p {
+  margin: 0 0 0.75rem;
+}
+
+.article-editor-content ul,
+.article-editor-content ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.article-editor-content ul {
+  list-style: disc;
+}
+
+.article-editor-content ol {
+  list-style: decimal;
+}
+
+.article-editor-content li {
+  margin-bottom: 0.25rem;
+}
+
+.article-editor-content li p {
+  margin: 0;
+}
+
+.article-editor-content blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+.article-editor-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-editor-content img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.article-editor-content pre {
+  background: hsl(var(--muted));
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.article-editor-content code {
+  background: hsl(var(--muted));
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.article-editor-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.article-editor-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1.5rem 0;
+}
+
+.article-editor-content mark {
+  background: hsl(var(--primary) / 0.2);
+  color: inherit;
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+.article-editor-content strong {
+  font-weight: 700;
+}
+
+.article-editor-content em {
+  font-style: italic;
+}
+
+.article-editor-content u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-editor-content s {
+  text-decoration: line-through;
+}
+
+/* TipTap placeholder */
+.article-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
