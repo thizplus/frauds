@@ -22,7 +22,10 @@ export function useSetupLender() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: { businessName: string }) => lenderService.setup(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: lenderKeys.profile() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: lenderKeys.profile() })
+      qc.invalidateQueries({ queryKey: lenderKeys.myRole() })
+    },
   })
 }
 
